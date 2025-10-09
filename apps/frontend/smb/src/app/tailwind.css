@@ -1,0 +1,8 @@
+@source "../**/*.{ts,tsx,js,jsx}";
+@source "../../../../../libs/frontend/ui/src/**/*.{ts,tsx,js,jsx}";
+@import '../../../../../libs/frontend/ui/src/theme/theme.css';
+
+@theme {
+  /* App-specific theme overrides can go here */
+  /* The base theme and CSS variables are inherited from the shared UI library theme.css */
+}
