@@ -1,0 +1,16 @@
+{
+  "name": "@libs/frontend/ui",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/frontend/ui/src",
+  "projectType": "library",
+  "tags": ["type:ui", "scope:frontend"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/js:tsc",
+      "options": {
+        "tsConfig": "libs/frontend/ui/tsconfig.lib.json",
+        "main": "libs/frontend/ui/src/index.ts"
+      }
+    }
+  }
+}
