@@ -15,7 +15,11 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@libs/frontend/ui": ["libs/frontend/ui/src/index.ts"]
+      "@libs/contracts/types": [
+        "libs/frontend/ui/generated/contracts/index.ts"
+      ],
+      "@libs/frontend/ui": ["libs/frontend/ui/src/index.ts"],
+      "@libs/smart-contracts": ["libs/smart-contracts/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

@@ -36,7 +36,7 @@ export function NavMember({
           <DropdownMenuTrigger asChild>
             <div className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-md p-2 transition-all duration-200 ease-linear group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarFallback className="bg-accent text-accent-foreground">
+                <AvatarFallback className="bg-slate-200">
                   {member.name?.[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>

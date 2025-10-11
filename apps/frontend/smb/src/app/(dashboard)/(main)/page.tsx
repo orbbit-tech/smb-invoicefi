@@ -25,24 +25,24 @@ export default function OverviewPage() {
   };
 
   return (
-    <div className="py-8 space-y-8">
-      {/* Header Section */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-          <p className="text-muted-foreground mt-1">
-            Welcome back! Here's an overview of your invoice financing.
+    <div className="space-y-8 p-8">
+      {/* Header Section - 32px from top */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
+          <p className="text-muted-foreground">
+            Monitor your invoice financing at a glance
           </p>
         </div>
         <Link href="/invoices/submit">
-          <Button size="lg">
-            <PlusCircle className="mr-2 h-4 w-4" />
+          <Button className="font-semibold">
+            <PlusCircle className="h-4 w-4" />
             Submit Invoice
           </Button>
         </Link>
       </div>
 
-      {/* Metrics Grid */}
+      {/* Metrics Grid - 16px gaps */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Total Invoices"
@@ -53,13 +53,13 @@ export default function OverviewPage() {
         <MetricCard
           title="Active Funding"
           value={formatCurrency(metrics.activeFundingAmount)}
-          description="Invoices in funding process"
+          description="Currently in process"
           icon={TrendingUp}
         />
         <MetricCard
           title="Total Funded"
           value={formatCurrency(metrics.totalFundedToDate)}
-          description="Lifetime funded amount"
+          description="Lifetime funded"
           icon={DollarSign}
         />
         <MetricCard
@@ -70,15 +70,15 @@ export default function OverviewPage() {
         />
       </div>
 
-      {/* Recent Invoices Section */}
+      {/* Recent Invoices Section - 32px spacing */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="space-y-1">
             <h2 className="text-2xl font-semibold tracking-tight">
               Recent Invoices
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Your most recently submitted invoices
+            <p className="text-sm text-muted-foreground">
+              Latest submissions and their status
             </p>
           </div>
           <Link href="/invoices">
@@ -87,38 +87,6 @@ export default function OverviewPage() {
         </div>
 
         <InvoiceTable invoices={recentInvoices} />
-      </div>
-
-      {/* Quick Actions Section */}
-      <div className="bg-muted rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link href="/invoices/submit" className="block">
-            <div className="bg-background rounded-md p-4 hover:shadow-md transition-shadow cursor-pointer">
-              <PlusCircle className="h-8 w-8 mb-2 text-primary" />
-              <h4 className="font-medium mb-1">Submit New Invoice</h4>
-              <p className="text-sm text-muted-foreground">
-                Get funding for your invoices in under 24 hours
-              </p>
-            </div>
-          </Link>
-          <Link href="/invoices" className="block">
-            <div className="bg-background rounded-md p-4 hover:shadow-md transition-shadow cursor-pointer">
-              <FileText className="h-8 w-8 mb-2 text-primary" />
-              <h4 className="font-medium mb-1">View All Invoices</h4>
-              <p className="text-sm text-muted-foreground">
-                Track status and funding progress of all invoices
-              </p>
-            </div>
-          </Link>
-          <div className="bg-background rounded-md p-4 opacity-60">
-            <TrendingUp className="h-8 w-8 mb-2 text-muted-foreground" />
-            <h4 className="font-medium mb-1">Analytics (Coming Soon)</h4>
-            <p className="text-sm text-muted-foreground">
-              View detailed insights and performance metrics
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );

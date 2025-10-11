@@ -1,7 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import { ShoppingCart, TrendingUp, Home } from 'lucide-react';
+import {
+  ShoppingCart,
+  TrendingUp,
+  Home,
+  PanelLeftClose,
+  PanelRightClose,
+} from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 import {
@@ -11,10 +17,12 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
+  useSidebar,
   NavMain,
+  Button,
 } from '@ui';
 import { NavMember } from './nav-member';
-// import { NavOrg } from './nav-org'; // Commented out - investors don't need org switching
+import { NavLogo } from './nav-logo';
 import { Session } from '@/utils/atoms/auth';
 
 export function AppSidebar({
@@ -61,22 +69,54 @@ export function AppSidebar({
     [pathname]
   );
 
+  // Original: <Sidebar collapsible="icon" {...props}>
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+    <Sidebar
+      variant="inset"
+      collapsible="icon"
+      className="top-14 h-[calc(100vh-3.5rem)]"
+      {...props}
+    >
+      {/* COMMENTED OUT: Logo moved to header */}
+      {/* <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            {/* <NavOrg org={orgDisplayData} /> */}
-            {/* Commented out - investors don't need org switching */}
+            <NavLogo />
           </SidebarMenuItem>
         </SidebarMenu>
-      </SidebarHeader>
+      </SidebarHeader> */}
       <SidebarContent>
         <NavMain items={navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavMember member={memberDisplayData} />
+        <SidebarCollapseButton />
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+/**
+ * SidebarCollapseButton - Custom collapse/expand button for sidebar footer
+ *
+ * Shows panel icons to indicate the collapse/expand action
+ */
+function SidebarCollapseButton() {
+  const { state, toggleSidebar } = useSidebar();
+  const isCollapsed = state === 'collapsed';
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggleSidebar}
+      className="hover:cursor-pointer"
+      aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+    >
+      {isCollapsed ? (
+        <PanelRightClose className="h-4 w-4" />
+      ) : (
+        <PanelLeftClose className="h-4 w-4" />
+      )}
+    </Button>
   );
 }

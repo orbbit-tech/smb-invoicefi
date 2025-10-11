@@ -3,6 +3,7 @@ import { AppSidebar } from '@/components/navigation/app-sidebar';
 import { Metadata } from 'next';
 import { SessionInitializer } from '@/components/session-initializer';
 import { DashboardContent } from '@/components/(dashboard)/dashboard-content';
+import { DashboardHeader } from '@/components/(dashboard)/dashboard-header';
 
 export const metadata: Metadata = {
   title: 'Orbbit SMB Dashboard',
@@ -26,17 +27,17 @@ export default async function DashboardLayout({
     isAuthenticated: true,
     member: {
       id: '123',
-      givenName: 'Test', // Will be populated in layout
-      familyName: null, // Will be populated in layout
-      name: 'Test User', // Will be populated in layout
-      email: 'test@test.com', // Will be populated in layout
+      givenName: 'John', // Will be populated in layout
+      familyName: 'Smith', // Will be populated in layout
+      name: 'John Smith', // Will be populated in layout
+      email: 'john@acme.com', // Will be populated in layout
       phone: '1234567890',
     },
     org: {
       id: '123',
       slug: 'test',
-      name: null, // Will be populated in layout
-      type: null, // Will be populated in layout
+      name: 'Acme LLC', // Will be populated in layout
+      type: 'BUSINESS_SMB', // Will be populated in layout
       logoUrl: null, // Will be populated in layout
     },
     business: {
@@ -48,10 +49,16 @@ export default async function DashboardLayout({
   };
 
   return (
-    <SidebarProvider>
-      <SessionInitializer initialSession={enrichedSession} />
-      <AppSidebar session={enrichedSession} />
-      <DashboardContent>{children}</DashboardContent>
-    </SidebarProvider>
+    <div className="h-screen overflow-hidden pt-14">
+      {/* Full-width fixed header */}
+      <DashboardHeader />
+
+      {/* Main layout with sidebar - h-full automatically accounts for pt-14 */}
+      <SidebarProvider className="h-full min-h-0">
+        <SessionInitializer initialSession={enrichedSession} />
+        <AppSidebar session={enrichedSession} />
+        <DashboardContent>{children}</DashboardContent>
+      </SidebarProvider>
+    </div>
   );
 }

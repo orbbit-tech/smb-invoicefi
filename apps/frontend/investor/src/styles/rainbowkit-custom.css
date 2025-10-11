@@ -1,0 +1,30 @@
+/**
+ * ============================================================================
+ * RainbowKit Custom Styling - Match Orbbit Design System
+ * ============================================================================
+ *
+ * Overrides RainbowKit's default ConnectButton styles to match our button
+ * design system specifications (small size):
+ *
+ * - Height: 32px (h-8)
+ * - Padding: 12px horizontal (px-3)
+ * - Font: 12px medium weight (text-xs font-medium)
+ * - Border radius: 6px (rounded-md)
+ * - Transitions: all 200ms
+ * - Interactive: focus rings, active scale
+ * - Button color: Teal (primary brand)
+ * - Modal color: Neutral gray (to avoid color overload)
+ *
+ * ============================================================================
+ */
+
+/* ConnectButton - Match h-8 (32px height) with teal brand color */
+button[data-testid='rk-connect-button'] {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  transition: all 200ms ease-in-out !important;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+}

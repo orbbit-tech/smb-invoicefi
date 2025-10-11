@@ -9,15 +9,61 @@
 @theme {
   /* Dark mode configuration */
   --default-dark-mode: class;
-  
+
   /* Container configuration */
   --container-center: true;
   --container-padding: 2rem;
   --container-screens-2xl: 1400px;
-  
+
   /* Font families */
   --font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-family-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+
+  /*
+   * TYPOGRAPHY SYSTEM - Clean Dashboard Design
+   *
+   * Font Sizes (Tailwind scale):
+   * - text-xs: 12px (0.75rem) - Captions, helper text
+   * - text-sm: 14px (0.875rem) - Small text, descriptions
+   * - text-base: 16px (1rem) - Body text, default
+   * - text-lg: 18px (1.125rem) - Card titles, emphasized text
+   * - text-xl: 20px (1.25rem) - Section subheadings
+   * - text-2xl: 24px (1.5rem) - Section headers
+   * - text-3xl: 30px (1.875rem) - Page titles
+   *
+   * Font Weights:
+   * - font-normal: 400 - Regular text
+   * - font-medium: 500 - Slightly emphasized
+   * - font-semibold: 600 - Section headers, important labels
+   * - font-bold: 700 - Page titles, major emphasis
+   *
+   * Line Heights:
+   * - leading-tight: 1.25 - Headings
+   * - leading-snug: 1.375 - Subheadings
+   * - leading-normal: 1.5 - Body text
+   * - leading-relaxed: 1.625 - Comfortable reading
+   */
+
+  /*
+   * SPACING SYSTEM - 8px Grid
+   *
+   * All spacing should be multiples of 8px for consistency:
+   * - space-1: 4px (0.25rem) - Micro spacing (rare)
+   * - space-2: 8px (0.5rem) - Tight spacing between related elements
+   * - space-3: 12px (0.75rem) - Compact spacing
+   * - space-4: 16px (1rem) - Standard gaps between elements
+   * - space-5: 20px (1.25rem) - Comfortable spacing
+   * - space-6: 24px (1.5rem) - Card padding, section internal spacing
+   * - space-8: 32px (2rem) - Section spacing, page margins
+   * - space-10: 40px (2.5rem) - Large section gaps
+   * - space-12: 48px (3rem) - Major section breaks
+   *
+   * Usage Guidelines:
+   * - Card padding: p-6 (24px)
+   * - Element gaps: gap-4 (16px)
+   * - Section spacing: space-y-8 (32px)
+   * - Page padding: p-8 (32px)
+   */
   
   /* Colors using CSS variables - preserving all existing design tokens */
   --color-gray-50: rgb(249 250 251);

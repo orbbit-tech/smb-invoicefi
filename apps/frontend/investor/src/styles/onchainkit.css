@@ -27,7 +27,7 @@
   --ock-background: var(--background);
   --ock-background-hover: var(--accent);
   --ock-background-active: var(--accent);
-  --ock-background-alternate: var(--card);
+  --ock-background-alternate: var(--muted);
   --ock-background-alternate-hover: var(--accent);
   --ock-background-alternate-active: var(--accent);
   --ock-background-inverse: var(--foreground);
@@ -50,7 +50,8 @@
   --ock-line: var(--border);
 
   /* Shadow */
-  --ock-shadow-default: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --ock-shadow-default: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 /* Dark mode custom theme - Override default theme with Orbbit colors */
@@ -77,7 +78,7 @@
   --ock-background: var(--background);
   --ock-background-hover: var(--accent);
   --ock-background-active: var(--accent);
-  --ock-background-alternate: var(--card);
+  --ock-background-alternate: var(--muted);
   --ock-background-alternate-hover: var(--accent);
   --ock-background-alternate-active: var(--accent);
   --ock-background-inverse: var(--foreground);
@@ -100,96 +101,6 @@
   --ock-line: var(--border);
 
   /* Shadow */
-  --ock-shadow-default: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
-}
-
-/* ============================================================================
-   COMMENTED OUT - Using inline Tailwind classes instead on ConnectWallet
-   ============================================================================ */
-
-/* Compact wallet button for header - matches design system sizing (sm variant) */
-/* .ock-wallet-button-compact {
-  height: 2rem !important;
-  padding: 0.375rem 0.75rem !important;
-  font-size: 0.875rem !important;
-  line-height: 1.25rem !important;
-  min-width: auto !important;
-} */
-
-/* OnchainKit Wallet button - Orbbit teal theme (matches sm button variant) */
-/* .ock-wallet-button-orbbit button,
-[data-ock-wallet] button,
-[data-ock-connect-wallet] button {
-  height: 2rem !important;
-  padding: 0.375rem 0.75rem !important;
-  font-size: 0.875rem !important;
-  line-height: 1.25rem !important;
-  border-radius: var(--radius) !important;
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
-  background-color: hsl(180, 85%, 32%) !important;
-  color: white !important;
-  font-weight: 500 !important;
-  transition: all 0.2s ease !important;
-} */
-
-/* Hover state for OnchainKit button */
-/* .ock-wallet-button-orbbit button:hover,
-[data-ock-wallet] button:hover,
-[data-ock-connect-wallet] button:hover {
-  background-color: hsl(180, 85%, 28%) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-} */
-
-/* RainbowKit custom styling - compact button and matches design system */
-button[data-testid="rk-connect-button"],
-button[data-testid="rk-account-button"] {
-  height: 2.25rem !important; /* 36px - compact size for header */
-  padding: 0.5rem 0.75rem !important; /* py-2 px-3 */
-  font-size: 0.875rem !important; /* text-sm */
-  line-height: 1.25rem !important;
-  border-radius: var(--radius) !important;
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
-}
-
-/* RainbowKit modal - apply Inter font to all text */
-div[role="dialog"][aria-label*="Connect"] {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
-}
-
-/* Apply Inter font to all RainbowKit modal content */
-div[role="dialog"][aria-label*="Connect"] * {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
-}
-
-/* Specifically target modal text elements */
-div[role="dialog"] h1,
-div[role="dialog"] h2,
-div[role="dialog"] h3,
-div[role="dialog"] p,
-div[role="dialog"] button,
-div[role="dialog"] span,
-div[role="dialog"] div {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
-}
-
-/* ============================================================================
-   OnchainKit Wallet Modal Customization - Using Official OnchainKit Selectors
-   ============================================================================ */
-
-/* Make the logo smaller in OnchainKit modal */
-[data-testid="ockModalHeader"] img {
-  max-width: 48px;
-  max-height: 48px;
-  object-fit: contain;
-}
-
-/* Style wallet connector buttons using OnchainKit's class pattern */
-button[class*='ock']:not([class*='close']):not([class*='primary']) {
-  background-color: var(--ock-background-alternate);
-  transition: all 0.2s ease;
-}
-
-button[class*='ock']:not([class*='close']):not([class*='primary']):hover {
-  background-color: var(--ock-background-alternate-hover);
+  --ock-shadow-default: 0 4px 6px -1px rgb(0 0 0 / 0.3),
+    0 2px 4px -2px rgb(0 0 0 / 0.2);
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { Card } from '@ui';
+import { Card, cn } from '@ui';
 import {
   FileText,
   TrendingUp,
@@ -25,13 +25,21 @@ export type IconType = keyof typeof ICON_MAP;
 interface MetricCardProps {
   title: string;
   value: string;
-  description: string;
+  description?: string;
   iconType: IconType;
   className?: string;
+  /** Makes the card interactive with hover effects */
+  interactive?: boolean;
 }
 
 /**
  * MetricCard - Display key metrics with an icon.
+ *
+ * Clean Dashboard Design principles:
+ * - Consistent 24px (p-6) padding
+ * - Clear typography hierarchy
+ * - Subtle primary color accent for icons
+ * - Optional hover effects for interactive cards
  *
  * @example
  * ```tsx
@@ -49,18 +57,31 @@ export function MetricCard({
   description,
   iconType,
   className,
+  interactive = false,
 }: MetricCardProps) {
   const Icon = ICON_MAP[iconType];
 
   return (
-    <Card className={className}>
-      <div className="flex items-start justify-between p-6">
-        <div className="flex-1">
-          <p className="text-sm text-muted-foreground mb-1">{title}</p>
-          <p className="text-2xl font-bold text-foreground">{value}</p>
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
+    <Card
+      className={cn(
+        'transition-all duration-200',
+        interactive && 'hover:shadow-md hover:scale-[1.02] cursor-pointer',
+        className
+      )}
+    >
+      <div className="flex items-start justify-between gap-4 p-6">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-muted-foreground mb-2">
+            {title}
+          </p>
+          <p className="text-2xl font-bold text-foreground leading-tight">
+            {value}
+          </p>
+          {description && (
+            <p className="text-xs text-muted-foreground mt-2">{description}</p>
+          )}
         </div>
-        <div className="p-2 bg-primary/10 rounded-lg">
+        <div className="flex-shrink-0 p-3 bg-primary/10 rounded-lg">
           <Icon className="h-5 w-5 text-primary" />
         </div>
       </div>

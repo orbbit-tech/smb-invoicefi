@@ -3,6 +3,7 @@ import { AppSidebar } from '@/components/navigation/app-sidebar';
 import { Metadata } from 'next';
 import { SessionInitializer } from '@/components/session-initializer';
 import { DashboardContent } from '@/components/(dashboard)/dashboard-content';
+import { DashboardHeader } from '@/components/(dashboard)/dashboard-header';
 
 export const metadata: Metadata = {
   title: 'Orbbit Investor Dashboard',
@@ -41,10 +42,16 @@ export default async function DashboardLayout({
   };
 
   return (
-    <SidebarProvider>
-      <SessionInitializer initialSession={enrichedSession} />
-      <AppSidebar session={enrichedSession} />
-      <DashboardContent>{children}</DashboardContent>
-    </SidebarProvider>
+    <div className="h-screen overflow-hidden pt-14">
+      {/* Full-width fixed header */}
+      <DashboardHeader />
+
+      {/* Main layout with sidebar - h-full automatically accounts for pt-14 */}
+      <SidebarProvider className="h-full min-h-0">
+        <SessionInitializer initialSession={enrichedSession} />
+        <AppSidebar session={enrichedSession} />
+        <DashboardContent>{children}</DashboardContent>
+      </SidebarProvider>
+    </div>
   );
 }

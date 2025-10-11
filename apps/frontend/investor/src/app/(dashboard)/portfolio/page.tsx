@@ -4,6 +4,15 @@ import { useState } from 'react';
 import { Card, Tabs, TabsList, TabsTrigger, TabsContent } from '@ui';
 import { TrendingUp, Wallet, Clock, CheckCircle } from 'lucide-react';
 
+/**
+ * Portfolio Page
+ *
+ * Clean Dashboard Design principles:
+ * - Consistent 24px (p-6) card padding
+ * - Clear visual hierarchy
+ * - Professional data presentation
+ */
+
 // Mock portfolio data - in production this would come from smart contracts
 const MOCK_PORTFOLIO = {
   totalInvested: 45000,
@@ -15,6 +24,8 @@ const MOCK_PORTFOLIO = {
       id: 1,
       amount: 50000,
       funded: 35000,
+      companyName: 'FreshMart Distributors',
+      category: 'Distribution',
       payer: 'Microsoft',
       daysUntilDue: 60,
       apy: 10.5,
@@ -27,6 +38,8 @@ const MOCK_PORTFOLIO = {
       id: 3,
       amount: 75000,
       funded: 15000,
+      companyName: 'DataSync Systems',
+      category: 'Software',
       payer: 'Oracle',
       daysUntilDue: 90,
       apy: 12.1,
@@ -39,6 +52,8 @@ const MOCK_PORTFOLIO = {
       id: 4,
       amount: 30000,
       funded: 30000,
+      companyName: 'Creative Agency Pro',
+      category: 'Marketing',
       payer: 'Adobe',
       daysUntilDue: 15,
       apy: 8.5,
@@ -53,6 +68,8 @@ const MOCK_PORTFOLIO = {
       id: 2,
       amount: 25000,
       funded: 25000,
+      companyName: 'CloudTech Solutions',
+      category: 'Technology',
       payer: 'Salesforce',
       daysUntilDue: 0,
       apy: 9.2,
@@ -79,131 +96,94 @@ export default function PortfolioPage() {
   );
 
   return (
-    <>
+    <div className="space-y-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground mb-3 leading-tight">
           My Portfolio
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-lg text-muted-foreground leading-relaxed">
           Track your investments and returns
         </p>
       </div>
 
       {/* Portfolio Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Invested */}
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">
+        <Card className="p-6 transition-all duration-200 hover:shadow-md">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-muted-foreground mb-2">
                 Total Invested
               </p>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-2xl font-bold text-foreground leading-tight">
                 ${MOCK_PORTFOLIO.totalInvested.toLocaleString()}
               </p>
             </div>
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Wallet className="h-5 w-5 text-primary" />
+            <div className="flex-shrink-0 p-3 rounded-lg">
+              <Wallet className="h-5 w-5" />
             </div>
           </div>
         </Card>
 
         {/* Active Investments */}
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">
+        <Card className="p-6 transition-all duration-200 hover:shadow-md">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-muted-foreground mb-2">
                 Active Investments
               </p>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-2xl font-bold text-foreground leading-tight">
                 {MOCK_PORTFOLIO.activeInvestments}
               </p>
             </div>
-            <div className="p-2 bg-warning/10 rounded-lg">
-              <Clock className="h-5 w-5 text-warning" />
+            <div className="flex-shrink-0 p-3 rounded-lg">
+              <Clock className="h-5 w-5" />
             </div>
           </div>
         </Card>
 
         {/* Total Earned */}
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Total Earned</p>
-              <p className="text-2xl font-bold text-success">
+        <Card className="p-6 transition-all duration-200 hover:shadow-md">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-muted-foreground mb-2">
+                Total Earned
+              </p>
+              <p className="text-2xl font-bold leading-tight">
                 ${(realizedGains + unrealizedGains).toFixed(2)}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-2">
                 ${realizedGains.toFixed(2)} realized
               </p>
             </div>
-            <div className="p-2 bg-success/10 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-success" />
+            <div className="flex-shrink-0 p-3 rounded-lg">
+              <TrendingUp className="h-5 w-5 " />
             </div>
           </div>
         </Card>
 
         {/* Average APY */}
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Average APY</p>
-              <p className="text-2xl font-bold text-foreground">
+        <Card className="p-6 transition-all duration-200 hover:shadow-md">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-muted-foreground mb-2">
+                Average APY
+              </p>
+              <p className="text-2xl font-bold text-foreground leading-tight">
                 {MOCK_PORTFOLIO.averageAPY}%
               </p>
             </div>
-            <div className="p-2 bg-success/10 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-success" />
+            <div className="flex-shrink-0 p-3 rounded-lg">
+              <CheckCircle className="h-5 w-5 " />
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Detailed Returns */}
-      <Card className="p-6 mb-8">
-        <h3 className="text-lg font-semibold mb-4">Returns Breakdown</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">
-              Unrealized Gains
-            </p>
-            <p className="text-xl font-bold text-foreground">
-              ${unrealizedGains.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              From {MOCK_PORTFOLIO.activeInvestments} active positions
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Realized Gains</p>
-            <p className="text-xl font-bold text-success">
-              ${realizedGains.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              From {MOCK_PORTFOLIO.completedInvestments.length} completed
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Total Return</p>
-            <p className="text-xl font-bold text-foreground">
-              {(
-                ((unrealizedGains + realizedGains) /
-                  MOCK_PORTFOLIO.totalInvested) *
-                100
-              ).toFixed(2)}
-              %
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Lifetime portfolio return
-            </p>
-          </div>
-        </div>
-      </Card>
-
       {/* Investment Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
+        <TabsList>
           <TabsTrigger value="active">
             Active ({MOCK_PORTFOLIO.investments.length})
           </TabsTrigger>
@@ -213,12 +193,15 @@ export default function PortfolioPage() {
         </TabsList>
 
         {/* Active Investments */}
-        <TabsContent value="active" className="space-y-4">
+        <TabsContent value="active" className="space-y-4 mt-6">
           {MOCK_PORTFOLIO.investments.map((investment) => (
-            <Card key={investment.id} className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold mb-1">
+            <Card
+              key={investment.id}
+              className="p-6 transition-all duration-200 hover:shadow-md"
+            >
+              <div className="flex items-start justify-between gap-6 mb-6">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     {investment.payer} - ${investment.amount.toLocaleString()}
                   </h3>
                   <p className="text-sm text-muted-foreground">
@@ -226,14 +209,14 @@ export default function PortfolioPage() {
                     {investment.userInvestment.toLocaleString()}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground mb-1">
+                <div className="flex-shrink-0 text-right">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
                     Expected Return
                   </p>
-                  <p className="text-xl font-bold text-success">
+                  <p className="text-2xl font-bold leading-tight">
                     ${investment.expectedReturn.toFixed(2)}
                   </p>
-                  <p className="text-xs text-success">
+                  <p className="text-xs  mt-1">
                     +$
                     {(
                       investment.expectedReturn - investment.userInvestment
@@ -243,19 +226,12 @@ export default function PortfolioPage() {
                 </div>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {investment.daysUntilDue} days until due
+                <span className="font-semibold text-foreground">
+                  {investment.daysUntilDue} days
                 </span>
-                <span
-                  className={
-                    investment.status === 'funded'
-                      ? 'text-warning font-medium'
-                      : 'text-muted-foreground'
-                  }
-                >
-                  {investment.status === 'funded'
-                    ? 'Fully Funded - Awaiting Repayment'
-                    : 'Active'}
+                <span className="text-muted-foreground"> until due</span>
+                <span className="font-semibold">
+                  {investment.status === 'funded' ? 'Fully Funded' : 'Active'}
                 </span>
               </div>
             </Card>
@@ -263,12 +239,15 @@ export default function PortfolioPage() {
         </TabsContent>
 
         {/* Completed Investments */}
-        <TabsContent value="completed" className="space-y-4">
+        <TabsContent value="completed" className="space-y-4 mt-6">
           {MOCK_PORTFOLIO.completedInvestments.map((investment) => (
-            <Card key={investment.id} className="p-6 bg-success/5">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold mb-1">
+            <Card
+              key={investment.id}
+              className="p-6 transition-all duration-200 hover:shadow-md"
+            >
+              <div className="flex items-start justify-between gap-6 mb-6">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     {investment.payer} - ${investment.amount.toLocaleString()}
                   </h3>
                   <p className="text-sm text-muted-foreground">
@@ -276,26 +255,26 @@ export default function PortfolioPage() {
                     {investment.userInvestment.toLocaleString()}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground mb-1">
+                <div className="flex-shrink-0 text-right">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
                     Actual Return
                   </p>
-                  <p className="text-xl font-bold text-success">
+                  <p className="text-2xl font-bold  leading-tight">
                     ${investment.actualReturn.toFixed(2)}
                   </p>
-                  <p className="text-xs text-success">
+                  <p className="text-xs  mt-1">
                     +${investment.profit.toFixed(2)} profit
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-success" />
-                <span className="text-success font-medium">Repaid</span>
+                <CheckCircle className="h-4 w-4 " />
+                <span className=" font-semibold">Repaid</span>
               </div>
             </Card>
           ))}
         </TabsContent>
       </Tabs>
-    </>
+    </div>
   );
 }

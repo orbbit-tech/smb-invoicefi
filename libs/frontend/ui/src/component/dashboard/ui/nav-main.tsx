@@ -17,7 +17,18 @@ import {
   SidebarMenuSubItem,
 } from '../../shadcn';
 import Link from 'next/link';
+import { cn } from '../../../lib/utils';
 
+/**
+ * NavMain - Main navigation component for sidebar
+ *
+ * Clean Dashboard Design principles:
+ * - Active states with clean white background for strong contrast
+ * - Teal text color on active items for brand identity
+ * - Subtle shadows on selected items
+ * - Smooth hover transitions
+ * - Clear visual hierarchy without distracting accents
+ */
 export function NavMain({
   items,
 }: {
@@ -44,7 +55,23 @@ export function NavMain({
           >
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
-                <SidebarMenuButton tooltip={item.title}>
+                <SidebarMenuButton
+                  tooltip={item.title}
+                  isActive={item.isActive}
+                  className={cn(
+                    'relative transition-all duration-200',
+                    item.isActive && [
+                      '!bg-white',
+                      'text-primary',
+                      'font-semibold',
+                      'shadow-sm',
+                    ],
+                    !item.isActive && [
+                      'hover:bg-accent',
+                      'hover:text-accent-foreground',
+                    ]
+                  )}
+                >
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>
                   {item.items && (

@@ -6,70 +6,76 @@
 
 @layer base {
   :root {
+    /* Base colors - Clean slate palette for neutrals */
     --background: hsl(0, 0%, 100%);
-    --foreground: hsl(0, 0%, 9%);
+    --foreground: hsl(
+      215,
+      20%,
+      17%
+    ); /* slate-900 - deeper, more professional */
     --card: hsl(0, 0%, 100%);
-    --card-foreground: hsl(0, 0%, 9%);
+    --card-foreground: hsl(215, 20%, 17%);
     --popover: hsl(0, 0%, 100%);
-    --popover-foreground: hsl(0, 0%, 9%);
+    --popover-foreground: hsl(215, 20%, 17%);
     --checkout-grey: hsl(220, 14%, 93%);
 
-    /* Orbbit Teal - Primary brand color palette */
+    /* Orbbit Teal - Primary brand color palette (use sparingly) */
     --primary-50: hsl(180, 85%, 96%);
     --primary-100: hsl(180, 85%, 91%);
     --primary-200: hsl(180, 85%, 77%);
     --primary-300: hsl(180, 85%, 62%);
     --primary-400: hsl(180, 85%, 47%);
     --primary-500: hsl(180, 85%, 39%);
-    --primary: hsl(180, 85%, 32%); /* Main brand color */
+    --primary: hsl(180, 85%, 32%); /* Main brand color - CTAs only */
     --primary-600: hsl(180, 85%, 28%);
     --primary-700: hsl(180, 85%, 23%);
     --primary-800: hsl(180, 85%, 19%);
     --primary-900: hsl(180, 85%, 15%);
-    --primary-foreground: hsl(0, 0%, 98%);
+    --primary-foreground: hsl(0, 0%, 100%);
 
-    /* Secondary colors */
-    --secondary: hsl(180, 45%, 90%);
-    --secondary-foreground: hsl(0, 0%, 9%);
+    /* Secondary colors - Blue for supporting elements */
+    --secondary: hsl(214, 32%, 91%); /* slate-200 tint */
+    --secondary-foreground: hsl(215, 20%, 17%);
 
-    /* Semantic colors for fintech context */
-    --success: hsl(142, 76%, 36%); /* Success Green */
-    --success-foreground: hsl(0, 0%, 98%);
-    --warning: hsl(45, 93%, 47%); /* Warning Amber */
-    --warning-foreground: hsl(0, 0%, 9%);
-    --destructive: hsl(0, 84%, 60%); /* Critical Red */
-    --destructive-foreground: hsl(0, 0%, 98%);
+    /* Semantic colors - Subtle and professional */
+    --success: hsl(142, 71%, 45%); /* Success Green - slightly muted */
+    --success-foreground: hsl(0, 0%, 100%);
+    --warning: hsl(38, 92%, 50%); /* Warning Amber - professional gold */
+    --warning-foreground: hsl(0, 0%, 100%);
+    --destructive: hsl(0, 72%, 51%); /* Critical Red - balanced */
+    --destructive-foreground: hsl(0, 0%, 100%);
 
-    /* UI state colors using Tailwind gray */
-    --muted: hsl(0, 0%, 96%); /* gray-100 */
-    --muted-foreground: hsl(0, 0%, 45%); /* gray-600 */
-    --accent: hsl(220, 13%, 91%); /* gray-100 */
-    --accent-foreground: hsl(0, 0%, 9%); /* gray-900 */
+    /* UI state colors using Slate palette - cleaner feel */
+    --muted: hsl(210, 20%, 98%); /* slate-50 */
+    --muted-foreground: hsl(215, 16%, 47%); /* slate-600 */
+    --accent: hsl(210, 20%, 98%); /* slate-50 */
+    --accent-foreground: hsl(215, 20%, 17%); /* slate-900 */
 
-    /* Borders and inputs */
-    --border: hsl(0, 0%, 89.8%); /* gray-200 */
-    --input: hsl(0, 0%, 89.8%); /* gray-200 */
+    /* Borders and inputs - Slate for cleaner look */
+    --border: hsl(214, 32%, 91%); /* slate-200 */
+    --input: hsl(214, 32%, 91%); /* slate-200 */
     --ring: hsl(180, 85%, 32%); /* primary */
 
     /* Layout */
-    --radius: 0.5rem;
-    --sidebar: hsl(210, 20%, 98%);
+    --radius: 0.5rem; /* 8px - clean and modern */
+    --sidebar: hsl(210, 20%, 98%); /* slate-50 */
 
-    /* Charts using semantic colors */
+    /* Charts using refined semantic colors */
     --chart-1: hsl(180, 85%, 32%); /* primary teal */
-    --chart-2: hsl(27, 96%, 61%); /* orange for moving averages, outflows */
-    --chart-3: hsl(231, 48%, 73%); /* indigo-200 for forecasts */
-    --chart-4: hsl(220, 13%, 91%); /* gray-200 for confidence intervals */
-    --chart-5: hsl(180, 85%, 47%); /* primary-400 */
+    --chart-2: hsl(217, 91%, 60%); /* blue for secondary metrics */
+    --chart-3: hsl(142, 71%, 45%); /* success green for positive trends */
+    --chart-4: hsl(215, 16%, 47%); /* slate-600 for baselines */
+    --chart-5: hsl(38, 92%, 50%); /* warning for alerts */
   }
 
   .dark {
-    --background: hsl(0, 0%, 3.9%);
-    --foreground: hsl(0, 0%, 98%);
-    --card: hsl(0, 0%, 3.9%);
-    --card-foreground: hsl(0, 0%, 98%);
-    --popover: hsl(0, 0%, 3.9%);
-    --popover-foreground: hsl(0, 0%, 98%);
+    /* Base colors - Dark slate palette */
+    --background: hsl(222, 47%, 11%); /* slate-950 */
+    --foreground: hsl(210, 40%, 98%); /* slate-50 */
+    --card: hsl(217, 33%, 17%); /* slate-900 */
+    --card-foreground: hsl(210, 40%, 98%);
+    --popover: hsl(217, 33%, 17%);
+    --popover-foreground: hsl(210, 40%, 98%);
 
     /* Orbbit Teal - Primary brand color palette (dark mode) */
     --primary-50: hsl(180, 85%, 15%);
@@ -83,37 +89,37 @@
     --primary-700: hsl(180, 85%, 77%);
     --primary-800: hsl(180, 85%, 91%);
     --primary-900: hsl(180, 85%, 96%);
-    --primary-foreground: hsl(0, 0%, 9%);
+    --primary-foreground: hsl(222, 47%, 11%);
 
     /* Secondary colors (dark mode) */
-    --secondary: hsl(0, 0%, 14.9%);
-    --secondary-foreground: hsl(0, 0%, 98%);
+    --secondary: hsl(215, 25%, 27%); /* slate-800 */
+    --secondary-foreground: hsl(210, 40%, 98%);
 
-    /* Semantic colors for fintech context (dark mode) */
-    --success: hsl(142, 76%, 36%);
-    --success-foreground: hsl(0, 0%, 9%);
-    --warning: hsl(45, 93%, 47%);
-    --warning-foreground: hsl(0, 0%, 9%);
-    --destructive: hsl(0, 84%, 60%);
-    --destructive-foreground: hsl(0, 0%, 98%);
+    /* Semantic colors (dark mode) */
+    --success: hsl(142, 71%, 45%);
+    --success-foreground: hsl(222, 47%, 11%);
+    --warning: hsl(38, 92%, 50%);
+    --warning-foreground: hsl(222, 47%, 11%);
+    --destructive: hsl(0, 72%, 51%);
+    --destructive-foreground: hsl(210, 40%, 98%);
 
     /* UI state colors (dark mode) */
-    --muted: hsl(0, 0%, 14.9%);
-    --muted-foreground: hsl(0, 0%, 63.9%);
-    --accent: hsl(0, 0%, 14.9%);
-    --accent-foreground: hsl(0, 0%, 98%);
+    --muted: hsl(215, 25%, 27%); /* slate-800 */
+    --muted-foreground: hsl(215, 20%, 65%); /* slate-400 */
+    --accent: hsl(215, 25%, 27%); /* slate-800 */
+    --accent-foreground: hsl(210, 40%, 98%);
 
     /* Borders and inputs (dark mode) */
-    --border: hsl(0, 0%, 14.9%);
-    --input: hsl(0, 0%, 14.9%);
+    --border: hsl(215, 25%, 27%); /* slate-800 */
+    --input: hsl(215, 25%, 27%); /* slate-800 */
     --ring: hsl(180, 85%, 47%);
 
     /* Charts (dark mode) */
     --chart-1: hsl(180, 85%, 47%);
-    --chart-2: hsl(27, 96%, 61%); /* orange for moving averages, outflows */
-    --chart-3: hsl(231, 48%, 73%); /* indigo-200 for forecasts */
-    --chart-4: hsl(0, 0%, 96%); /* gray-100 for confidence intervals */
-    --chart-5: hsl(180, 85%, 62%);
+    --chart-2: hsl(217, 91%, 60%);
+    --chart-3: hsl(142, 71%, 45%);
+    --chart-4: hsl(215, 20%, 65%);
+    --chart-5: hsl(38, 92%, 50%);
   }
 }
 
@@ -133,11 +139,11 @@
 }
 
 :root {
-  --sidebar: hsl(210, 20%, 98%);
-  --sidebar-foreground: hsl(240 5.3% 26.1%);
+  --sidebar: hsl(0, 0%, 98%);
+  --sidebar-foreground: hsl(215, 19%, 35%);
   --sidebar-primary: hsl(240 5.9% 10%);
   --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(240 4.8% 95.9%);
+  --sidebar-accent: hsl(0, 0%, 96%);
   --sidebar-accent-foreground: hsl(240 5.9% 10%);
   --sidebar-border: hsl(220 13% 91%);
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
@@ -191,5 +197,52 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Custom Scrollbar Styling - Thin & Subtle */
+@layer base {
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(0, 0%, 83%) hsl(0, 0%, 90%);
+  }
+
+  .dark * {
+    scrollbar-color: hsl(0, 0%, 26%) hsl(0, 0%, 17%);
+  }
+
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: hsl(0, 0%, 90%); /* neutral-200 */
+    border-radius: 4px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: hsl(0, 0%, 83%); /* neutral-300 */
+    border-radius: 4px;
+    transition: background 0.2s ease;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(0, 0%, 71%); /* neutral-400 */
+  }
+
+  /* Dark mode scrollbar */
+  .dark *::-webkit-scrollbar-track {
+    background: hsl(0, 0%, 17%); /* neutral-800 */
+  }
+
+  .dark *::-webkit-scrollbar-thumb {
+    background: hsl(0, 0%, 26%); /* neutral-700 */
+  }
+
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background: hsl(0, 0%, 38%); /* neutral-600 */
   }
 }
