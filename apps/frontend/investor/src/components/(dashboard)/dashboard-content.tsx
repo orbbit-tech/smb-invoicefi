@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
-import { SidebarInset, SidebarTrigger } from '@ui';
+import { SidebarInset } from '@ui';
 import dynamic from 'next/dynamic';
+import { HeaderUserMenu } from '../navigation/header-user-menu';
+import { useSession } from '@/utils/hooks/use-session';
 
 interface DashboardContentProps {
   children: React.ReactNode;
@@ -18,19 +20,26 @@ const WalletSection = dynamic(
   }
 );
 
+/**
+ * DashboardContent - Main layout wrapper for dashboard pages
+ *
+ * Clean Dashboard Design principles:
+ * - Consistent max-width container (max-w-7xl)
+ * - Standardized horizontal padding (32px on desktop)
+ * - Fixed header that stays visible while scrolling (Coinbase-style)
+ */
 export function DashboardContent({ children }: DashboardContentProps) {
-  return (
-    <SidebarInset className="flex h-full flex-col">
-      <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 flex h-16 shrink-0 items-center backdrop-blur">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 pt-6">
-          <SidebarTrigger className="-ml-1" />
-          {/* Wallet Connection & Balance - Compact header placement */}
-          <WalletSection />
-        </div>
-      </header>
+  const session = useSession();
 
-      <div className="bg-background flex flex-1 flex-col overflow-y-auto scrollbar-gutter-stable pb-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-        {children}
+  const memberDisplayData = {
+    name: session.member.name ?? '',
+    email: session.member.email ?? '',
+  };
+
+  return (
+    <SidebarInset>
+      <div className="h-full overflow-y-auto">
+        <div className="mx-auto w-full max-w-7xl px-8 py-8">{children}</div>
       </div>
     </SidebarInset>
   );

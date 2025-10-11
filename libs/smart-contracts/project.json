@@ -1,0 +1,202 @@
+{
+  "name": "smart-contracts",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/smart-contracts",
+  "projectType": "library",
+  "tags": ["scope:contracts", "type:lib", "platform:blockchain"],
+  "targets": {
+    "build:foundry": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "forge build",
+        "cwd": "libs/smart-contracts"
+      },
+      "outputs": ["{projectRoot}/out"],
+      "cache": true
+    },
+
+    "build:hardhat": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "npx hardhat compile",
+        "cwd": "libs/smart-contracts"
+      },
+      "outputs": [
+        "{projectRoot}/artifacts",
+        "{projectRoot}/cache_hardhat"
+      ],
+      "cache": true
+    },
+
+    "build": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "commands": [
+          "nx run smart-contracts:build:foundry",
+          "nx run smart-contracts:build:hardhat"
+        ],
+        "parallel": false
+      },
+      "dependsOn": [],
+      "cache": true
+    },
+
+    "test": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "forge test --gas-report",
+        "cwd": "libs/smart-contracts"
+      },
+      "cache": true
+    },
+
+    "test:watch": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "forge test --watch",
+        "cwd": "libs/smart-contracts"
+      }
+    },
+
+    "test:integration": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "npx hardhat test",
+        "cwd": "libs/smart-contracts"
+      },
+      "dependsOn": ["build:hardhat"]
+    },
+
+    "test:coverage": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "forge coverage --report lcov",
+        "cwd": "libs/smart-contracts"
+      }
+    },
+
+    "typechain": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "npx hardhat typechain",
+        "cwd": "libs/smart-contracts"
+      },
+      "outputs": ["{workspaceRoot}/libs/frontend/ui/generated/contracts"],
+      "dependsOn": ["build:hardhat"]
+    },
+
+    "snapshot": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "forge snapshot",
+        "cwd": "libs/smart-contracts"
+      }
+    },
+
+    "snapshot:diff": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "forge snapshot --diff",
+        "cwd": "libs/smart-contracts"
+      }
+    },
+
+    "lint": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "npx solhint 'contracts/**/*.sol'",
+        "cwd": "libs/smart-contracts"
+      }
+    },
+
+    "format": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "forge fmt",
+        "cwd": "libs/smart-contracts"
+      }
+    },
+
+    "format:check": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "forge fmt --check",
+        "cwd": "libs/smart-contracts"
+      }
+    },
+
+    "clean": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "commands": [
+          "rm -rf out",
+          "rm -rf artifacts",
+          "rm -rf cache_foundry",
+          "rm -rf cache_hardhat",
+          "rm -rf typechain-types"
+        ],
+        "cwd": "libs/smart-contracts",
+        "parallel": false
+      }
+    },
+
+    "deploy:local": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "npx hardhat deploy --network localhost",
+        "cwd": "libs/smart-contracts"
+      },
+      "dependsOn": ["build:hardhat"]
+    },
+
+    "deploy:sepolia": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "npx hardhat deploy --network baseSepolia",
+        "cwd": "libs/smart-contracts"
+      },
+      "dependsOn": ["test", "test:integration"]
+    },
+
+    "deploy:mainnet": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "npx hardhat deploy --network base",
+        "cwd": "libs/smart-contracts"
+      },
+      "dependsOn": ["test", "test:integration"]
+    },
+
+    "verify:sepolia": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "npx hardhat etherscan-verify --network baseSepolia",
+        "cwd": "libs/smart-contracts"
+      }
+    },
+
+    "verify:mainnet": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "npx hardhat etherscan-verify --network base",
+        "cwd": "libs/smart-contracts"
+      }
+    },
+
+    "node:local": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "npx hardhat node",
+        "cwd": "libs/smart-contracts"
+      }
+    },
+
+    "console": {
+      "executor": "@nx/run-commands",
+      "options": {
+        "command": "npx hardhat console --network localhost",
+        "cwd": "libs/smart-contracts"
+      }
+    }
+  }
+}

@@ -26,53 +26,62 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
   }).format(invoice.dueDate);
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <h3 className="font-semibold text-lg">{invoice.invoiceNumber}</h3>
-            <p className="text-sm text-muted-foreground">{invoice.payer.name}</p>
+    <Card className="group">
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1 min-w-0 flex-1">
+            <h3 className="font-semibold text-lg tracking-tight truncate">
+              {invoice.invoiceNumber}
+            </h3>
+            <p className="text-sm text-muted-foreground truncate">
+              {invoice.payer.name}
+            </p>
           </div>
           <InvoiceStatusBadge status={invoice.status} />
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Key metrics grid */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Amount</p>
-              <p className="font-semibold">{formattedAmount}</p>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <DollarSign className="h-4 w-4" />
+              <span className="text-xs">Amount</span>
             </div>
+            <p className="font-semibold text-lg">{formattedAmount}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Due Date</p>
-              <p className="font-semibold text-sm">{formattedDueDate}</p>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span className="text-xs">Due Date</span>
             </div>
+            <p className="font-semibold text-sm">{formattedDueDate}</p>
           </div>
         </div>
 
+        {/* Funding progress */}
         {invoice.fundingProgress > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-2 pt-2 border-t border-border/40">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Funding Progress</span>
-              <span className="font-medium">{invoice.fundingProgress}%</span>
+              <span className="text-muted-foreground">Funding</span>
+              <span className="font-medium text-primary">
+                {invoice.fundingProgress}%
+              </span>
             </div>
-            <Progress value={invoice.fundingProgress} />
+            <Progress value={invoice.fundingProgress} className="h-2" />
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <p className="text-xs text-muted-foreground">APY</p>
-            <p className="font-semibold text-green-600">{invoice.apy}%</p>
+        {/* APY display */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/40">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <TrendingUp className="h-4 w-4" />
+            <span className="text-xs">APY</span>
           </div>
+          <p className="font-semibold text-success">{invoice.apy}%</p>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="pt-4">
         <Link href={`/invoices/${invoice.id}`} className="w-full">
           <Button variant="outline" className="w-full">
             View Details

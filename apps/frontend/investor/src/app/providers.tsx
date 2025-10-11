@@ -8,86 +8,47 @@
  * This file shows the complete provider nesting structure:
  *
  * <WagmiProvider>                    ← Blockchain connection & state management
- *   <OnchainKitProvider>             ← OnchainKit components (Wallet, Identity, Transaction, etc.)
+ *   <RainbowKitProvider>             ← RainbowKit wallet connection UI
  *     {children}
  *
  * Note: QueryClientProvider (TanStack Query) is in layout.tsx wrapping this component
  *
- * RainbowKitProvider is commented out - OnchainKit handles wallet connections
- *
  * ============================================================================
  */
 
-// RainbowKit imports - COMMENTED OUT (keeping for reference)
-// import '@rainbow-me/rainbowkit/styles.css';
-// import {
-//   getDefaultConfig,
-//   RainbowKitProvider,
-//   lightTheme,
-// } from '@rainbow-me/rainbowkit';
-
+import '@rainbow-me/rainbowkit/styles.css';
 import '../styles/onchainkit.css';
-import { WagmiProvider, http } from 'wagmi';
+import '../styles/rainbowkit-custom.css';
+import { WagmiProvider } from 'wagmi';
 import { base, baseSepolia } from 'wagmi/chains';
-import { createConfig } from 'wagmi';
-import { coinbaseWallet, metaMask, walletConnect } from 'wagmi/connectors';
-import { OnchainKitProvider } from '@coinbase/onchainkit';
-import { useMemo } from 'react';
+import {
+  getDefaultConfig,
+  RainbowKitProvider,
+  lightTheme,
+} from '@rainbow-me/rainbowkit';
 
 export function Web3Providers({ children }: { children: React.ReactNode }) {
-  const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
-  const cdpApiKey = process.env.NEXT_PUBLIC_CDP_API_KEY;
+  const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!;
 
-  // Wagmi config with wallet connectors
-  const config = useMemo(() => {
-    return createConfig({
-      chains: [baseSepolia, base],
-      connectors: [
-        coinbaseWallet({
-          appName: 'Orbbit',
-        }),
-        metaMask(),
-        walletConnect({
-          projectId: projectId || '',
-        }),
-      ],
-      ssr: true,
-      transports: {
-        [baseSepolia.id]: http(),
-        [base.id]: http(),
-      },
-    });
-  }, [projectId]);
+  // RainbowKit's recommended config - automatically includes all popular wallets
+  const config = getDefaultConfig({
+    appName: 'Orbbit',
+    projectId: projectId,
+    chains: [baseSepolia, base],
+    ssr: true,
+  });
 
-  // RainbowKit theme - COMMENTED OUT (keeping for reference)
-  // const customTheme = lightTheme({
-  //   accentColor: 'hsl(180, 85%, 32%)', // Orbbit teal
-  //   accentColorForeground: 'white',
-  //   borderRadius: 'medium',
-  //   fontStack: 'rounded',
-  // });
+  // RainbowKit theme - Neutral styling for modal (button color overridden in CSS)
+  const customTheme = lightTheme({
+    accentColor: 'hsl(180, 85%, 32%)', // Neutral gray - keeps modal clean
+    accentColorForeground: 'hsl(0, 0%, 100%)',
+    borderRadius: 'medium',
+    fontStack: 'rounded',
+  });
 
   return (
     <WagmiProvider config={config}>
-      <OnchainKitProvider
-        chain={baseSepolia}
-        apiKey={cdpApiKey || undefined}
-        config={{
-          appearance: {
-            name: 'Orbbit',
-            logo: '/orbbit-logo.png',
-            mode: 'auto',
-            theme: 'default',
-          },
-          wallet: {
-            display: 'modal',
-          },
-        }}
-      >
-        {/* RainbowKitProvider - COMMENTED OUT */}
-        {/* <RainbowKitProvider theme={customTheme}>{children}</RainbowKitProvider> */}
-        {children}
-      </OnchainKitProvider>
+      <RainbowKitProvider theme={customTheme}>{children}</RainbowKitProvider>
     </WagmiProvider>
   );
 }

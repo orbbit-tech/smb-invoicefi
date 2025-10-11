@@ -33,7 +33,9 @@ export default function SubmitInvoicePage() {
     payerIndustry: '',
     description: '',
   });
-  const [errors, setErrors] = useState<Partial<Record<keyof InvoiceFormData, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof InvoiceFormData, string>>
+  >({});
 
   const handleChange = (field: keyof InvoiceFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -112,7 +114,7 @@ export default function SubmitInvoicePage() {
             Back to Invoices
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight">Submit Invoice</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Submit Invoice</h1>
         <p className="text-muted-foreground mt-1">
           Get funded in under 24 hours. Receive 80% of your invoice value.
         </p>
@@ -121,9 +123,13 @@ export default function SubmitInvoicePage() {
       {/* Progress Indicator */}
       <div className="mb-8 flex items-center justify-center gap-2">
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-            step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-          }`}>
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+              step >= 1
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground'
+            }`}
+          >
             1
           </div>
           <span className={step >= 1 ? 'font-medium' : 'text-muted-foreground'}>
@@ -132,9 +138,13 @@ export default function SubmitInvoicePage() {
         </div>
         <div className="w-12 h-px bg-border" />
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-            step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-          }`}>
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+              step >= 2
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground'
+            }`}
+          >
             2
           </div>
           <span className={step >= 2 ? 'font-medium' : 'text-muted-foreground'}>
@@ -165,7 +175,9 @@ export default function SubmitInvoicePage() {
                 className={errors.invoiceNumber ? 'border-destructive' : ''}
               />
               {errors.invoiceNumber && (
-                <p className="text-sm text-destructive">{errors.invoiceNumber}</p>
+                <p className="text-sm text-destructive">
+                  {errors.invoiceNumber}
+                </p>
               )}
             </div>
 
@@ -188,7 +200,9 @@ export default function SubmitInvoicePage() {
                 <p className="text-sm text-muted-foreground">
                   You will receive approximately{' '}
                   <span className="font-semibold">
-                    {formatCurrency((parseFloat(formData.amount) * 0.8).toString())}
+                    {formatCurrency(
+                      (parseFloat(formData.amount) * 0.8).toString()
+                    )}
                   </span>{' '}
                   (80% of invoice value)
                 </p>
@@ -251,7 +265,7 @@ export default function SubmitInvoicePage() {
             </div>
 
             <div className="flex justify-end pt-4">
-              <Button onClick={handleNext} size="lg">
+              <Button onClick={handleNext} className="font-semibold">
                 Next: Review & Submit
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -272,12 +286,16 @@ export default function SubmitInvoicePage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Invoice Number</p>
+                  <p className="text-sm text-muted-foreground">
+                    Invoice Number
+                  </p>
                   <p className="font-semibold">{formData.invoiceNumber}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Amount</p>
-                  <p className="font-semibold">{formatCurrency(formData.amount)}</p>
+                  <p className="font-semibold">
+                    {formatCurrency(formData.amount)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Due Date</p>
@@ -290,9 +308,13 @@ export default function SubmitInvoicePage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Expected Funding</p>
-                  <p className="font-semibold text-green-600">
-                    {formatCurrency((parseFloat(formData.amount) * 0.8).toString())}
+                  <p className="text-sm text-muted-foreground">
+                    Expected Funding
+                  </p>
+                  <p className="font-semibold">
+                    {formatCurrency(
+                      (parseFloat(formData.amount) * 0.8).toString()
+                    )}
                   </p>
                 </div>
               </div>
@@ -303,7 +325,9 @@ export default function SubmitInvoicePage() {
                 <p className="text-sm text-muted-foreground">Payer</p>
                 <p className="font-semibold">{formData.payerName}</p>
                 {formData.payerIndustry && (
-                  <p className="text-sm text-muted-foreground">{formData.payerIndustry}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {formData.payerIndustry}
+                  </p>
                 )}
               </div>
 
@@ -322,17 +346,18 @@ export default function SubmitInvoicePage() {
           <Alert>
             <CheckCircle2 className="h-4 w-4" />
             <AlertDescription>
-              By submitting this invoice, you agree to our terms and conditions. Your
-              invoice will be verified and listed for funding within 24 hours.
+              By submitting this invoice, you agree to our terms and conditions.
+              Your invoice will be verified and listed for funding within 24
+              hours.
             </AlertDescription>
           </Alert>
 
           <div className="flex justify-between">
-            <Button onClick={handleBack} variant="outline" size="lg">
+            <Button onClick={handleBack} variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            <Button onClick={handleSubmit} size="lg" disabled={isSubmitting}>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -9,7 +9,7 @@ interface RiskBadgeProps {
 
 export function RiskBadge({ risk, className }: RiskBadgeProps) {
   const styles = {
-    Low: 'bg-success/10 text-success border-success/20',
+    Low: 'bg-success/10  border-success/20',
     Medium: 'bg-warning/10 text-warning border-warning/20',
     High: 'bg-destructive/10 text-destructive border-destructive/20',
   };

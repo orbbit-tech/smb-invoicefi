@@ -36,13 +36,13 @@ export default function InvoicesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">My Invoices</h1>
+          <h1 className="text-2xl font-bold tracking-tight">My Invoices</h1>
           <p className="text-muted-foreground mt-1">
             View and manage all your invoices
           </p>
         </div>
         <Link href="/invoices/submit">
-          <Button size="lg">
+          <Button>
             <PlusCircle className="mr-2 h-4 w-4" />
             Submit Invoice
           </Button>
