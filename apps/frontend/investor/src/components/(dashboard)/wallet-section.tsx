@@ -15,14 +15,6 @@ export function WalletSection() {
 
     return (
       <div className="flex items-center gap-3">
-        {isConnected && (
-          <TokenBalance
-            tokenAddress={USDC_BASE_SEPOLIA}
-            label="USDC"
-            className="hidden text-sm text-muted-foreground sm:flex"
-          />
-        )}
-
         {/* RainbowKit - Multi-wallet support with elegant design */}
         <ConnectButton
           chainStatus="none"

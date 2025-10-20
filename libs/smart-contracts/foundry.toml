@@ -1,7 +1,7 @@
 [profile.default]
 src = "contracts"
 out = "out"
-libs = ["node_modules"]
+libs = ["lib", "node_modules"]
 test = "test"
 cache_path = "cache_foundry"
 
@@ -9,7 +9,7 @@ cache_path = "cache_foundry"
 solc_version = "0.8.20"
 optimizer = true
 optimizer_runs = 200
-via_ir = false
+via_ir = true
 
 # EVM version
 evm_version = "paris"
@@ -17,7 +17,7 @@ evm_version = "paris"
 # Remappings for OpenZeppelin and other dependencies
 remappings = [
     "@openzeppelin/=node_modules/@openzeppelin/",
-    "forge-std/=node_modules/forge-std/src/",
+    "forge-std/=lib/forge-std/src/",
 ]
 
 # Gas reporting
@@ -40,5 +40,5 @@ base = "${BASE_MAINNET_RPC}"
 
 # Etherscan API keys for verification
 [etherscan]
-base_sepolia = { key = "${BASESCAN_API_KEY}", url = "https://api-sepolia.basescan.org/api" }
-base = { key = "${BASESCAN_API_KEY}", url = "https://api.basescan.org/api" }
+base_sepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api-sepolia.basescan.org/api" }
+base = { key = "${ETHERSCAN_API_KEY}", url = "https://api.basescan.org/api" }

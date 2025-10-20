@@ -20,15 +20,15 @@ export default async function DashboardLayout({
     isAuthenticated: true,
     member: {
       id: '123',
-      givenName: 'Test', // Will be populated in layout
+      givenName: 'Sam', // Will be populated in layout
       familyName: null, // Will be populated in layout
-      name: 'Test User', // Will be populated in layout
-      email: 'test@test.com', // Will be populated in layout
+      name: 'Sam Phillips', // Will be populated in layout
+      email: 'sam@gmail.com', // Will be populated in layout
       phone: '1234567890',
     },
     org: {
       id: '123',
-      slug: 'test',
+      slug: 'sam',
       name: null, // Will be populated in layout
       type: null, // Will be populated in layout
       logoUrl: null, // Will be populated in layout

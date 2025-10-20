@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import { useState } from 'react';
 import {
   Card,
   Badge,
@@ -9,8 +10,23 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@ui';
-import { ArrowLeft, FileText, ShieldCheck, TrendingUp } from 'lucide-react';
+import {
+  ArrowLeft,
+  FileText,
+  ShieldCheck,
+  TrendingUp,
+  Loader2,
+  CheckCircle2,
+  ExternalLink,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { type InvoiceData } from '@/components/invoices';
 import { getInvoiceById } from '@/data/mock-invoices';
 
@@ -30,6 +46,11 @@ export default function InvoiceDetailPage() {
   const invoiceId = params.id as string;
   const invoice = getInvoiceById(invoiceId);
 
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
   if (!invoice) {
     return (
       <div className="space-y-6">
@@ -46,9 +67,38 @@ export default function InvoiceDetailPage() {
     );
   }
 
-  const fundedPercent = (invoice.funded / invoice.amount) * 100;
-  const remainingToFund = invoice.amount - invoice.funded;
-  const fundingAmount = invoice.amount * (1 - invoice.discountRate);
+  // Since we only support full funding (no partial), the funding amount is the full discounted amount
+  const fundingAmountRequired = invoice.amount * (1 - invoice.discountRate);
+
+  // Calculate expected returns based on discount rate model
+  const expectedReceiveBack =
+    fundingAmountRequired / (1 - invoice.discountRate);
+  const expectedProfit = expectedReceiveBack - fundingAmountRequired;
+
+  // Handler for funding submission (full amount only)
+  const handleFundInvoice = async () => {
+    setIsProcessing(true);
+
+    try {
+      // TODO: Replace with actual blockchain transaction
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Show success state in modal
+      setShowSuccess(true);
+    } catch (error) {
+      toast.error('Failed to process funding', {
+        description: 'Please try again later',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handler to close modal and reset states
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setShowSuccess(false);
+  };
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -132,7 +182,7 @@ export default function InvoiceDetailPage() {
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Funding Amount</span>
                 <span className="font-semibold">
-                  ${fundingAmount.toLocaleString()}
+                  ${fundingAmountRequired.toLocaleString()}
                 </span>
               </div>
               <Separator />
@@ -250,38 +300,12 @@ export default function InvoiceDetailPage() {
               </div>
             </div>
             <div className="bg-neutral-100/80 p-4 rounded-md space-y-2">
-              <p className="text-sm font-semibold">Risk Factors:</p>
+              <p className="text-sm font-semibold">Top :</p>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                 <li>Strong payer credit history</li>
                 <li>Established business relationship</li>
                 <li>Short payment term (30 days)</li>
               </ul>
-            </div>
-          </Card>
-
-          {/* Funding Progress */}
-          <Card className="p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Funding Progress</h2>
-            <Separator />
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Funded</span>
-                <span className="font-semibold">
-                  ${invoice.funded.toLocaleString()}
-                </span>
-              </div>
-              <div className="w-full bg-neutral-200 rounded-full h-2">
-                <div
-                  className="bg-primary h-2 rounded-full transition-all"
-                  style={{ width: `${fundedPercent}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Remaining</span>
-                <span className="font-semibold">
-                  ${remainingToFund.toLocaleString()}
-                </span>
-              </div>
             </div>
           </Card>
 
@@ -291,13 +315,7 @@ export default function InvoiceDetailPage() {
               <p className="text-sm text-muted-foreground">
                 Ready to fund this invoice?
               </p>
-              <Button
-                className="w-full"
-                onClick={() => {
-                  // TODO: Open funding modal
-                  console.log('Fund invoice:', invoice.id);
-                }}
-              >
+              <Button className="w-full" onClick={() => setIsModalOpen(true)}>
                 Fund Invoice
               </Button>
               <p className="text-xs text-muted-foreground text-center">
@@ -307,6 +325,229 @@ export default function InvoiceDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Funding Modal */}
+      <Dialog open={isModalOpen} onOpenChange={handleCloseModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          {!showSuccess ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Confirm Funding</DialogTitle>
+                <DialogDescription>
+                  Review your investment details before confirming.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-3 py-4 bg-neutral-100 p-4 rounded-lg">
+                {/* Invoice Details */}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">
+                    Invoice Amount
+                  </span>
+                  <span className="text-sm font-semibold">
+                    ${invoice.amount.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">
+                    Discount Rate
+                  </span>
+                  <span className="text-sm font-semibold">
+                    {(invoice.discountRate * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">APY</span>
+                  <span className="text-sm font-semibold">{invoice.apy}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Term</span>
+                  <span className="text-sm font-semibold">
+                    {invoice.daysUntilDue} days
+                  </span>
+                </div>
+
+                <Separator />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">
+                    Investment Required
+                  </span>
+                  <span className="text-sm font-bold">
+                    ${fundingAmountRequired.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">
+                    Expected Payout
+                  </span>
+                  <span className="text-sm font-semibold">
+                    $
+                    {expectedReceiveBack.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">
+                    Expected Profit
+                  </span>
+                  <span className="text-sm font-semibold">
+                    $
+                    {expectedProfit.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Total Summary */}
+              <div className="bg-neutral-100 p-4 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Total to Fund</span>
+                  <span className="text-lg font-bold">
+                    ${fundingAmountRequired.toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Due: {new Date(invoice.dueDate).toLocaleDateString()} (
+                  {invoice.daysUntilDue} days)
+                </p>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={handleCloseModal}
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleFundInvoice} disabled={isProcessing}>
+                  {isProcessing && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isProcessing
+                    ? 'Processing...'
+                    : `Confirm Funding $${fundingAmountRequired.toLocaleString()}`}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              {/* Success Screen */}
+              <div className="space-y-6 py-6">
+                {/* Success Icon */}
+                <div className="flex justify-center rounded-full">
+                  <CheckCircle2 className="h-16 w-16 text-primary" />
+                </div>
+
+                {/* Success Message */}
+                <div className="text-center space-y-2">
+                  <DialogTitle className="text-2xl">
+                    Investment Successful!
+                  </DialogTitle>
+                  <DialogDescription className="text-base">
+                    You've successfully funded invoice #{invoice.id}
+                  </DialogDescription>
+                </div>
+
+                {/* Transaction Summary */}
+                <div className="bg-neutral-100/80 p-6 rounded-lg space-y-4">
+                  <h3 className="font-semibold text-center">
+                    Transaction Summary
+                  </h3>
+                  <Separator />
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Company</span>
+                      <span className="font-semibold">
+                        {invoice.companyName}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Investment Amount
+                      </span>
+                      <span className="font-semibold">
+                        ${fundingAmountRequired.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Expected Payout
+                      </span>
+                      <span className="font-semibold">
+                        $
+                        {expectedReceiveBack.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Expected Profit
+                      </span>
+                      <span className="font-bold">
+                        $
+                        {expectedProfit.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Due Date</span>
+                      <span className="font-semibold">
+                        {new Date(invoice.dueDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Term</span>
+                      <span className="font-semibold">
+                        {invoice.daysUntilDue} days
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Transaction Hash (Placeholder) */}
+                <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        Transaction Hash
+                      </p>
+                      <p className="text-sm font-mono">0x1234...5678</p>
+                    </div>
+                    <Button variant="ghost" size="sm" className="gap-1">
+                      <ExternalLink className="h-3 w-3" />
+                      View
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => router.push('/portfolio')}
+                  >
+                    View Portfolio
+                  </Button>
+                  <Button className="flex-1" onClick={handleCloseModal}>
+                    Done
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

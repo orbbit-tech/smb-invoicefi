@@ -1,14 +1,22 @@
-import { HardhatUserConfig } from 'hardhat/config';
-import '@nomicfoundation/hardhat-toolbox';
+import type { HardhatUserConfig } from 'hardhat/config';
+import hardhatKeystore from '@nomicfoundation/hardhat-keystore';
+import hardhatIgnition from '@nomicfoundation/hardhat-ignition';
+import { configVariable } from 'hardhat/config';
+import '@nomicfoundation/hardhat-ethers';
+import '@nomicfoundation/hardhat-ethers-chai-matchers';
+import '@nomicfoundation/hardhat-ignition-ethers';
+import '@nomicfoundation/hardhat-network-helpers';
+import '@nomicfoundation/hardhat-typechain';
 import '@nomicfoundation/hardhat-verify';
-import '@typechain/hardhat';
-import 'hardhat-deploy';
 import * as dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config({ path: '../../.env' });
+// Load environment variables from local .env file (for RPC URLs and API keys only)
+dotenv.config();
 
 const config: HardhatUserConfig = {
+  // Register plugins
+  plugins: [hardhatKeystore, hardhatIgnition],
+
   solidity: {
     version: '0.8.20',
     settings: {
@@ -24,12 +32,13 @@ const config: HardhatUserConfig = {
     tests: './test-integration',
     cache: './cache_hardhat',
     artifacts: './artifacts',
-    deploy: './deploy',
   },
 
   networks: {
     hardhat: {
+      type: 'edr-simulated',
       chainId: 31337,
+      chainType: 'l1',
       accounts: {
         mnemonic: 'test test test test test test test test test test test junk',
         count: 10,
@@ -37,37 +46,28 @@ const config: HardhatUserConfig = {
     },
 
     // Base Sepolia Testnet
+    // Setup: npx hardhat keystore set TESTNET_DEPLOYER_PRIVATE_KEY
+    // Or for dev: npx hardhat keystore set TESTNET_DEPLOYER_PRIVATE_KEY --dev
     baseSepolia: {
+      type: 'http',
       url: process.env.BASE_SEPOLIA_RPC || 'https://sepolia.base.org',
-      accounts: process.env.DEPLOYER_PRIVATE_KEY_TESTNET
-        ? [process.env.DEPLOYER_PRIVATE_KEY_TESTNET]
-        : [],
+      accounts: [configVariable('TESTNET_DEPLOYER_PRIVATE_KEY')],
       chainId: 84532,
-      verify: {
-        etherscan: {
-          apiUrl: 'https://api-sepolia.basescan.org',
-          apiKey: process.env.BASESCAN_API_KEY || '',
-        },
-      },
     },
 
     // Base Mainnet
+    // Setup: npx hardhat keystore set MAINNET_DEPLOYER_PRIVATE_KEY
+    // IMPORTANT: For production, prefer hardware wallet over software keys
     base: {
+      type: 'http',
       url: process.env.BASE_MAINNET_RPC || 'https://mainnet.base.org',
-      accounts: process.env.DEPLOYER_PRIVATE_KEY_MAINNET
-        ? [process.env.DEPLOYER_PRIVATE_KEY_MAINNET]
-        : [],
+      accounts: [configVariable('MAINNET_DEPLOYER_PRIVATE_KEY')],
       chainId: 8453,
-      verify: {
-        etherscan: {
-          apiUrl: 'https://api.basescan.org',
-          apiKey: process.env.BASESCAN_API_KEY || '',
-        },
-      },
     },
 
     // Local development (optional)
     localhost: {
+      type: 'http',
       url: 'http://127.0.0.1:8545',
       chainId: 31337,
     },
@@ -76,8 +76,8 @@ const config: HardhatUserConfig = {
   // Contract verification
   etherscan: {
     apiKey: {
-      baseSepolia: process.env.BASESCAN_API_KEY || '',
-      base: process.env.BASESCAN_API_KEY || '',
+      baseSepolia: configVariable('ETHERSCAN_API_KEY'),
+      base: configVariable('ETHERSCAN_API_KEY'),
     },
     customChains: [
       {
@@ -103,34 +103,11 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: '../../../libs/frontend/ui/generated/contracts',
     target: 'ethers-v6',
-    alwaysGenerateOverloads: false,
-    externalArtifacts: [],
-    dontOverrideCompile: false,
   },
 
-  // Named accounts for deployment
-  namedAccounts: {
-    deployer: {
-      default: 0, // First account
-      baseSepolia: 0,
-      base: 0,
-    },
-    admin: {
-      default: 1, // Second account for admin role
-    },
-  },
-
-  // Gas reporting
-  gasReporter: {
-    enabled: process.env.REPORT_GAS === 'true',
-    currency: 'USD',
-    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
-    showTimeSpent: true,
-  },
-
-  // Mocha test configuration
-  mocha: {
-    timeout: 60000, // 60 seconds for integration tests
+  // Hardhat Ignition configuration
+  ignition: {
+    requiredConfirmations: 1,
   },
 };
 

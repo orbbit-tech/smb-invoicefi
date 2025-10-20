@@ -3,7 +3,6 @@
 export enum InvoiceStatus {
   CREATED = 'CREATED',
   LISTED = 'LISTED',
-  PARTIALLY_FUNDED = 'PARTIALLY_FUNDED',
   FULLY_FUNDED = 'FULLY_FUNDED',
   DISBURSED = 'DISBURSED',
   PENDING_REPAYMENT = 'PENDING_REPAYMENT',
@@ -31,8 +30,6 @@ export interface Invoice {
   };
   riskScore: RiskScore;
   status: InvoiceStatus;
-  fundingProgress: number; // 0-100 percentage
-  fundedAmount: number; // Amount funded so far in USD
   apy: number; // Annual Percentage Yield
   daysUntilDue: number;
   disbursedDate?: Date;

@@ -2,7 +2,6 @@
 
 import { Button } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui';
-import { Progress } from '@ui';
 import { Separator } from '@ui';
 import { Badge } from '@ui';
 import { Invoice, InvoiceStatus } from '@/types/invoice';
@@ -61,7 +60,6 @@ export function InvoiceDetailClient({ invoice }: InvoiceDetailClientProps) {
         icon: TrendingUp,
         completed: [
           InvoiceStatus.LISTED,
-          InvoiceStatus.PARTIALLY_FUNDED,
           InvoiceStatus.FULLY_FUNDED,
           InvoiceStatus.DISBURSED,
           InvoiceStatus.PENDING_REPAYMENT,
@@ -228,76 +226,6 @@ export function InvoiceDetailClient({ invoice }: InvoiceDetailClientProps) {
             </CardContent>
           </Card>
 
-          {/* Funding Progress Card */}
-          {[
-            InvoiceStatus.LISTED,
-            InvoiceStatus.PARTIALLY_FUNDED,
-            InvoiceStatus.FULLY_FUNDED,
-          ].includes(invoice.status) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Funding Progress</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Amount Funded</span>
-                    <span className="font-semibold">
-                      {formatCurrency(invoice.fundedAmount)} /{' '}
-                      {formatCurrency(invoice.amount)}
-                    </span>
-                  </div>
-                  <Progress value={invoice.fundingProgress} className="h-2" />
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-semibold">
-                      {invoice.fundingProgress}%
-                    </span>
-                  </div>
-                </div>
-
-                {invoice.status === InvoiceStatus.FULLY_FUNDED && (
-                  <div className="rounded-lg border p-4">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <p className="font-semibold">Fully Funded!</p>
-                    </div>
-                    <p className="text-sm mt-1">
-                      Your invoice has been fully funded. Funds will be
-                      disbursed to your account shortly.
-                    </p>
-                  </div>
-                )}
-
-                {invoice.status === InvoiceStatus.PARTIALLY_FUNDED && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-blue-800">
-                      <Clock className="h-4 w-4" />
-                      <p className="font-semibold">Funding in Progress</p>
-                    </div>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Your invoice is being funded by investors. You'll receive
-                      funds once it reaches 100%.
-                    </p>
-                  </div>
-                )}
-
-                {invoice.status === InvoiceStatus.LISTED && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-yellow-800">
-                      <AlertCircle className="h-4 w-4" />
-                      <p className="font-semibold">Listed for Funding</p>
-                    </div>
-                    <p className="text-sm text-yellow-700 mt-1">
-                      Your invoice is now available to investors. Funding
-                      typically completes within 24 hours.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
           {/* Timeline Card */}
           <Card>
             <CardHeader>
@@ -376,12 +304,6 @@ export function InvoiceDetailClient({ invoice }: InvoiceDetailClientProps) {
                 </p>
               </div>
               <Separator />
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Funding Progress
-                </p>
-                <p className="text-lg font-bold">{invoice.fundingProgress}%</p>
-              </div>
               {invoice.disbursedDate && (
                 <>
                   <Separator />

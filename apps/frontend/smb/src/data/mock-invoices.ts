@@ -22,8 +22,6 @@ export const mockInvoices: Invoice[] = [
     },
     riskScore: RiskScore.LOW,
     status: InvoiceStatus.REPAID,
-    fundingProgress: 100,
-    fundedAmount: 50000,
     apy: 12.5,
     daysUntilDue: getDaysUntilDue(new Date('2025-12-15')),
     disbursedDate: new Date('2025-10-03'),
@@ -42,8 +40,6 @@ export const mockInvoices: Invoice[] = [
     },
     riskScore: RiskScore.LOW,
     status: InvoiceStatus.PENDING_REPAYMENT,
-    fundingProgress: 100,
-    fundedAmount: 35000,
     apy: 10.2,
     daysUntilDue: getDaysUntilDue(new Date('2025-11-30')),
     disbursedDate: new Date('2025-10-06'),
@@ -61,8 +57,6 @@ export const mockInvoices: Invoice[] = [
     },
     riskScore: RiskScore.LOW,
     status: InvoiceStatus.FULLY_FUNDED,
-    fundingProgress: 100,
-    fundedAmount: 25000,
     apy: 11.0,
     daysUntilDue: getDaysUntilDue(new Date('2025-11-15')),
     description: 'Creative services for marketing campaign',
@@ -78,9 +72,7 @@ export const mockInvoices: Invoice[] = [
       industry: 'E-commerce',
     },
     riskScore: RiskScore.MEDIUM,
-    status: InvoiceStatus.PARTIALLY_FUNDED,
-    fundingProgress: 65,
-    fundedAmount: 27300,
+    status: InvoiceStatus.LISTED,
     apy: 13.5,
     daysUntilDue: getDaysUntilDue(new Date('2025-12-01')),
     description: 'E-commerce platform integration',
@@ -97,8 +89,6 @@ export const mockInvoices: Invoice[] = [
     },
     riskScore: RiskScore.LOW,
     status: InvoiceStatus.LISTED,
-    fundingProgress: 25,
-    fundedAmount: 4500,
     apy: 9.8,
     daysUntilDue: getDaysUntilDue(new Date('2025-11-20')),
     description: 'Payment gateway integration services',
@@ -115,8 +105,6 @@ export const mockInvoices: Invoice[] = [
     },
     riskScore: RiskScore.MEDIUM,
     status: InvoiceStatus.LISTED,
-    fundingProgress: 0,
-    fundedAmount: 0,
     apy: 14.2,
     daysUntilDue: getDaysUntilDue(new Date('2025-12-20')),
     description: 'Database migration and optimization',
@@ -133,8 +121,6 @@ export const mockInvoices: Invoice[] = [
     },
     riskScore: RiskScore.LOW,
     status: InvoiceStatus.DISBURSED,
-    fundingProgress: 100,
-    fundedAmount: 28500,
     apy: 10.5,
     daysUntilDue: getDaysUntilDue(new Date('2025-11-10')),
     disbursedDate: new Date('2025-09-27'),
@@ -152,8 +138,6 @@ export const mockInvoices: Invoice[] = [
     },
     riskScore: RiskScore.LOW,
     status: InvoiceStatus.CREATED,
-    fundingProgress: 0,
-    fundedAmount: 0,
     apy: 11.8,
     daysUntilDue: getDaysUntilDue(new Date('2025-11-05')),
     description: 'SMS and voice API integration',
@@ -166,13 +150,15 @@ export const getMockMetrics = (): InvoiceMetrics => {
 
   const activeFundingAmount = mockInvoices
     .filter(inv =>
-      [InvoiceStatus.LISTED, InvoiceStatus.PARTIALLY_FUNDED, InvoiceStatus.FULLY_FUNDED].includes(inv.status)
+      [InvoiceStatus.LISTED, InvoiceStatus.FULLY_FUNDED].includes(inv.status)
     )
     .reduce((sum, inv) => sum + inv.amount, 0);
 
   const totalFundedToDate = mockInvoices
-    .filter(inv => inv.fundedAmount > 0)
-    .reduce((sum, inv) => sum + inv.fundedAmount, 0);
+    .filter(inv =>
+      [InvoiceStatus.FULLY_FUNDED, InvoiceStatus.DISBURSED, InvoiceStatus.PENDING_REPAYMENT, InvoiceStatus.REPAID].includes(inv.status)
+    )
+    .reduce((sum, inv) => sum + inv.amount, 0);
 
   const pendingRepayments = mockInvoices
     .filter(inv =>

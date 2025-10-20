@@ -1,0 +1,10 @@
+{
+  "OrbbitProtocol": {
+    "paymentToken": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "tokenName": "Orbbit Invoice",
+    "tokenSymbol": "ORBINV",
+    "metadataBaseUri": "https://api.orbbit.com/metadata/",
+    "metadataExtension": ".json",
+    "gracePeriodDays": 30
+  }
+}
