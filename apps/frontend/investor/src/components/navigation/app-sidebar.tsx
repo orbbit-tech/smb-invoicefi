@@ -48,7 +48,7 @@ export function AppSidebar({
   const navMain = React.useMemo(
     () => [
       {
-        title: 'Overview',
+        title: 'Portfolio',
         url: '/',
         icon: Home,
         isActive: pathname === '/',
@@ -58,12 +58,6 @@ export function AppSidebar({
         url: '/marketplace',
         icon: ShoppingCart,
         isActive: pathname === '/marketplace',
-      },
-      {
-        title: 'Portfolio',
-        url: '/portfolio',
-        icon: TrendingUp,
-        isActive: pathname === '/portfolio',
       },
     ],
     [pathname]

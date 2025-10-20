@@ -12,6 +12,21 @@ build
 .next
 out
 
+# Solidity/Foundry
+libs/smart-contracts/lib/
+libs/smart-contracts/cache/
+libs/smart-contracts/cache_foundry/
+libs/smart-contracts/cache_hardhat/
+libs/smart-contracts/artifacts/
+libs/smart-contracts/out/
+libs/smart-contracts/broadcast/
+libs/smart-contracts/remappings.txt
+
+# Wake LSP (if accidentally re-enabled)
+.wake/
+libs/.deps/
+wake.toml
+
 # IDE
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md

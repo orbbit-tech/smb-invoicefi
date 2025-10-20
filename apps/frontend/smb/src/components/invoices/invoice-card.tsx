@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardFooter, CardHeader } from '@ui';
 import { Button } from '@ui';
-import { Progress } from '@ui';
 import { Invoice } from '@/types/invoice';
 import { InvoiceStatusBadge } from './invoice-status-badge';
 import { Calendar, DollarSign, TrendingUp } from 'lucide-react';
@@ -58,19 +57,6 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
             <p className="font-semibold text-sm">{formattedDueDate}</p>
           </div>
         </div>
-
-        {/* Funding progress */}
-        {invoice.fundingProgress > 0 && (
-          <div className="space-y-2 pt-2 border-t border-border/40">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Funding</span>
-              <span className="font-medium text-primary">
-                {invoice.fundingProgress}%
-              </span>
-            </div>
-            <Progress value={invoice.fundingProgress} className="h-2" />
-          </div>
-        )}
 
         {/* APY display */}
         <div className="flex items-center justify-between pt-2 border-t border-border/40">

@@ -70,9 +70,6 @@ export default function InvoicesPage() {
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value={InvoiceStatus.CREATED}>Created</SelectItem>
               <SelectItem value={InvoiceStatus.LISTED}>Listed</SelectItem>
-              <SelectItem value={InvoiceStatus.PARTIALLY_FUNDED}>
-                Partially Funded
-              </SelectItem>
               <SelectItem value={InvoiceStatus.FULLY_FUNDED}>
                 Fully Funded
               </SelectItem>

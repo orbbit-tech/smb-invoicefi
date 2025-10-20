@@ -3,28 +3,51 @@
  * RainbowKit Custom Styling - Match Orbbit Design System
  * ============================================================================
  *
- * Overrides RainbowKit's default ConnectButton styles to match our button
- * design system specifications (small size):
+ * Minimal overrides to match button design system while preserving RainbowKit's
+ * internal styling for connected/disconnected states:
  *
  * - Height: 32px (h-8)
- * - Padding: 12px horizontal (px-3)
- * - Font: 12px medium weight (text-xs font-medium)
+ * - Font: 14px medium weight (text-sm font-medium)
  * - Border radius: 6px (rounded-md)
- * - Transitions: all 200ms
- * - Interactive: focus rings, active scale
- * - Button color: Teal (primary brand)
- * - Modal color: Neutral gray (to avoid color overload)
+ * - Text color: Dark for readability
+ *
+ * Note: We intentionally avoid overriding background, border, and padding
+ * to let RainbowKit handle the connected state properly.
  *
  * ============================================================================
  */
 
-/* ConnectButton - Match h-8 (32px height) with teal brand color */
-button[data-testid='rk-connect-button'] {
+/* Base button styling - minimal overrides */
+button[data-testid='rk-connect-button'],
+button[data-testid='rk-account-button'],
+button[data-testid='rk-chain-button'] {
+  /* Size - matching button sm variant */
   height: 32px !important;
   min-height: 32px !important;
-  padding: 0 12px !important;
-  font-size: 12px !important;
+
+  /* Typography - matching text-sm font-medium */
+  font-size: 14px !important;
   font-weight: 500 !important;
+
+  /* Border radius - matching design system */
+  border-radius: 6px !important;
+
+  /* Transitions - smooth interactions */
   transition: all 200ms ease-in-out !important;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+}
+
+/* Focus state - matching focus-visible ring */
+button[data-testid='rk-connect-button']:focus-visible,
+button[data-testid='rk-account-button']:focus-visible,
+button[data-testid='rk-chain-button']:focus-visible {
+  outline: 2px solid transparent !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 3px hsl(180, 85%, 32%, 0.5) !important; /* Orbbit teal with opacity */
+}
+
+/* Active state - subtle scale effect */
+button[data-testid='rk-connect-button']:active,
+button[data-testid='rk-account-button']:active,
+button[data-testid='rk-chain-button']:active {
+  transform: scale(0.98);
 }

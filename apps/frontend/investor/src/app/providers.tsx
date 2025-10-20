@@ -19,32 +19,66 @@
 import '@rainbow-me/rainbowkit/styles.css';
 import '../styles/onchainkit.css';
 import '../styles/rainbowkit-custom.css';
-import { WagmiProvider } from 'wagmi';
+import { WagmiProvider, createConfig, http } from 'wagmi';
 import { base, baseSepolia } from 'wagmi/chains';
 import {
-  getDefaultConfig,
+  connectorsForWallets,
   RainbowKitProvider,
   lightTheme,
 } from '@rainbow-me/rainbowkit';
+import {
+  coinbaseWallet,
+  metaMaskWallet,
+  rainbowWallet,
+  walletConnectWallet,
+} from '@rainbow-me/rainbowkit/wallets';
 
 export function Web3Providers({ children }: { children: React.ReactNode }) {
   const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!;
 
-  // RainbowKit's recommended config - automatically includes all popular wallets
-  const config = getDefaultConfig({
-    appName: 'Orbbit',
-    projectId: projectId,
+  // Custom wallet connectors with Coinbase Wallet at the top
+  const connectors = connectorsForWallets(
+    [
+      {
+        groupName: 'Recommended',
+        wallets: [
+          coinbaseWallet, // Coinbase Wallet first
+          metaMaskWallet,
+          rainbowWallet,
+          walletConnectWallet,
+        ],
+      },
+    ],
+    {
+      appName: 'Orbbit',
+      projectId: projectId,
+    }
+  );
+
+  // Create Wagmi config with custom wallet order
+  const config = createConfig({
+    connectors,
     chains: [baseSepolia, base],
+    transports: {
+      [baseSepolia.id]: http(),
+      [base.id]: http(),
+    },
     ssr: true,
   });
 
-  // RainbowKit theme - Neutral styling for modal (button color overridden in CSS)
+  // RainbowKit theme - Orbbit design system colors
   const customTheme = lightTheme({
-    accentColor: 'hsl(180, 85%, 32%)', // Neutral gray - keeps modal clean
-    accentColorForeground: 'hsl(0, 0%, 100%)',
+    accentColor: 'hsl(180, 85%, 32%)', // Orbbit teal for accent elements
+    accentColorForeground: 'hsl(0, 0%, 100%)', // White text on teal
     borderRadius: 'medium',
     fontStack: 'rounded',
   });
+
+  // Customize shadows - smaller button shadow
+  customTheme.shadows = {
+    ...customTheme.shadows,
+    connectButton: '0px 4px 8px rgba(0, 0, 0, 0.1)', // Subtle shadow (shadow-xs)
+  };
 
   return (
     <WagmiProvider config={config}>

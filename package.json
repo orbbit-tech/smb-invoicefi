@@ -2,6 +2,7 @@
   "name": "smb-invoicefi",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "description": "Orbbit Onchain Invoice Financing Protocol - Nx Monorepo",
   "packageManager": "pnpm@9.15.9",
   "scripts": {
@@ -61,14 +62,15 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "@coinbase/cdp-sdk": "^1.38.4",
     "@coinbase/onchainkit": "^1.1.1",
     "@hookform/resolvers": "^3.3.4",
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/swagger": "^11.2.0",
-    "@openzeppelin/contracts": "^5.0.0",
-    "@openzeppelin/contracts-upgradeable": "^5.0.0",
+    "@stytch/nextjs": "^17.0.0",
+    "@stytch/vanilla-js": "^5.0.0",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-aspect-ratio": "^1.0.3",

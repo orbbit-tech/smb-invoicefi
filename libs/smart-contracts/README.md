@@ -6,33 +6,30 @@ Smart contracts for the Orbbit invoice financing protocol, built for Base (Ether
 
 Orbbit enables SMBs to tokenize their invoices as NFTs and receive immediate funding from investors. The protocol automates the entire lifecycle from invoice creation to yield distribution.
 
+**V1**: Currently uses USDC exclusively as the payment token on Base.
+
 ### Core Contracts
 
-- **InvoiceNFT** - ERC-721 contract for tokenized invoices with lifecycle status tracking
-- **FundingPool** - Manages USDC deposits, investor tracking, and automated yield distribution
-- **InvoiceFactory** - Simplified invoice creation and listing
+- **Invoice** - ERC-721 contract for tokenized invoices with lifecycle status tracking
+- **InvoiceFundingPool** - Manages payment token deposits (USDC), investor tracking, and automated yield distribution
 - **MockUSDC** - Test USDC token for testnet development
 
 ### Architecture
 
 ```
-┌─────────────────┐
-│ InvoiceFactory  │ ─────┐
-└─────────────────┘      │
-                         │ Mints & Lists
-                         ↓
                   ┌──────────────┐
-                  │  InvoiceNFT  │
+                  │   Invoice    │     ERC-721 NFTs
                   └──────────────┘
                          ↑
-                         │ Updates Status
+                         │ Mints & Updates
                          │
-                  ┌──────────────┐      ┌────────┐
-                  │ FundingPool  │ ←──→ │  USDC  │
-                  └──────────────┘      └────────┘
-                         ↑
+                  ┌───────────────────────┐      ┌───────────────┐
+                  │ InvoiceFundingPool  │ ←──→ │ Payment Token │
+                  └───────────────────────┘      └───────────────┘
+                         ↑                          (USDC on Base)
                          │
                    [Investors Fund]
+                   (Lazy Minting)
 ```
 
 ## Technology Stack
@@ -40,12 +37,12 @@ Orbbit enables SMBs to tokenize their invoices as NFTs and receive immediate fun
 This project uses a **dual-framework approach**:
 
 - **Foundry** - Fast Solidity testing and development
-- **Hardhat** - Deployment, TypeScript integration, and TypeChain generation
+- **Hardhat v3** - Deployment with Ignition, TypeScript integration, and TypeChain generation
 
 ### Why Both?
 
 - Foundry: Fast unit tests (~10x faster), gas optimization, fuzz testing
-- Hardhat: TypeScript deployment scripts, TypeChain types for frontend, better debugging
+- Hardhat v3: Declarative deployments with Ignition, TypeChain types for frontend, encrypted keystore for secrets
 
 ## Prerequisites
 
@@ -70,20 +67,44 @@ pnpm install
 
 ## Setup
 
-### Environment Variables
+### Hardhat v3 Keystore Setup (Encrypted Secrets)
 
-Create a `.env` file in the monorepo root:
+Hardhat v3 uses an encrypted keystore for secure storage of private keys and API keys.
+
+**Set up your private keys:**
 
 ```bash
-# Private key for deployment (DO NOT COMMIT)
-PRIVATE_KEY=your_private_key_here
+# For Base Sepolia testnet (encrypted, password-protected)
+npx hardhat keystore set TESTNET_DEPLOYER_PRIVATE_KEY
 
-# RPC URLs
+# For Base Mainnet (encrypted, password-protected)
+npx hardhat keystore set MAINNET_DEPLOYER_PRIVATE_KEY
+
+# For contract verification
+npx hardhat keystore set ETHERSCAN_API_KEY
+
+# For development (no password prompt)
+npx hardhat keystore set TESTNET_DEPLOYER_PRIVATE_KEY --dev
+```
+
+**Manage keystore:**
+```bash
+npx hardhat keystore list              # List all keys
+npx hardhat keystore get <KEY>         # Get a key value
+npx hardhat keystore delete <KEY>      # Delete a key
+npx hardhat keystore change-password   # Change password
+```
+
+> 📚 **New to Hardhat v3?** See [HARDHAT_V3_MIGRATION.md](./HARDHAT_V3_MIGRATION.md) for full migration guide.
+
+### Environment Variables (Optional)
+
+For non-sensitive values like RPC URLs, create a `.env` file:
+
+```bash
+# RPC URLs (optional - defaults are provided)
 BASE_SEPOLIA_RPC=https://sepolia.base.org
 BASE_MAINNET_RPC=https://mainnet.base.org
-
-# Optional: for contract verification
-BASESCAN_API_KEY=your_basescan_api_key
 ```
 
 ### Install Foundry Dependencies
@@ -146,19 +167,19 @@ Types will be generated to: `libs/frontend/ui/generated/contracts/`
 Import generated types in your frontend code:
 
 ```typescript
-import { InvoiceNFT, FundingPool } from '@libs/contracts/types';
+import { Invoice, InvoiceFundingPool } from '@libs/contracts/types';
 import { ethers } from 'ethers';
 
 // Connect to contract
-const invoiceNFT = new ethers.Contract(
+const invoice = new ethers.Contract(
   contractAddress,
-  InvoiceNFT__factory.abi,
+  Invoice__factory.abi,
   signer
-) as InvoiceNFT;
+) as Invoice;
 
 // Call contract methods with full TypeScript support
-const invoice = await invoiceNFT.getInvoice(tokenId);
-console.log(invoice.amount); // TypeScript knows the structure!
+const invoiceData = await invoice.getInvoice(tokenId);
+console.log(invoiceData.amount); // TypeScript knows the structure!
 ```
 
 ## Testing
@@ -182,7 +203,7 @@ forge test --match-test testMintInvoiceSuccess
 
 **Run specific contract tests:**
 ```bash
-forge test --match-contract InvoiceNFTTest
+forge test --match-contract InvoiceTest
 ```
 
 **Run with verbosity:**
@@ -199,9 +220,11 @@ npx hardhat test test-integration/invoice-lifecycle.test.ts
 
 ### Deploy to Base Sepolia (Testnet)
 
-**Using Hardhat:**
+**Using Hardhat Ignition (Recommended):**
 ```bash
-nx run smart-contracts:deploy:sepolia
+npx hardhat ignition deploy ignition/modules/OrbbitProtocol.ts \
+  --network baseSepolia \
+  --parameters ignition/parameters/base-sepolia.json
 ```
 
 **Using Foundry:**
@@ -216,9 +239,11 @@ forge script script/Deploy.s.sol \
 
 ⚠️ **IMPORTANT**: Triple-check all configurations before mainnet deployment!
 
-**Using Hardhat:**
+**Using Hardhat Ignition (Recommended):**
 ```bash
-nx run smart-contracts:deploy:mainnet
+npx hardhat ignition deploy ignition/modules/OrbbitProtocol.ts \
+  --network base \
+  --parameters ignition/parameters/base-mainnet.json
 ```
 
 **Using Foundry:**
@@ -231,14 +256,20 @@ forge script script/Deploy.s.sol \
 
 ### Deployment Process
 
-The deployment script will:
+The Hardhat Ignition deployment will:
 
-1. Deploy MockUSDC (testnet only) or use Base USDC (mainnet)
-2. Deploy InvoiceNFT
-3. Deploy FundingPool
-4. Deploy InvoiceFactory
-5. Configure all roles and permissions
-6. Output deployment addresses
+1. Use Circle's official USDC on Base (testnet/mainnet)
+2. Deploy Whitelist contract
+3. Deploy Invoice NFT contract
+4. Deploy InvoiceFundingPool contract
+5. Configure all inter-contract roles and permissions
+6. Save deployment artifacts to `ignition/deployments/`
+
+Ignition provides:
+- ✅ Declarative deployment modules
+- ✅ Automatic retry and failure recovery
+- ✅ Built-in deployment verification
+- ✅ Reproducible deployments across networks
 
 ### Contract Addresses
 
@@ -252,17 +283,16 @@ Example output:
   "network": "84532",
   "deployer": "0x...",
   "contracts": {
-    "usdc": "0x...",
-    "invoiceNFT": "0x...",
-    "fundingPool": "0x...",
-    "factory": "0x..."
+    "paymentToken": "0x...",
+    "invoice": "0x...",
+    "invoiceFundingPool": "0x..."
   }
 }
 ```
 
 ## Contract Verification
 
-Contracts are automatically verified during deployment if `BASESCAN_API_KEY` is set.
+Contracts are automatically verified during deployment if `ETHERSCAN_API_KEY` is set.
 
 **Manual verification:**
 
@@ -272,7 +302,7 @@ npx hardhat verify --network base <CONTRACT_ADDRESS> <CONSTRUCTOR_ARGS>
 
 Example:
 ```bash
-npx hardhat verify --network base 0x123... "0xUSDC" "0xInvoiceNFT"
+npx hardhat verify --network base 0x123... "0xUSDC" "0xInvoice"
 ```
 
 ## Gas Optimization
@@ -293,47 +323,56 @@ This creates `.gas-snapshot` file for tracking gas changes over time.
 
 ## Common Tasks
 
-### Create New Invoice (Admin Only)
-
-```typescript
-const tx = await factory.createInvoice(
-  ethers.parseUnits("10000", 6), // 10,000 USDC
-  Math.floor(Date.now() / 1000) + 86400 * 30, // Due in 30 days
-  25, // Risk score
-  "Acme Corporation",
-  "INV-2025-001",
-  "ipfs://QmMetadata..."
-);
-
-const receipt = await tx.wait();
-// Invoice is automatically listed on marketplace
-```
-
 ### Fund Invoice (Investor)
 
 ```typescript
-// 1. Approve USDC
-await usdc.approve(fundingPoolAddress, amount);
+// Load invoice details from database
+const invoice = await fetch(`/api/invoices/${invoiceId}`).then(r => r.json());
 
-// 2. Deposit USDC
-await fundingPool.depositUSDC(tokenId, amount);
+// 1. Approve payment token (USDC)
+await paymentToken.approve(invoiceFundingPoolAddress, invoice.amount);
 
-// Contract automatically updates status when fully funded
+// 2. Fund invoice (lazy minting - NFT created here!)
+const tx = await invoiceFundingPool.fundInvoice(
+  invoice.amount,
+  invoice.payer,
+  invoice.dueDate,
+  invoice.apy,
+  invoice.smbWallet,
+  invoice.metadataURI
+);
+
+const receipt = await tx.wait();
+// NFT minted directly to investor with FUNDED status
 ```
 
-### Trigger Repayment (Admin Only)
+### Deposit Repayment (SMB/Admin)
 
 ```typescript
+// Step 1: Deposit repayment to contract
 // Calculate repayment amount (principal + yield)
-const repaymentAmount = principalAmount * 1.1; // 10% yield
+const invoiceData = await invoice.getInvoice(tokenId);
+const yield = await invoiceFundingPool.calculateYield(
+  invoiceData.amount,
+  invoiceData.apy,
+  invoiceData.dueDate
+);
+const totalRepayment = invoiceData.amount + yield;
 
-// Approve USDC
-await usdc.approve(fundingPoolAddress, repaymentAmount);
+// Approve payment token (USDC)
+await paymentToken.approve(invoiceFundingPoolAddress, totalRepayment);
 
-// Trigger repayment - automatically distributes to all investors
-await fundingPool.triggerRepayment(tokenId, repaymentAmount);
+// Deposit repayment
+await invoiceFundingPool.depositRepayment(tokenId);
+```
 
-// Yield is automatically distributed proportionally!
+### Settle Repayment (Admin Only)
+
+```typescript
+// Step 2: Admin settles repayment to investor
+await invoiceFundingPool.settleRepayment(tokenId);
+
+// Yield is automatically distributed to investor!
 ```
 
 ## Security
@@ -343,9 +382,9 @@ await fundingPool.triggerRepayment(tokenId, repaymentAmount);
 The contracts use OpenZeppelin's `AccessControl` for role-based permissions:
 
 - **DEFAULT_ADMIN_ROLE** - Can manage all roles (deployer)
-- **MINTER_ROLE** - Can mint invoice NFTs (InvoiceFactory)
-- **UPDATER_ROLE** - Can update invoice status (InvoiceFactory, FundingPool)
-- **ADMIN_ROLE** - Can create invoices and trigger repayments (Orbbit admins)
+- **MINTER_ROLE** - Can mint invoice NFTs (InvoiceFundingPool)
+- **UPDATER_ROLE** - Can update invoice status (InvoiceFundingPool)
+- **OPERATOR_ROLE** - Can trigger repayments and manage pool operations (Orbbit operations team)
 
 ### Safety Features
 
@@ -359,45 +398,44 @@ The contracts use OpenZeppelin's `AccessControl` for role-based permissions:
 
 ```
 libs/smart-contracts/
-├── contracts/
-│   ├── InvoiceNFT.sol          # ERC-721 invoice tokens
-│   ├── FundingPool.sol         # USDC deposits & yield distribution
-│   ├── InvoiceFactory.sol      # Simplified invoice creation
-│   └── mocks/
-│       └── MockUSDC.sol        # Test USDC token
+├── contracts/                      # Production contracts only
+│   ├── Invoice.sol                 # ERC-721 invoice tokens
+│   ├── InvoiceFundingPool.sol      # Payment token deposits & yield (USDC on Base)
+│   └── IInvoice.sol                # Invoice interface
 ├── test/
-│   ├── InvoiceNFT.t.sol        # Foundry unit tests
-│   ├── FundingPool.t.sol
-│   └── InvoiceFactory.t.sol
+│   ├── mocks/                      # Test utilities
+│   │   └── MockUSDC.sol            # Test USDC token
+│   ├── Invoice.t.sol               # Foundry unit tests
+│   └── InvoiceFundingPool.t.sol
 ├── test-integration/
 │   └── invoice-lifecycle.test.ts   # Hardhat integration tests
 ├── script/
-│   └── Deploy.s.sol            # Foundry deployment script
+│   └── Deploy.s.sol                # Foundry deployment script
 ├── deploy/
 │   └── 001_deploy_contracts.ts    # Hardhat deployment script
-├── foundry.toml                # Foundry configuration
-├── hardhat.config.ts           # Hardhat configuration
-└── project.json                # Nx configuration
+├── foundry.toml                    # Foundry configuration
+├── hardhat.config.ts               # Hardhat configuration
+└── project.json                    # Nx configuration
 ```
 
 ## Troubleshooting
 
-### "Exceeds target amount" error
+### "Invoice already funded" error
 
-Ensure deposit doesn't exceed the invoice amount. Check remaining funding needed:
+Each invoice can only be funded once (single-investor model). Check funding status:
 
 ```typescript
-const info = await fundingPool.getFundingInfo(tokenId);
-const remaining = info.targetAmount - info.totalFunded;
+const info = await invoiceFundingPool.getFundingInfo(tokenId);
+console.log("Investor:", info.investor); // address(0) if not funded
 ```
 
 ### "Invoice not available for funding" error
 
-Check invoice status. Only `Listed` or `PartiallyFunded` invoices can receive deposits:
+Check invoice status. Only `LISTED` invoices can be funded:
 
 ```typescript
-const invoice = await invoiceNFT.getInvoice(tokenId);
-console.log("Status:", invoice.status); // Should be 1 or 2
+const invoiceData = await invoice.getInvoice(tokenId);
+console.log("Status:", invoiceData.status); // Should be 1 (LISTED)
 ```
 
 ### Foundry not found

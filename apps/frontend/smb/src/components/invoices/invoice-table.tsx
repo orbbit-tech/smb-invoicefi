@@ -11,7 +11,6 @@ import {
 import { Button } from '@ui';
 import { Invoice } from '@/types/invoice';
 import { InvoiceStatusBadge } from './invoice-status-badge';
-import { Progress } from '@ui';
 import { ArrowUpDown, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -24,8 +23,7 @@ type SortField =
   | 'invoiceNumber'
   | 'amount'
   | 'dueDate'
-  | 'status'
-  | 'fundingProgress';
+  | 'status';
 type SortDirection = 'asc' | 'desc';
 
 export function InvoiceTable({ invoices }: InvoiceTableProps) {
@@ -121,17 +119,6 @@ export function InvoiceTable({ invoices }: InvoiceTableProps) {
                 <ArrowUpDown className="h-3 w-3" />
               </Button>
             </TableHead>
-            <TableHead>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleSort('fundingProgress')}
-                className="flex items-center gap-1"
-              >
-                Funding
-                <ArrowUpDown className="h-3 w-3" />
-              </Button>
-            </TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -139,7 +126,7 @@ export function InvoiceTable({ invoices }: InvoiceTableProps) {
           {sortedInvoices.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={7}
+                colSpan={6}
                 className="text-center text-muted-foreground"
               >
                 No invoices found
@@ -156,17 +143,6 @@ export function InvoiceTable({ invoices }: InvoiceTableProps) {
                 <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                 <TableCell>
                   <InvoiceStatusBadge status={invoice.status} />
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2 min-w-[120px]">
-                    <Progress
-                      value={invoice.fundingProgress}
-                      className="flex-1 h-2"
-                    />
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">
-                      {invoice.fundingProgress}%
-                    </span>
-                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <Link href={`/invoices/${invoice.id}`}>
