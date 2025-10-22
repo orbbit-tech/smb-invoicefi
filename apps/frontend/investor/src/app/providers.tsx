@@ -66,23 +66,9 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
     ssr: true,
   });
 
-  // RainbowKit theme - Orbbit design system colors
-  const customTheme = lightTheme({
-    accentColor: 'hsl(180, 85%, 32%)', // Orbbit teal for accent elements
-    accentColorForeground: 'hsl(0, 0%, 100%)', // White text on teal
-    borderRadius: 'medium',
-    fontStack: 'rounded',
-  });
-
-  // Customize shadows - smaller button shadow
-  customTheme.shadows = {
-    ...customTheme.shadows,
-    connectButton: '0px 4px 8px rgba(0, 0, 0, 0.1)', // Subtle shadow (shadow-xs)
-  };
-
   return (
     <WagmiProvider config={config}>
-      <RainbowKitProvider theme={customTheme}>{children}</RainbowKitProvider>
+      <RainbowKitProvider modalSize="compact">{children}</RainbowKitProvider>
     </WagmiProvider>
   );
 }

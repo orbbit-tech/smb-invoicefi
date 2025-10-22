@@ -26,7 +26,7 @@ contract Invoice is IInvoice, ERC721, AccessControl, Pausable {
     uint256 private _nextTokenId;
 
     /// @notice Mapping from token ID to invoice data
-    mapping(uint256 => IInvoice.Data) private _invoices;
+    mapping(uint256 => IInvoice.InvoiceData) private _invoices;
 
     /// @notice Base URI for token metadata
     string private _baseTokenURI;
@@ -56,7 +56,7 @@ contract Invoice is IInvoice, ERC721, AccessControl, Pausable {
         address whitelist_
     ) ERC721(name_, symbol_) {
         if (whitelist_ == address(0))
-            revert IInvoice.InvalidWhitelistAddress(whitelist_);
+            revert IInvoice.WhitelistContractNotSet(whitelist_);
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
@@ -68,49 +68,59 @@ contract Invoice is IInvoice, ERC721, AccessControl, Pausable {
     // ============ EXTERNAL FUNCTIONS ============
 
     /**
-     * @notice Mints a new invoice NFT directly to the recipient (lazy minting)
+     * @notice Mints a new invoice NFT with specified initial status (two-step custody)
      * @dev Implements {IInvoice-mint}
-     * @param mintTo Address receiving the newly minted invoice NFT
-     * @param amount Invoice amount in USDC (6 decimals)
-     * @param dueDate Unix timestamp when payment is due
-     * @param apy Annual percentage yield in basis points
+     * @param mintTo Address receiving the newly minted invoice NFT (contract for listing, investor for funding)
+     * @param amount Invoice amount in payment token base units
+     * @param paymentToken ERC20 stablecoin address used for settlement
+     * @param dueAt Unix timestamp when payment is due
+     * @param apr Annual percentage rate in basis points
      * @param issuer Address of the entity that issued the invoice and receives funding
-     * @param metadataURI URI for invoice metadata (contains payer info and other details)
+     * @param uri URI for invoice metadata (contains payer info and other details)
+     * @param initialStatus Initial status (LISTED when platform lists, FUNDED for direct funding)
      * @return tokenId The newly minted invoice token ID
      * @dev Only callable by addresses with MINTER_ROLE (InvoiceFundingPool)
-     * @dev NFT is minted with FUNDED status (skipping DRAFT/LISTED which are off-chain)
-     * @dev This is the recommended function for true lazy minting
+     * @dev Two-step custody: First mint to contract with LISTED, then transfer to investor when funded
      */
     function mint(
         address mintTo,
         uint256 amount,
-        uint256 dueDate,
-        uint256 apy,
+        address paymentToken,
+        uint256 dueAt,
+        uint256 apr,
         address issuer,
-        string memory metadataURI
+        string memory uri,
+        IInvoice.Status initialStatus
     ) external onlyRole(MINTER_ROLE) whenNotPaused returns (uint256) {
         if (mintTo == address(0)) revert IInvoice.InvalidRecipient(mintTo);
         if (amount == 0) revert IInvoice.InvalidAmount(amount);
-        if (dueDate <= block.timestamp)
-            revert IInvoice.InvalidDueDate(dueDate, block.timestamp);
+        if (paymentToken == address(0)) revert IInvoice.InvalidRecipient(paymentToken);
+        if (dueAt <= block.timestamp)
+            revert IInvoice.InvalidDueAt(dueAt, block.timestamp);
         if (issuer == address(0)) revert IInvoice.InvalidIssuer(issuer);
+
+        // Enforce whitelist: issuer must be whitelisted as SMB
+        if (!whitelist.isWhitelisted(issuer, IWhitelist.Role.SMB)) {
+            revert IInvoice.IssuerNotWhitelisted(issuer);
+        }
 
         uint256 tokenId = ++_nextTokenId;
 
-        // Store invoice data with FUNDED status (invoice already funded at mint time)
-        _invoices[tokenId] = IInvoice.Data({
+        // Store invoice data with specified initial status
+        _invoices[tokenId] = IInvoice.InvoiceData({
             amount: amount,
-            dueDate: dueDate,
-            apy: apy,
-            status: IInvoice.Status.FUNDED,
+            paymentToken: paymentToken,
+            dueAt: dueAt,
+            apr: apr,
+            status: initialStatus,
             issuer: issuer,
-            metadataURI: metadataURI
+            uri: uri
         });
 
-        // Mint NFT directly to recipient (true lazy minting)
+        // Mint NFT to specified recipient (contract for LISTED, investor for FUNDED)
         _safeMint(mintTo, tokenId);
 
-        emit InvoiceMinted(tokenId, amount, issuer, dueDate);
+        emit InvoiceMinted(tokenId, mintTo, issuer, amount, paymentToken, dueAt, apr, uri);
 
         return tokenId;
     }
@@ -129,7 +139,7 @@ contract Invoice is IInvoice, ERC721, AccessControl, Pausable {
     ) external onlyRole(UPDATER_ROLE) {
         if (!_exists(tokenId)) revert IInvoice.InvoiceNotFound(tokenId);
 
-        IInvoice.Data storage invoice = _invoices[tokenId];
+        IInvoice.InvoiceData storage invoice = _invoices[tokenId];
         IInvoice.Status oldStatus = invoice.status;
 
         if (!_isValidTransition(oldStatus, newStatus)) {
@@ -153,7 +163,7 @@ contract Invoice is IInvoice, ERC721, AccessControl, Pausable {
      */
     function getInvoice(
         uint256 tokenId
-    ) external view returns (IInvoice.Data memory) {
+    ) external view returns (IInvoice.InvoiceData memory) {
         if (!_exists(tokenId)) revert IInvoice.InvoiceNotFound(tokenId);
         return _invoices[tokenId];
     }
@@ -189,11 +199,11 @@ contract Invoice is IInvoice, ERC721, AccessControl, Pausable {
     ) public view override returns (string memory) {
         if (!_exists(tokenId)) revert IInvoice.InvoiceNotFound(tokenId);
 
-        IInvoice.Data memory invoice = _invoices[tokenId];
+        IInvoice.InvoiceData memory invoice = _invoices[tokenId];
 
         // If metadata URI is set, use it; otherwise use base URI + tokenId
-        if (bytes(invoice.metadataURI).length > 0) {
-            return invoice.metadataURI;
+        if (bytes(invoice.uri).length > 0) {
+            return invoice.uri;
         }
 
         return
@@ -224,24 +234,36 @@ contract Invoice is IInvoice, ERC721, AccessControl, Pausable {
      * @param to New status
      * @return True if the transition is valid
      * @dev Enforces the following valid transitions:
-     *      DRAFT -> LISTED (off-chain only, should not occur on-chain)
-     *      LISTED -> FUNDED (legacy path, for backward compatibility)
-     *      FUNDED -> REPAID (primary happy path)
-     *      FUNDED -> DEFAULTED (primary unhappy path)
-     * @dev Note: With lazy minting, NFTs are created directly with FUNDED status
+     *      LISTED -> FUNDED (investor funds invoice, two-step custody)
+     *      FUNDED -> FULLY_PAID (happy path: repayment deposited)
+     *      FULLY_PAID -> SETTLED (happy path: funds distributed)
+     *      FUNDED -> DEFAULTED (unhappy path: no repayment after grace period)
+     *      DEFAULTED -> FULLY_PAID (recovery path: collections succeed)
+     * @dev Terminal states: SETTLED, DEFAULTED (unless recovered)
+     * @dev Two-step custody: NFTs minted with LISTED status, then transition to FUNDED
      */
     function _isValidTransition(
         IInvoice.Status from,
         IInvoice.Status to
     ) internal pure returns (bool) {
-        if (from == IInvoice.Status.DRAFT && to == IInvoice.Status.LISTED)
-            return true;
+        // Two-step custody: Listing → Funding
         if (from == IInvoice.Status.LISTED && to == IInvoice.Status.FUNDED)
             return true;
-        if (from == IInvoice.Status.FUNDED && to == IInvoice.Status.REPAID)
+
+        // Happy path: Funding → Deposit → Settlement
+        if (from == IInvoice.Status.FUNDED && to == IInvoice.Status.FULLY_PAID)
             return true;
+        if (from == IInvoice.Status.FULLY_PAID && to == IInvoice.Status.SETTLED)
+            return true;
+
+        // Unhappy path: Default without repayment
         if (from == IInvoice.Status.FUNDED && to == IInvoice.Status.DEFAULTED)
             return true;
+
+        // Recovery path: Collections succeed after default
+        if (from == IInvoice.Status.DEFAULTED && to == IInvoice.Status.FULLY_PAID)
+            return true;
+
         return false;
     }
 

@@ -1,19 +1,17 @@
+'use client';
+
+import { useState } from 'react';
 import { MetricCard } from '@/components/dashboard/metric-card';
-import { InvoiceTable } from '@/components/invoices/invoice-table';
+import { InvoiceMultiView } from '@/components/invoices/invoice-multi-view';
 import { Button } from '@ui';
-import { getMockMetrics, getRecentInvoices } from '@/data/mock-invoices';
-import {
-  DollarSign,
-  FileText,
-  TrendingUp,
-  Clock,
-  PlusCircle,
-} from 'lucide-react';
+import { getMockMetrics, mockInvoices } from '@/data/mock-invoices';
+import { DollarSign, FileText, TrendingUp, Clock, Plus } from 'lucide-react';
 import Link from 'next/link';
 
-export default function OverviewPage() {
+export default function MyInvoicesPage() {
   const metrics = getMockMetrics();
-  const recentInvoices = getRecentInvoices(5);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -24,25 +22,31 @@ export default function OverviewPage() {
     }).format(amount);
   };
 
+  // Filter invoices based on status and search query
+  const filteredInvoices = mockInvoices.filter((invoice) => {
+    const matchesStatus =
+      statusFilter === 'all' || invoice.status === statusFilter;
+    const matchesSearch =
+      invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.payer.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesStatus && matchesSearch;
+  });
+
   return (
-    <div className="space-y-8 p-8">
-      {/* Header Section - 32px from top */}
+    <div className="space-y-6">
+      {/* Header Section */}
       <div className="flex items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
-          <p className="text-muted-foreground">
-            Monitor your invoice financing at a glance
-          </p>
-        </div>
+        <h1 className="text-xl font-bold tracking-tight">My Invoices</h1>
         <Link href="/invoices/submit">
-          <Button className="font-semibold">
-            <PlusCircle className="h-4 w-4" />
-            Submit Invoice
+          <Button>
+            <Plus className="h-4 w-4" />
+            <span className="text-sm font-medium">Submit Invoice</span>
           </Button>
         </Link>
       </div>
 
-      {/* Metrics Grid - 16px gaps */}
+      {/* Metrics Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Total Invoices"
@@ -70,24 +74,14 @@ export default function OverviewPage() {
         />
       </div>
 
-      {/* Recent Invoices Section - 32px spacing */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Recent Invoices
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Latest submissions and their status
-            </p>
-          </div>
-          <Link href="/invoices">
-            <Button variant="outline">View All</Button>
-          </Link>
-        </div>
-
-        <InvoiceTable invoices={recentInvoices} />
-      </div>
+      {/* Invoice Multi-View */}
+      <InvoiceMultiView
+        invoices={filteredInvoices}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+      />
     </div>
   );
 }

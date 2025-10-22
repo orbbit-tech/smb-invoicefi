@@ -8,8 +8,8 @@ import { HeaderUserMenu } from '../navigation/header-user-menu';
 import { useSession } from '@/utils/hooks/use-session';
 
 // Dynamically import wallet components with no SSR
-const WalletSection = dynamic(
-  () => import('./wallet-section').then((mod) => mod.WalletSection),
+const WalletConnector = dynamic(
+  () => import('@ui').then((mod) => mod.WalletConnector),
   {
     ssr: false,
     loading: () => null,
@@ -46,9 +46,9 @@ export function DashboardHeader() {
         </Link>
 
         {/* Right: Wallet section + User menu */}
-        <div className="flex items-center gap-4">
-          {/* Wallet Connection & Balance */}
-          <WalletSection />
+        <div className="flex items-center gap-3">
+          {/* Wallet Connection */}
+          <WalletConnector />
           {/* User Avatar & Menu */}
           <HeaderUserMenu member={memberDisplayData} />
         </div>

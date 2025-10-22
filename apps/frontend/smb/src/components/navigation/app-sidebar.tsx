@@ -3,7 +3,6 @@
 import * as React from 'react';
 import {
   FileText,
-  Home,
   PlusCircle,
   PanelLeftClose,
   PanelRightClose,
@@ -22,7 +21,6 @@ import {
   useSidebar,
 } from '@ui';
 
-import { NavOrg } from './nav-org';
 import { Session } from '@/utils/atoms/auth';
 
 export function AppSidebar({
@@ -42,17 +40,12 @@ export function AppSidebar({
   const navMain = React.useMemo(() => {
     const items = [
       {
-        title: 'Overview',
-        url: '/',
-        icon: Home,
-        isActive: pathname === '/',
-      },
-      {
         title: 'My Invoices',
-        url: '/invoices',
+        url: '/',
         icon: FileText,
         isActive:
-          pathname?.startsWith('/invoices') && pathname !== '/invoices/submit',
+          pathname === '/' ||
+          (pathname?.startsWith('/invoices') && pathname !== '/invoices/submit'),
       },
       {
         title: 'Submit Invoice',
@@ -72,13 +65,6 @@ export function AppSidebar({
       className="top-14 h-[calc(100vh-3.5rem)]"
       {...props}
     >
-      {/* <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <NavOrg org={orgDisplayData} />
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader> */}
       <SidebarContent>
         <NavMain items={navMain} />
       </SidebarContent>

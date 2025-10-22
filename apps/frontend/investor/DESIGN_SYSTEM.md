@@ -5,27 +5,32 @@ This document outlines the design system principles and implementation guideline
 ## Design Principles
 
 ### 1. Neutral Base with Brand Accents
+
 - **Primary Teal**: Used sparingly for CTAs, active states, and brand moments
 - **Slate Palette**: Clean, professional neutral base for all UI elements
 - **Semantic Colors**: Success (green), warning (amber), destructive (red) - all calibrated for clarity
 
 ### 2. Clear Visual Hierarchy
+
 - Consistent typography scale from xs (12px) to 3xl (30px)
 - Strategic use of font weights (regular, medium, semibold, bold)
 - Proper line heights for readability
 
 ### 3. Consistent 8px Spacing Grid
+
 All spacing is based on multiples of 8px for visual rhythm and balance.
 
 ## Color System
 
 ### Brand Colors
+
 ```css
 --primary: hsl(180, 85%, 32%)        /* Orbbit Teal - Main brand */
 --primary-foreground: hsl(0, 0%, 100%)
 ```
 
 ### Neutral Palette (Slate)
+
 ```css
 --background: hsl(0, 0%, 100%)
 --foreground: hsl(215, 20%, 17%)     /* Deep professional gray */
@@ -35,6 +40,7 @@ All spacing is based on multiples of 8px for visual rhythm and balance.
 ```
 
 ### Semantic Colors
+
 ```css
 --success: hsl(142, 71%, 45%)        /* Professional green */
 --warning: hsl(38, 92%, 50%)         /* Golden amber */
@@ -44,6 +50,7 @@ All spacing is based on multiples of 8px for visual rhythm and balance.
 ## Typography
 
 ### Scale
+
 - **text-3xl (30px)**: Page titles
 - **text-2xl (24px)**: Section headers
 - **text-xl (20px)**: Card titles, subsection headers
@@ -53,12 +60,14 @@ All spacing is based on multiples of 8px for visual rhythm and balance.
 - **text-xs (12px)**: Captions, helper text
 
 ### Font Weights
+
 - **font-normal (400)**: Regular text
 - **font-medium (500)**: Slightly emphasized labels
 - **font-semibold (600)**: Section headers, important labels
 - **font-bold (700)**: Page titles, major emphasis
 
 ### Line Heights
+
 - **leading-tight (1.25)**: Headings
 - **leading-snug (1.375)**: Subheadings
 - **leading-normal (1.5)**: Body text (default)
@@ -69,6 +78,7 @@ All spacing is based on multiples of 8px for visual rhythm and balance.
 All spacing follows an 8px grid:
 
 ### Key Spacing Values
+
 - **space-2 (8px)**: Tight spacing between related elements
 - **space-4 (16px)**: Standard gaps between elements, grid gaps
 - **space-6 (24px)**: Card padding, section internal spacing
@@ -76,6 +86,7 @@ All spacing follows an 8px grid:
 - **space-12 (48px)**: Major section breaks
 
 ### Usage Guidelines
+
 ```tsx
 // Card padding
 <Card className="p-6">  {/* 24px padding */}
@@ -93,19 +104,17 @@ All spacing follows an 8px grid:
 ## Component Patterns
 
 ### Cards
+
 ```tsx
 // Standard card with consistent padding
 <Card className="p-6 transition-all duration-200 hover:shadow-md">
-  <div className="text-sm font-medium text-muted-foreground mb-2">
-    Label
-  </div>
-  <div className="text-3xl font-bold text-foreground leading-tight">
-    Value
-  </div>
+  <div className="text-sm font-medium text-muted-foreground mb-2">Label</div>
+  <div className="text-3xl font-bold text-foreground leading-tight">Value</div>
 </Card>
 ```
 
 ### MetricCard
+
 ```tsx
 <MetricCard
   title="Total Value Locked"
@@ -117,12 +126,14 @@ All spacing follows an 8px grid:
 ```
 
 ### Navigation Active States
+
 - Background: `bg-primary/10`
-- Text: `text-primary`
+- Text: ``
 - Left border accent: `before:w-1 before:bg-primary`
 - Shadow: `shadow-sm`
 
 ### Buttons
+
 ```tsx
 // Primary CTA
 <Button className="font-semibold">
@@ -138,13 +149,16 @@ All spacing follows an 8px grid:
 ## Layout Guidelines
 
 ### Max Width Container
+
 All content uses `max-w-7xl` (1400px) for optimal readability
 
 ### Horizontal Padding
+
 - Desktop: `px-8` (32px)
 - Mobile: `px-4` (16px)
 
 ### Header
+
 - Height: `h-20` (80px)
 - Border bottom: `border-b border-border`
 - Backdrop blur for depth
@@ -152,6 +166,7 @@ All content uses `max-w-7xl` (1400px) for optimal readability
 ## Interactive States
 
 ### Hover Effects
+
 ```tsx
 // Cards
 transition-all duration-200 hover:shadow-md
@@ -163,6 +178,7 @@ hover:scale-[1.02]
 ```
 
 ### Focus States
+
 All interactive elements use the `ring` color (primary teal) for focus indication
 
 ## Accessibility
@@ -175,6 +191,7 @@ All interactive elements use the `ring` color (primary teal) for focus indicatio
 ## Best Practices
 
 ### Do's
+
 ✅ Use consistent 24px (p-6) card padding
 ✅ Maintain 8px spacing multiples
 ✅ Apply subtle hover effects for interactivity
@@ -182,6 +199,7 @@ All interactive elements use the `ring` color (primary teal) for focus indicatio
 ✅ Follow typography hierarchy strictly
 
 ### Don'ts
+
 ❌ Mix different padding values arbitrarily
 ❌ Use primary color for everything
 ❌ Create custom spacing that breaks the 8px grid
@@ -203,11 +221,13 @@ When creating new components:
 ## Resources
 
 ### Files
+
 - Color system: `libs/frontend/ui/src/theme/globals.css`
 - Typography & spacing: `libs/frontend/ui/src/theme/theme.css`
 - UI components: `libs/frontend/ui/src/component/`
 
 ### Examples
+
 - Dashboard Home: `apps/frontend/investor/src/app/(dashboard)/(main)/page.tsx`
 - Marketplace: `apps/frontend/investor/src/app/(dashboard)/marketplace/page.tsx`
 - Portfolio: `apps/frontend/investor/src/app/(dashboard)/portfolio/page.tsx`

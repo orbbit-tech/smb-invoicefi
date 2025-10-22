@@ -82,7 +82,7 @@ export function MetricCard({
           )}
         </div>
         <div className="flex-shrink-0 p-3 bg-primary/10 rounded-lg">
-          <Icon className="h-5 w-5 text-primary" />
+          <Icon className="h-5 w-5 " />
         </div>
       </div>
     </Card>

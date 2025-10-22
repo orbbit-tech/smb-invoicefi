@@ -19,7 +19,9 @@ export function DashboardContent({ children }: DashboardContentProps) {
   return (
     <SidebarInset>
       <div className="h-full overflow-y-auto">
-        <div className="mx-auto w-full max-w-7xl px-8 py-8">{children}</div>
+        <div className="mx-auto w-full max-w-7xl p-6 sm:p-8 md:p-12">
+          {children}
+        </div>
       </div>
     </SidebarInset>
   );

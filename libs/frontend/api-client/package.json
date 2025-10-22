@@ -1,0 +1,10 @@
+{
+  "name": "@api-client",
+  "version": "1.0.0",
+  "description": "TypeScript API client for Orbbit Backend",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {},
+  "dependencies": {},
+  "devDependencies": {}
+}

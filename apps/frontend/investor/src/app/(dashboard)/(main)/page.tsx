@@ -1,17 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
 } from '@ui';
 import { TrendingUp, Wallet, Clock, CheckCircle } from 'lucide-react';
+import { PortfolioNFTCard, type InvoiceData } from '@/components/invoices';
 
 /**
  * Portfolio Page
@@ -39,13 +38,22 @@ const MOCK_PORTFOLIO = {
       category: 'CPG',
       payer: 'Walmart',
       payerLogoUrl: '/Walmart-logo.png',
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       daysUntilDue: 30,
       apy: 10.5,
+      return: 250,
       riskScore: 'Low' as const,
       status: 'funded' as const,
       discountRate: 0.05,
       userInvestment: 4750, // Full funding amount (5000 * 0.95)
       expectedReturn: 5000, // invoice.amount / (1 - discountRate)
+      // NFT fields
+      tokenId: '1',
+      contractAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+      blockchainTxHash:
+        '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      fundingDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+      paymentsMade: [],
     },
     {
       id: 4,
@@ -56,13 +64,22 @@ const MOCK_PORTFOLIO = {
       category: 'Retail',
       payer: 'Target',
       payerLogoUrl: '/target-logo.png',
+      dueDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
       daysUntilDue: 60,
       apy: 15.2,
+      return: 455,
       riskScore: 'Medium' as const,
       status: 'active' as const,
       discountRate: 0.07,
       userInvestment: 6050, // Partial funding (22000 * 0.93 * 0.275 ≈ 6050)
       expectedReturn: 6505, // userInvestment / (1 - 0.07)
+      // NFT fields
+      tokenId: '4',
+      contractAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+      blockchainTxHash:
+        '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+      fundingDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      paymentsMade: [],
     },
   ],
   completedInvestments: [
@@ -75,20 +92,40 @@ const MOCK_PORTFOLIO = {
       category: 'Shipping',
       payer: 'Amazon',
       payerLogoUrl: '/amazon-logo.png',
+      dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       daysUntilDue: 0,
       apy: 10.5,
+      return: 400,
       riskScore: 'Low' as const,
       status: 'repaid' as const,
       discountRate: 0.05,
       userInvestment: 7600, // Full funding amount (8000 * 0.95)
       actualReturn: 8000,
       profit: 400,
+      // NFT fields
+      tokenId: '2',
+      contractAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+      blockchainTxHash:
+        '0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321',
+      fundingDate: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString(),
+      settlementDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      paymentsMade: [
+        {
+          date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          amount: 8000,
+        },
+      ],
     },
   ],
 };
 
 export default function PortfolioPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('active');
+
+  const handleInvestmentClick = (investment: InvoiceData) => {
+    router.push(`/portfolio/${investment.id}`);
+  };
 
   const unrealizedGains = MOCK_PORTFOLIO.investments.reduce(
     (sum, inv) => sum + (inv.expectedReturn - inv.userInvestment),
@@ -198,119 +235,40 @@ export default function PortfolioPage() {
         </TabsList>
 
         {/* Active Investments */}
-        <TabsContent value="active" className="space-y-4 mt-6">
-          {MOCK_PORTFOLIO.investments.map((investment) => (
-            <Card
-              key={investment.id}
-              className="p-6 transition-all duration-200 hover:shadow-md"
-            >
-              <div className="flex items-start gap-4 mb-6">
-                {/* Company Logo */}
-                <Avatar className="h-14 w-14 bg-neutral-200/80 shadow-sm flex-shrink-0">
-                  <AvatarImage src={investment.companyLogoUrl} />
-                  <AvatarFallback className="bg-neutral-200/80 font-semibold">
-                    {investment.companyName[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-
-                {/* Invoice Details */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-foreground mb-1">
-                    {investment.companyName}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Invoice to {investment.payer} • $
-                    {investment.amount.toLocaleString()}
-                  </p>
-                  <div className="flex items-center gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">
-                        Your Investment:
-                      </span>{' '}
-                      <span className="font-semibold">
-                        ${investment.userInvestment.toLocaleString()}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Due in:</span>{' '}
-                      <span className="font-semibold">
-                        {investment.daysUntilDue} days
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Returns */}
-                <div className="flex-shrink-0 text-right">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">
-                    Expected Return
-                  </p>
-                  <p className="text-2xl font-bold leading-tight">
-                    ${investment.expectedReturn.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-primary mt-1">
-                    +$
-                    {(
-                      investment.expectedReturn - investment.userInvestment
-                    ).toLocaleString()}{' '}
-                    profit
-                  </p>
-                </div>
-              </div>
-            </Card>
-          ))}
+        <TabsContent value="active" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {MOCK_PORTFOLIO.investments.map((investment) => (
+              <PortfolioNFTCard
+                key={investment.id}
+                invoice={{
+                  ...investment,
+                  payerName: investment.payer,
+                  userInvestment: investment.userInvestment,
+                  expectedReturn: investment.expectedReturn,
+                }}
+                onClick={handleInvestmentClick}
+              />
+            ))}
+          </div>
         </TabsContent>
 
         {/* Completed Investments */}
-        <TabsContent value="completed" className="space-y-4 mt-6">
-          {MOCK_PORTFOLIO.completedInvestments.map((investment) => (
-            <Card
-              key={investment.id}
-              className="p-6 transition-all duration-200 hover:shadow-md"
-            >
-              <div className="flex items-start gap-4 mb-4">
-                {/* Company Logo */}
-                <Avatar className="h-14 w-14 bg-neutral-200/80 shadow-sm flex-shrink-0">
-                  <AvatarImage src={investment.companyLogoUrl} />
-                  <AvatarFallback className="bg-neutral-200/80 font-semibold">
-                    {investment.companyName[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-
-                {/* Invoice Details */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-foreground mb-1">
-                    {investment.companyName}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Invoice to {investment.payer} • $
-                    {investment.amount.toLocaleString()}
-                  </p>
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Repaid</span>
-                    <span className="text-muted-foreground">•</span>
-                    <span className="text-muted-foreground">
-                      Investment: ${investment.userInvestment.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Returns */}
-                <div className="flex-shrink-0 text-right">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">
-                    Actual Return
-                  </p>
-                  <p className="text-2xl font-bold leading-tight">
-                    ${investment.actualReturn.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-primary mt-1">
-                    +${investment.profit.toLocaleString()} profit
-                  </p>
-                </div>
-              </div>
-            </Card>
-          ))}
+        <TabsContent value="completed" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {MOCK_PORTFOLIO.completedInvestments.map((investment) => (
+              <PortfolioNFTCard
+                key={investment.id}
+                invoice={{
+                  ...investment,
+                  payerName: investment.payer,
+                  userInvestment: investment.userInvestment,
+                  expectedReturn: investment.actualReturn,
+                  profit: investment.profit,
+                }}
+                onClick={handleInvestmentClick}
+              />
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

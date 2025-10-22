@@ -29,7 +29,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1 min-w-0 flex-1">
-            <h3 className="font-semibold text-lg tracking-tight truncate">
+            <h3 className="font-semibold text-base tracking-tight truncate">
               {invoice.invoiceNumber}
             </h3>
             <p className="text-sm text-muted-foreground truncate">
@@ -47,7 +47,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
               <DollarSign className="h-4 w-4" />
               <span className="text-xs">Amount</span>
             </div>
-            <p className="font-semibold text-lg">{formattedAmount}</p>
+            <p className="font-semibold text-base">{formattedAmount}</p>
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-muted-foreground">

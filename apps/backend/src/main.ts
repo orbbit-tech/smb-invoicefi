@@ -13,13 +13,32 @@ async function bootstrap() {
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
 
+  // Enable CORS for frontend applications
+  app.enableCors({
+    origin: process.env.NODE_ENV === 'production'
+      ? ['https://smb.orbbit.io', 'https://investor.orbbit.io']
+      : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
+
   // Configure Swagger API documentation
   const apiConfig = new DocumentBuilder()
     .setTitle('Orbbit Backend API')
-    .setDescription('Orbbit Invoice Finance - Backend API Documentation')
+    .setDescription('Orbbit Web3 Invoice Financing Platform - Backend API Documentation\n\nServes offchain data for SMB and Investor frontend applications.')
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('App', 'Application health and info endpoints')
+    .addTag('SMB - Dashboard', 'SMB dashboard aggregate metrics')
+    .addTag('SMB - Invoices', 'Invoice management for SMBs (CRUD operations)')
+    .addTag('SMB - Organization', 'Organization profile and settings')
+    .addTag('SMB - Payers', 'Payer companies for invoice creation')
+    .addTag('Investor - Profile', 'Investor user profile and KYC status')
+    .addTag('Investor - Marketplace', 'Available invoices for funding')
+    .addTag('Investor - Portfolio', 'NFT positions and portfolio analytics')
+    .addTag('Shared - Payers', 'Detailed payer information and performance')
+    .addTag('Shared - Blockchain', 'NFT data and transaction history')
     .build();
 
   try {

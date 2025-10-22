@@ -23,11 +23,13 @@ contract WhitelistIntegrationTest is Test {
     address public whitelistedSMB;
     address public nonWhitelistedSMB;
     address public whitelistedInvestor2;
+    address public platformTreasury;
 
     uint256 constant INVOICE_AMOUNT = 10_000 * 1e6; // 10,000 USDC
     uint256 constant DUE_DATE_OFFSET = 30 days;
-    uint256 constant APY = 1200; // 12%
+    uint256 constant APR = 1200; // 12%
     uint256 constant GRACE_PERIOD = 30 days;
+    uint256 constant PLATFORM_FEE_RATE = 3000; // 25%
 
     function setUp() public {
         owner = address(this);
@@ -36,10 +38,11 @@ contract WhitelistIntegrationTest is Test {
         whitelistedSMB = makeAddr("whitelistedSMB");
         nonWhitelistedSMB = makeAddr("nonWhitelistedSMB");
         whitelistedInvestor2 = makeAddr("whitelistedInvestor2");
+        platformTreasury = makeAddr("platformTreasury");
 
         // Deploy contracts
         usdc = new MockUSDC();
-        whitelist = new Whitelist();
+        whitelist = new Whitelist(50); // Default batch size
         invoice = new Invoice(
             "Orbbit Invoice",
             "ORBINV",
@@ -51,7 +54,9 @@ contract WhitelistIntegrationTest is Test {
             address(usdc),
             address(invoice),
             GRACE_PERIOD,
-            address(whitelist)
+            address(whitelist),
+            platformTreasury,
+            PLATFORM_FEE_RATE
         );
 
         // Grant roles
@@ -78,118 +83,97 @@ contract WhitelistIntegrationTest is Test {
     // ============ FUNDING TESTS - INVESTOR WHITELIST ============
 
     function test_FundInvoice_Success_WithWhitelistedInvestorAndSMB() public {
-        uint256 dueDate = block.timestamp + DUE_DATE_OFFSET;
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
 
-        vm.startPrank(whitelistedInvestor);
-
-        // Approve USDC
-        usdc.approve(address(pool), INVOICE_AMOUNT);
-
-        // Fund invoice
-        uint256 tokenId = pool.fundInvoice(
+        // Step 1: Platform lists invoice
+        uint256 tokenId = pool.listInvoice(
             INVOICE_AMOUNT,
-            dueDate,
-            APY,
+            dueAt,
+            APR,
             whitelistedSMB,
             "ipfs://metadata"
         );
 
-        // Verify NFT minted to investor
+        // Step 2: Investor funds
+        vm.startPrank(whitelistedInvestor);
+        usdc.approve(address(pool), INVOICE_AMOUNT);
+        pool.fundInvoice(tokenId);
+        vm.stopPrank();
+
+        // Verify NFT transferred to investor
         assertEq(invoice.ownerOf(tokenId), whitelistedInvestor);
 
         // Verify USDC transferred to SMB
         assertEq(usdc.balanceOf(whitelistedSMB), INVOICE_AMOUNT);
 
         // Verify invoice data
-        IInvoice.Data memory invoiceData = invoice.getInvoice(tokenId);
+        IInvoice.InvoiceData memory invoiceData = invoice.getInvoice(tokenId);
         assertEq(invoiceData.amount, INVOICE_AMOUNT);
         assertEq(invoiceData.issuer, whitelistedSMB);
         assertEq(
             uint256(invoiceData.status),
             uint256(IInvoice.Status.FUNDED)
         );
-
-        vm.stopPrank();
     }
 
     function test_FundInvoice_RevertIf_InvestorNotWhitelisted() public {
-        uint256 dueDate = block.timestamp + DUE_DATE_OFFSET;
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
 
-        vm.startPrank(nonWhitelistedInvestor);
-
-        // Approve USDC
-        usdc.approve(address(pool), INVOICE_AMOUNT);
-
-        // Attempt to fund invoice - should revert
-        vm.expectRevert(abi.encodeWithSelector(IInvoiceFundingPool.InvestorNotWhitelisted.selector, nonWhitelistedInvestor));
-        pool.fundInvoice(
+        // Step 1: Platform lists invoice (succeeds)
+        uint256 tokenId = pool.listInvoice(
             INVOICE_AMOUNT,
-            dueDate,
-            APY,
+            dueAt,
+            APR,
             whitelistedSMB,
             "ipfs://metadata"
         );
 
+        // Step 2: Non-whitelisted investor tries to fund - should revert
+        vm.startPrank(nonWhitelistedInvestor);
+        usdc.approve(address(pool), INVOICE_AMOUNT);
+        vm.expectRevert(abi.encodeWithSelector(IInvoiceFundingPool.InvestorNotWhitelisted.selector, nonWhitelistedInvestor));
+        pool.fundInvoice(tokenId);
         vm.stopPrank();
     }
 
     function test_FundInvoice_RevertIf_SMBNotWhitelisted() public {
-        uint256 dueDate = block.timestamp + DUE_DATE_OFFSET;
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
 
-        vm.startPrank(whitelistedInvestor);
-
-        // Approve USDC
-        usdc.approve(address(pool), INVOICE_AMOUNT);
-
-        // Attempt to fund invoice with non-whitelisted SMB - should revert
+        // Attempt to list invoice with non-whitelisted SMB - should revert at listing stage
         vm.expectRevert(abi.encodeWithSelector(IInvoiceFundingPool.IssuerNotWhitelisted.selector, nonWhitelistedSMB));
-        pool.fundInvoice(
+        pool.listInvoice(
             INVOICE_AMOUNT,
-            dueDate,
-            APY,
+            dueAt,
+            APR,
             nonWhitelistedSMB,
             "ipfs://metadata"
         );
-
-        vm.stopPrank();
     }
 
     function test_FundInvoice_RevertIf_BothNotWhitelisted() public {
-        uint256 dueDate = block.timestamp + DUE_DATE_OFFSET;
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
 
-        vm.startPrank(nonWhitelistedInvestor);
-
-        // Approve USDC
-        usdc.approve(address(pool), INVOICE_AMOUNT);
-
-        // Attempt to fund invoice - should revert with investor check first
-        vm.expectRevert(abi.encodeWithSelector(IInvoiceFundingPool.InvestorNotWhitelisted.selector, nonWhitelistedInvestor));
-        pool.fundInvoice(
+        // Attempt to list invoice with non-whitelisted SMB - should revert at listing stage
+        vm.expectRevert(abi.encodeWithSelector(IInvoiceFundingPool.IssuerNotWhitelisted.selector, nonWhitelistedSMB));
+        pool.listInvoice(
             INVOICE_AMOUNT,
-            dueDate,
-            APY,
+            dueAt,
+            APR,
             nonWhitelistedSMB,
             "ipfs://metadata"
         );
-
-        vm.stopPrank();
     }
 
     // ============ TRANSFER TESTS - NFT WHITELIST ============
 
     function test_TransferNFT_Success_ToWhitelistedInvestor() public {
-        // First fund an invoice
-        uint256 dueDate = block.timestamp + DUE_DATE_OFFSET;
+        // First fund an invoice (two-step)
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
 
+        uint256 tokenId = pool.listInvoice(INVOICE_AMOUNT, dueAt, APR, whitelistedSMB, "ipfs://metadata");
         vm.startPrank(whitelistedInvestor);
         usdc.approve(address(pool), INVOICE_AMOUNT);
-        uint256 tokenId = pool.fundInvoice(
-            INVOICE_AMOUNT,
-            dueDate,
-            APY,
-            whitelistedSMB,
-            "ipfs://metadata"
-        );
+        pool.fundInvoice(tokenId);
         vm.stopPrank();
 
         // Now transfer to another whitelisted investor
@@ -206,18 +190,13 @@ contract WhitelistIntegrationTest is Test {
     }
 
     function test_TransferNFT_RevertIf_RecipientNotWhitelisted() public {
-        // First fund an invoice
-        uint256 dueDate = block.timestamp + DUE_DATE_OFFSET;
+        // First fund an invoice (two-step)
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
 
+        uint256 tokenId = pool.listInvoice(INVOICE_AMOUNT, dueAt, APR, whitelistedSMB, "ipfs://metadata");
         vm.startPrank(whitelistedInvestor);
         usdc.approve(address(pool), INVOICE_AMOUNT);
-        uint256 tokenId = pool.fundInvoice(
-            INVOICE_AMOUNT,
-            dueDate,
-            APY,
-            whitelistedSMB,
-            "ipfs://metadata"
-        );
+        pool.fundInvoice(tokenId);
         vm.stopPrank();
 
         // Attempt to transfer to non-whitelisted address - should revert
@@ -232,18 +211,13 @@ contract WhitelistIntegrationTest is Test {
     }
 
     function test_SafeTransferNFT_RevertIf_RecipientNotWhitelisted() public {
-        // First fund an invoice
-        uint256 dueDate = block.timestamp + DUE_DATE_OFFSET;
+        // First fund an invoice (two-step)
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
 
+        uint256 tokenId = pool.listInvoice(INVOICE_AMOUNT, dueAt, APR, whitelistedSMB, "ipfs://metadata");
         vm.startPrank(whitelistedInvestor);
         usdc.approve(address(pool), INVOICE_AMOUNT);
-        uint256 tokenId = pool.fundInvoice(
-            INVOICE_AMOUNT,
-            dueDate,
-            APY,
-            whitelistedSMB,
-            "ipfs://metadata"
-        );
+        pool.fundInvoice(tokenId);
         vm.stopPrank();
 
         // Attempt safeTransfer to non-whitelisted address - should revert
@@ -257,54 +231,85 @@ contract WhitelistIntegrationTest is Test {
         vm.stopPrank();
     }
 
+    // ============ DIRECT MINT TESTS - ISSUER WHITELIST ============
+
+    function test_DirectMint_RevertIf_IssuerNotWhitelisted() public {
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
+
+        // Grant this test contract MINTER_ROLE to test direct minting
+        invoice.grantRole(invoice.MINTER_ROLE(), address(this));
+
+        // Attempt to mint with non-whitelisted issuer - should revert
+        vm.expectRevert(abi.encodeWithSelector(IInvoice.IssuerNotWhitelisted.selector, nonWhitelistedSMB));
+        invoice.mint(
+            whitelistedInvestor,
+            INVOICE_AMOUNT,
+            address(usdc),
+            dueAt,
+            APR,
+            nonWhitelistedSMB,
+            "ipfs://metadata",
+            IInvoice.Status.FUNDED
+        );
+    }
+
+    function test_DirectMint_Success_WithWhitelistedIssuer() public {
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
+
+        // Grant this test contract MINTER_ROLE to test direct minting
+        invoice.grantRole(invoice.MINTER_ROLE(), address(this));
+
+        // Mint with whitelisted issuer - should succeed
+        uint256 tokenId = invoice.mint(
+            whitelistedInvestor,
+            INVOICE_AMOUNT,
+            address(usdc),
+            dueAt,
+            APR,
+            whitelistedSMB,
+            "ipfs://metadata",
+            IInvoice.Status.FUNDED
+        );
+
+        // Verify invoice was minted correctly
+        assertEq(invoice.ownerOf(tokenId), whitelistedInvestor);
+        IInvoice.InvoiceData memory data = invoice.getInvoice(tokenId);
+        assertEq(data.issuer, whitelistedSMB);
+        assertEq(data.amount, INVOICE_AMOUNT);
+    }
+
     // ============ WHITELIST REMOVAL TESTS ============
 
     function test_WhitelistRemoval_PreventsNewFunding() public {
-        uint256 dueDate = block.timestamp + DUE_DATE_OFFSET;
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
 
+        // First funding should succeed (two-step)
+        uint256 tokenId1 = pool.listInvoice(INVOICE_AMOUNT, dueAt, APR, whitelistedSMB, "ipfs://metadata");
         vm.startPrank(whitelistedInvestor);
         usdc.approve(address(pool), INVOICE_AMOUNT);
-
-        // First funding should succeed
-        pool.fundInvoice(
-            INVOICE_AMOUNT,
-            dueDate,
-            APY,
-            whitelistedSMB,
-            "ipfs://metadata"
-        );
+        pool.fundInvoice(tokenId1);
         vm.stopPrank();
 
         // Remove investor from whitelist
         whitelist.removeFromWhitelist(whitelistedInvestor);
 
-        // Second funding should fail
+        // Second funding should fail - list invoice first, then try to fund
+        uint256 tokenId2 = pool.listInvoice(INVOICE_AMOUNT, dueAt, APR, whitelistedSMB, "ipfs://metadata");
         vm.startPrank(whitelistedInvestor);
         usdc.approve(address(pool), INVOICE_AMOUNT);
         vm.expectRevert(abi.encodeWithSelector(IInvoiceFundingPool.InvestorNotWhitelisted.selector, whitelistedInvestor));
-        pool.fundInvoice(
-            INVOICE_AMOUNT,
-            dueDate,
-            APY,
-            whitelistedSMB,
-            "ipfs://metadata"
-        );
+        pool.fundInvoice(tokenId2);
         vm.stopPrank();
     }
 
     function test_WhitelistRemoval_PreventsTransferAsRecipient() public {
-        // First fund an invoice
-        uint256 dueDate = block.timestamp + DUE_DATE_OFFSET;
+        // First fund an invoice (two-step)
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
 
+        uint256 tokenId = pool.listInvoice(INVOICE_AMOUNT, dueAt, APR, whitelistedSMB, "ipfs://metadata");
         vm.startPrank(whitelistedInvestor);
         usdc.approve(address(pool), INVOICE_AMOUNT);
-        uint256 tokenId = pool.fundInvoice(
-            INVOICE_AMOUNT,
-            dueDate,
-            APY,
-            whitelistedSMB,
-            "ipfs://metadata"
-        );
+        pool.fundInvoice(tokenId);
         vm.stopPrank();
 
         // Remove investor2 from whitelist
@@ -322,18 +327,13 @@ contract WhitelistIntegrationTest is Test {
     }
 
     function test_WhitelistRemoval_DoesNotAffectExistingOwnership() public {
-        // First fund an invoice
-        uint256 dueDate = block.timestamp + DUE_DATE_OFFSET;
+        // First fund an invoice (two-step)
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
 
+        uint256 tokenId = pool.listInvoice(INVOICE_AMOUNT, dueAt, APR, whitelistedSMB, "ipfs://metadata");
         vm.startPrank(whitelistedInvestor);
         usdc.approve(address(pool), INVOICE_AMOUNT);
-        uint256 tokenId = pool.fundInvoice(
-            INVOICE_AMOUNT,
-            dueDate,
-            APY,
-            whitelistedSMB,
-            "ipfs://metadata"
-        );
+        pool.fundInvoice(tokenId);
         vm.stopPrank();
 
         // Verify ownership
@@ -361,46 +361,31 @@ contract WhitelistIntegrationTest is Test {
     // ============ ROLE UPDATE TESTS ============
 
     function test_RoleUpdate_InvestorToSMB() public {
-        uint256 dueDate = block.timestamp + DUE_DATE_OFFSET;
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
 
-        // Can fund as investor
+        // Can fund as investor (two-step)
+        uint256 tokenId1 = pool.listInvoice(INVOICE_AMOUNT, dueAt, APR, whitelistedSMB, "ipfs://metadata");
         vm.startPrank(whitelistedInvestor);
         usdc.approve(address(pool), INVOICE_AMOUNT);
-        pool.fundInvoice(
-            INVOICE_AMOUNT,
-            dueDate,
-            APY,
-            whitelistedSMB,
-            "ipfs://metadata"
-        );
+        pool.fundInvoice(tokenId1);
         vm.stopPrank();
 
         // Update role to SMB
         whitelist.addToWhitelist(whitelistedInvestor, IWhitelist.Role.SMB);
 
-        // Can no longer fund as investor
+        // Can no longer fund as investor (two-step)
+        uint256 tokenId2 = pool.listInvoice(INVOICE_AMOUNT, dueAt, APR, whitelistedSMB, "ipfs://metadata");
         vm.startPrank(whitelistedInvestor);
         usdc.approve(address(pool), INVOICE_AMOUNT);
         vm.expectRevert(abi.encodeWithSelector(IInvoiceFundingPool.InvestorNotWhitelisted.selector, whitelistedInvestor));
-        pool.fundInvoice(
-            INVOICE_AMOUNT,
-            dueDate,
-            APY,
-            whitelistedSMB,
-            "ipfs://metadata"
-        );
+        pool.fundInvoice(tokenId2);
         vm.stopPrank();
 
-        // But can now receive funds as SMB
+        // But can now receive funds as SMB (two-step)
+        uint256 tokenId3 = pool.listInvoice(INVOICE_AMOUNT, dueAt, APR, whitelistedInvestor, "ipfs://metadata"); // Now SMB
         vm.startPrank(whitelistedInvestor2);
         usdc.approve(address(pool), INVOICE_AMOUNT);
-        pool.fundInvoice(
-            INVOICE_AMOUNT,
-            dueDate,
-            APY,
-            whitelistedInvestor, // Now SMB
-            "ipfs://metadata"
-        );
+        pool.fundInvoice(tokenId3);
         vm.stopPrank();
     }
 
@@ -409,30 +394,20 @@ contract WhitelistIntegrationTest is Test {
     function test_MultipleInvoices_WithDifferentWhitelistedParticipants()
         public
     {
-        uint256 dueDate = block.timestamp + DUE_DATE_OFFSET;
+        uint256 dueAt = block.timestamp + DUE_DATE_OFFSET;
 
-        // First invoice: whitelistedInvestor -> whitelistedSMB
+        // First invoice: whitelistedInvestor -> whitelistedSMB (two-step)
+        uint256 tokenId1 = pool.listInvoice(INVOICE_AMOUNT, dueAt, APR, whitelistedSMB, "ipfs://metadata1");
         vm.startPrank(whitelistedInvestor);
         usdc.approve(address(pool), INVOICE_AMOUNT);
-        uint256 tokenId1 = pool.fundInvoice(
-            INVOICE_AMOUNT,
-            dueDate,
-            APY,
-            whitelistedSMB,
-            "ipfs://metadata1"
-        );
+        pool.fundInvoice(tokenId1);
         vm.stopPrank();
 
-        // Second invoice: whitelistedInvestor2 -> whitelistedSMB
+        // Second invoice: whitelistedInvestor2 -> whitelistedSMB (two-step)
+        uint256 tokenId2 = pool.listInvoice(INVOICE_AMOUNT, dueAt, APR, whitelistedSMB, "ipfs://metadata2");
         vm.startPrank(whitelistedInvestor2);
         usdc.approve(address(pool), INVOICE_AMOUNT);
-        uint256 tokenId2 = pool.fundInvoice(
-            INVOICE_AMOUNT,
-            dueDate,
-            APY,
-            whitelistedSMB,
-            "ipfs://metadata2"
-        );
+        pool.fundInvoice(tokenId2);
         vm.stopPrank();
 
         // Verify both succeeded

@@ -29,6 +29,19 @@ export interface InvoiceData {
   discountRate: number;
   riskScore: 'Low' | 'Medium' | 'High';
   status?: 'active' | 'funded' | 'repaid';
+  // NFT-specific fields
+  tokenId?: string;
+  contractAddress?: string;
+  blockchainTxHash?: string;
+  fundingDate?: string;
+  settlementDate?: string;
+  actualReturn?: number;
+  paymentsMade?: { date: string; amount: number }[];
+  // Portfolio-specific fields
+  userInvestment?: number;
+  expectedReturn?: number;
+  profit?: number;
+  payer?: string; // Alternative to payerName for backwards compatibility
 }
 
 interface InvoiceCardProps {

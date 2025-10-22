@@ -243,7 +243,7 @@ export function InvoiceDetailClient({ invoice }: InvoiceDetailClientProps) {
                         <div
                           className={`w-8 h-8 rounded-full flex items-center justify-center ${
                             step.completed
-                              ? 'bg-primary text-primary-foreground'
+                              ? 'bg-primarytext-primary-foreground'
                               : 'bg-muted text-muted-foreground'
                           }`}
                         >

@@ -38,11 +38,11 @@ export function HeaderUserMenu({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="relative h-9 w-9 rounded-full hover:bg-accent transition-colors"
+          className="relative h-8 w-8 rounded-full hover:bg-accent transition-colors"
         >
-          <Avatar className="h-9 w-9">
+          <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-neutral-200/60 shadow-md">
-              {member.name?.[0]?.toUpperCase() || 'U'}
+              <User className="h-5 w-5" />
             </AvatarFallback>
           </Avatar>
         </Button>
