@@ -38,7 +38,7 @@ export function NavMember({
           <DropdownMenuTrigger asChild>
             <div className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-md p-2 transition-all duration-200 ease-linear group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarFallback className="rounded-lg bg-gradient-to-br from-primary-100 to-primary-200 text-primary-600 font-bold shadow-inner">
+                <AvatarFallback className="rounded-lg bg-gradient-to-br from-primary-100 to-primary-200 -600 font-bold shadow-inner">
                   {member.name?.[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
@@ -58,7 +58,7 @@ export function NavMember({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg bg-gradient-to-br from-primary-100 to-primary-200 text-primary-600 font-bold shadow-inner">
+                  <AvatarFallback className="rounded-lg bg-gradient-to-br from-primary-100 to-primary-200 -600 font-bold shadow-inner">
                     {member.name?.[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>

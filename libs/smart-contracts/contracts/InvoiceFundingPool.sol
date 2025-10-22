@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "./interfaces/IInvoice.sol";
 import "./interfaces/IInvoiceFundingPool.sol";
 import "./interfaces/IWhitelist.sol";
@@ -17,7 +18,7 @@ import "./Invoice.sol";
  * @dev Implements single-investor model for MVP - each invoice is fully funded by one investor
  * @dev V1: Currently USDC-only on Base (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
  */
-contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGuard, Pausable {
+contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGuard, Pausable, IERC721Receiver {
     using SafeERC20 for IERC20;
 
     // ============ ROLES ============
@@ -48,8 +49,17 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
     /// @notice Mapping from token ID to funding timestamp
     mapping(uint256 => uint256) public fundingTimestamps;
 
+    /// @notice Mapping from token ID to invoice issuer (for listed invoices held by contract)
+    mapping(uint256 => address) public invoiceIssuer;
+
     /// @notice Grace period in days before marking invoice as defaulted
     uint256 public immutable GRACE_PERIOD_DAYS;
+
+    /// @notice Platform treasury address receiving protocol fees
+    address public platformTreasury;
+
+    /// @notice Platform fee rate in basis points (e.g., 2500 = 25%)
+    uint256 public platformFeeRate;
 
     // ============ CONSTRUCTOR ============
 
@@ -59,86 +69,143 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
      * @param invoice_ Address of the Invoice contract
      * @param gracePeriodDays_ Number of days after due date before marking as defaulted
      * @param whitelist_ Address of the Whitelist contract for KYC/KYB compliance
+     * @param platformTreasury_ Address of the platform treasury receiving protocol fees
+     * @param platformFeeRate_ Platform fee rate in basis points (e.g., 2500 = 25%, max 10000 = 100%)
      */
     constructor(
         address paymentToken_,
         address invoice_,
         uint256 gracePeriodDays_,
-        address whitelist_
+        address whitelist_,
+        address platformTreasury_,
+        uint256 platformFeeRate_
     ) {
         if (paymentToken_ == address(0)) revert IInvoiceFundingPool.InvalidPaymentTokenAddress(paymentToken_);
         if (invoice_ == address(0)) revert IInvoiceFundingPool.InvalidInvoiceAddress(invoice_);
         if (gracePeriodDays_ == 0) revert IInvoiceFundingPool.InvalidGracePeriod(gracePeriodDays_);
-        if (whitelist_ == address(0)) revert IInvoiceFundingPool.InvalidWhitelistAddress(whitelist_);
+        if (whitelist_ == address(0)) revert IInvoiceFundingPool.WhitelistContractNotSet(whitelist_);
+        if (platformTreasury_ == address(0)) revert IInvoiceFundingPool.InvalidPlatformTreasury(platformTreasury_);
+        if (platformFeeRate_ > 10000) revert IInvoiceFundingPool.InvalidPlatformFeeRate(platformFeeRate_);
 
         paymentToken = IERC20(paymentToken_);
         invoice = Invoice(invoice_);
         whitelist = IWhitelist(whitelist_);
         GRACE_PERIOD_DAYS = gracePeriodDays_;
+        platformTreasury = platformTreasury_;
+        platformFeeRate = platformFeeRate_;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
     }
 
-    // ============ FUNDING FUNCTIONS ============
+    // ============ LISTING & FUNDING FUNCTIONS ============
 
     /**
-     * @notice Funds an invoice with payment token and mints NFT directly to investor (lazy minting)
-     * @dev Implements {IInvoiceFundingPool-fundInvoice}
-     * @param amount Invoice principal amount in payment token (USDC, 6 decimals)
-     * @param dueDate Unix timestamp when payment is due
-     * @param apy Annual percentage yield in basis points (e.g., 1200 = 12%)
+     * @notice Lists an invoice by minting NFT to contract (Step 1 of two-step custody)
+     * @dev Implements {IInvoiceFundingPool-listInvoice}
+     * @param amount Invoice principal amount in payment token base units
+     * @param dueAt Unix timestamp when payment is due
+     * @param apr Annual percentage rate in basis points (e.g., 1200 = 12%)
      * @param issuer Address of the entity that issued the invoice and receives funding
-     * @param metadataURI URI for invoice metadata (IPFS/S3, contains payer info and other details)
-     * @dev Implements true lazy minting - NFT only created when investor funds
-     * @dev Transfers payment token (USDC) directly from investor to issuer wallet
-     * @dev Single-investor model: each invoice fully funded by one investor
+     * @param uri URI for invoice metadata (IPFS/S3, contains payer info and other details)
      * @return tokenId The newly minted invoice token ID
+     * @dev Only callable by OPERATOR_ROLE (platform admins)
+     * @dev NFT minted to contract address with LISTED status
+     * @dev Invoice becomes visible on-chain for investor verification
+     * @dev Platform pays gas for listing (~$3-5)
      */
-    function fundInvoice(
+    function listInvoice(
         uint256 amount,
-        uint256 dueDate,
-        uint256 apy,
+        uint256 dueAt,
+        uint256 apr,
         address issuer,
-        string memory metadataURI
+        string memory uri
     )
         external
+        onlyRole(OPERATOR_ROLE)
         nonReentrant
         whenNotPaused
         returns (uint256)
     {
         if (amount == 0) revert IInvoiceFundingPool.InvalidAmount(amount);
-        if (dueDate <= block.timestamp) revert IInvoiceFundingPool.InvalidDueDate(dueDate, block.timestamp);
+        if (dueAt <= block.timestamp) revert IInvoiceFundingPool.InvalidDueAt(dueAt, block.timestamp);
         if (issuer == address(0)) revert IInvoiceFundingPool.InvalidIssuer(issuer);
 
-        // Check KYC/KYB compliance via whitelist
-        if (!whitelist.isWhitelisted(msg.sender, IWhitelist.Role.INVESTOR)) {
-            revert IInvoiceFundingPool.InvestorNotWhitelisted(msg.sender);
-        }
+        // Check KYC/KYB compliance for issuer
         if (!whitelist.isWhitelisted(issuer, IWhitelist.Role.SMB)) {
             revert IInvoiceFundingPool.IssuerNotWhitelisted(issuer);
         }
 
-        // Transfer payment token from investor to issuer wallet (happens before minting)
-        paymentToken.safeTransferFrom(msg.sender, issuer, amount);
-
-        // Mint NFT directly to investor with FUNDED status (lazy minting happens here!)
+        // Mint NFT to contract (custody) with LISTED status
         uint256 tokenId = invoice.mint(
-            msg.sender,
+            address(this),
             amount,
-            dueDate,
-            apy,
+            address(paymentToken),
+            dueAt,
+            apr,
             issuer,
-            metadataURI
+            uri,
+            IInvoice.Status.LISTED
         );
+
+        // Record issuer for later funding
+        invoiceIssuer[tokenId] = issuer;
+
+        emit IInvoiceFundingPool.InvoiceListed(tokenId, issuer, amount, dueAt, apr);
+
+        return tokenId;
+    }
+
+    /**
+     * @notice Funds an invoice by transferring NFT to investor (Step 2 of two-step custody)
+     * @dev Implements {IInvoiceFundingPool-fundInvoice}
+     * @param tokenId The ID of the invoice to fund (must be in LISTED status)
+     * @return tokenId The funded invoice token ID
+     * @dev Transfers NFT from contract to investor atomically with USDC transfer
+     * @dev Investor only needs to provide tokenId - all params already on-chain
+     * @dev Transfers payment token directly from investor to issuer wallet
+     * @dev Single-investor model: each invoice fully funded by one investor
+     * @dev Updates status from LISTED to FUNDED
+     * @dev Investor pays gas for funding (~$10-15)
+     */
+    function fundInvoice(uint256 tokenId)
+        external
+        nonReentrant
+        whenNotPaused
+        returns (uint256)
+    {
+        // Get invoice data from already-minted NFT
+        IInvoice.InvoiceData memory data = invoice.getInvoice(tokenId);
+
+        // Validate invoice is in LISTED status
+        if (data.status != IInvoice.Status.LISTED) {
+            revert IInvoiceFundingPool.InvoiceNotListed(tokenId, uint8(data.status));
+        }
+
+        // Check investor is whitelisted
+        if (!whitelist.isWhitelisted(msg.sender, IWhitelist.Role.INVESTOR)) {
+            revert IInvoiceFundingPool.InvestorNotWhitelisted(msg.sender);
+        }
+
+        // Get issuer from mapping
+        address issuer = invoiceIssuer[tokenId];
+
+        // Transfer USDC from investor to issuer
+        paymentToken.safeTransferFrom(msg.sender, issuer, data.amount);
+
+        // Transfer NFT from contract to investor
+        invoice.safeTransferFrom(address(this), msg.sender, tokenId);
+
+        // Update status to FUNDED
+        invoice.updateStatus(tokenId, IInvoice.Status.FUNDED);
 
         // Record funding details
         invoiceInvestor[tokenId] = msg.sender;
-        fundedAmounts[tokenId] = amount;
+        fundedAmounts[tokenId] = data.amount;
         fundingTimestamps[tokenId] = block.timestamp;
 
-        emit InvoiceFunded(tokenId, msg.sender, amount);
+        emit InvoiceFunded(tokenId, msg.sender, data.amount);
 
         return tokenId;
     }
@@ -149,15 +216,24 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
      * @notice Deposits repayment (principal + yield) to the contract
      * @dev Implements {IInvoiceFundingPool-depositRepayment}
      * @param tokenId The ID of the invoice NFT being repaid
-     * @dev Step 1 of repayment: SMB or admin deposits funds to contract
-     * @dev Caller must approve this contract to spend payment token (USDC) first
+     * @dev Step 1 of repayment: Only the invoice issuer can deposit directly
+     * @dev Caller must approve this contract to spend payment token first
+     * @dev Caller must be the invoice issuer (reverts with UnauthorizedRepayment otherwise)
+     * @dev Updates invoice status to FULLY_PAID
+     * @dev For third-party payments, use depositRepaymentOnBehalf instead
      */
     function depositRepayment(uint256 tokenId)
         external
         nonReentrant
         whenNotPaused
     {
-        IInvoice.Data memory data = invoice.getInvoice(tokenId);
+        IInvoice.InvoiceData memory data = invoice.getInvoice(tokenId);
+
+        // Only the issuer can deposit repayment directly
+        if (msg.sender != data.issuer) {
+            revert IInvoiceFundingPool.UnauthorizedRepayment(msg.sender, data.issuer);
+        }
+
         if (data.status != IInvoice.Status.FUNDED) {
             revert IInvoiceFundingPool.InvoiceNotFunded(tokenId, uint8(data.status));
         }
@@ -168,8 +244,8 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
         // Calculate total repayment (principal + yield)
         uint256 principal = fundedAmounts[tokenId];
         uint256 fundingTime = fundingTimestamps[tokenId];
-        uint256 yield = calculateYield(principal, data.apy, data.dueDate, fundingTime);
-        uint256 totalRepayment = principal + yield;
+        (uint256 totalYield,,) = calculateYield(principal, data.apr, data.dueAt, fundingTime);
+        uint256 totalRepayment = principal + totalYield;
 
         // Transfer payment token from depositor to this contract
         paymentToken.safeTransferFrom(msg.sender, address(this), totalRepayment);
@@ -177,15 +253,74 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
         // Store in repayment pool
         repaymentPool[tokenId] = totalRepayment;
 
+        // Update status to FULLY_PAID
+        invoice.updateStatus(tokenId, IInvoice.Status.FULLY_PAID);
+
         emit RepaymentDeposited(tokenId, msg.sender, totalRepayment);
     }
 
     /**
-     * @notice Settles repayment by distributing funds to investor
+     * @notice Deposits repayment on behalf of another address (for ACH flow)
+     * @dev Implements the ACH autopay flow: SMB → Moov → Coinbase → Hot Wallet → Contract
+     * @param tokenId The ID of the invoice NFT being repaid
+     * @param onBehalfOf The SMB address this repayment is for (must match invoice issuer)
+     * @dev Only callable by OPERATOR_ROLE (hot wallet or admin)
+     * @dev Used when admin converts fiat to stablecoin and deposits for SMB
+     * @dev Caller (admin) must have approved this contract to spend payment token
+     * @dev Updates invoice status to FULLY_PAID
+     */
+    function depositRepaymentOnBehalf(
+        uint256 tokenId,
+        address onBehalfOf
+    )
+        external
+        onlyRole(OPERATOR_ROLE)
+        nonReentrant
+        whenNotPaused
+    {
+        IInvoice.InvoiceData memory data = invoice.getInvoice(tokenId);
+
+        // Validate invoice is in correct state
+        if (data.status != IInvoice.Status.FUNDED) {
+            revert IInvoiceFundingPool.InvoiceNotFunded(tokenId, uint8(data.status));
+        }
+
+        // Validate onBehalfOf matches invoice issuer
+        if (data.issuer != onBehalfOf) {
+            revert IInvoiceFundingPool.InvalidIssuer(onBehalfOf);
+        }
+
+        // Validate repayment not already deposited
+        if (repaymentPool[tokenId] != 0) {
+            revert IInvoiceFundingPool.RepaymentAlreadyDeposited(tokenId);
+        }
+
+        // Calculate total repayment (principal + yield)
+        uint256 principal = fundedAmounts[tokenId];
+        uint256 fundingTime = fundingTimestamps[tokenId];
+        (uint256 totalYield,,) = calculateYield(principal, data.apr, data.dueAt, fundingTime);
+        uint256 totalRepayment = principal + totalYield;
+
+        // Transfer from caller (admin/hot wallet) to this contract
+        paymentToken.safeTransferFrom(msg.sender, address(this), totalRepayment);
+
+        // Store in repayment pool
+        repaymentPool[tokenId] = totalRepayment;
+
+        // Update status to FULLY_PAID
+        invoice.updateStatus(tokenId, IInvoice.Status.FULLY_PAID);
+
+        emit IInvoiceFundingPool.RepaymentDepositedOnBehalf(tokenId, msg.sender, onBehalfOf, totalRepayment);
+    }
+
+    /**
+     * @notice Settles repayment by distributing funds to investor and platform
      * @dev Implements {IInvoiceFundingPool-settleRepayment}
      * @param tokenId The ID of the invoice NFT to settle
-     * @dev Step 2 of repayment: Admin triggers distribution to investor
+     * @dev Step 2 of repayment: Admin triggers distribution to investor and platform treasury
      * @dev Only callable by addresses with OPERATOR_ROLE
+     * @dev Splits yield between investor and platform based on platformFeeRate
+     * @dev Updates invoice status to SETTLED
      */
     function settleRepayment(uint256 tokenId)
         external
@@ -198,18 +333,33 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
         }
 
         address investor = invoiceInvestor[tokenId];
-        uint256 amount = repaymentPool[tokenId];
+        uint256 principal = fundedAmounts[tokenId];
 
-        // Transfer from contract to investor
-        paymentToken.safeTransfer(investor, amount);
+        // Get fee split
+        IInvoice.InvoiceData memory data = invoice.getInvoice(tokenId);
+        uint256 fundingTime = fundingTimestamps[tokenId];
+        (, uint256 investorYield, uint256 platformFee) = calculateYield(
+            principal,
+            data.apr,
+            data.dueAt,
+            fundingTime
+        );
+
+        // Transfer principal + investor yield to investor
+        uint256 investorAmount = principal + investorYield;
+        paymentToken.safeTransfer(investor, investorAmount);
+
+        // Transfer platform fee to treasury
+        paymentToken.safeTransfer(platformTreasury, platformFee);
 
         // Clear repayment pool
         repaymentPool[tokenId] = 0;
 
-        // Update invoice status to REPAID
-        invoice.updateStatus(tokenId, IInvoice.Status.REPAID);
+        // Update status to SETTLED
+        invoice.updateStatus(tokenId, IInvoice.Status.SETTLED);
 
-        emit InvoiceRepaid(tokenId, investor, amount);
+        emit InvoiceRepaid(tokenId, investor, investorAmount);
+        emit IInvoiceFundingPool.PlatformFeeCollected(tokenId, platformFee);
     }
 
     // ============ DEFAULT HANDLING ============
@@ -226,13 +376,13 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
         external
         onlyRole(OPERATOR_ROLE)
     {
-        IInvoice.Data memory data = invoice.getInvoice(tokenId);
+        IInvoice.InvoiceData memory data = invoice.getInvoice(tokenId);
         if (data.status != IInvoice.Status.FUNDED) {
             revert IInvoiceFundingPool.InvoiceNotFunded(tokenId, uint8(data.status));
         }
 
         // Check grace period has elapsed
-        uint256 gracePeriodEnd = data.dueDate + (GRACE_PERIOD_DAYS * 1 days);
+        uint256 gracePeriodEnd = data.dueAt + (GRACE_PERIOD_DAYS * 1 days);
         if (block.timestamp <= gracePeriodEnd) {
             revert IInvoiceFundingPool.GracePeriodNotElapsed(tokenId, gracePeriodEnd, block.timestamp);
         }
@@ -256,28 +406,37 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
     // ============ VIEW FUNCTIONS ============
 
     /**
-     * @notice Calculates yield for an invoice
+     * @notice Calculates yield split between investor and platform
      * @dev Implements {IInvoiceFundingPool-calculateYield}
      * @param principal The principal amount funded
-     * @param apy Annual percentage yield in basis points
-     * @param dueDate The due date of the invoice
+     * @param apr Annual percentage rate in basis points (total fee SMB pays)
+     * @param dueAt The due date of the invoice
      * @param fundingTimestamp The timestamp when the invoice was funded
-     * @return The calculated yield amount
-     * @dev Uses simple interest calculation: yield = principal * apy * days / (10000 * 365)
-     * @dev Yield is calculated from funding time to due date (fixed at funding time)
+     * @return totalYield Total yield amount (principal * apr * duration)
+     * @return investorYield Yield amount going to investor
+     * @return platformFee Fee amount going to platform treasury
+     * @dev Uses simple interest: yield = principal * apr * days / (10000 * 365)
+     * @dev Platform fee = totalYield * platformFeeRate / 10000
+     * @dev Investor yield = totalYield - platformFee
      */
     function calculateYield(
         uint256 principal,
-        uint256 apy,
-        uint256 dueDate,
+        uint256 apr,
+        uint256 dueAt,
         uint256 fundingTimestamp
-    ) public pure returns (uint256) {
+    ) public view returns (uint256 totalYield, uint256 investorYield, uint256 platformFee) {
         // Calculate duration in days from funding to due date
-        uint256 durationDays = (dueDate - fundingTimestamp) / 1 days;
+        uint256 durationDays = (dueAt - fundingTimestamp) / 1 days;
 
-        // Simple interest: yield = principal * apy * days / (10000 * 365)
-        // APY is in basis points (e.g., 1200 = 12%)
-        return (principal * apy * durationDays) / (10000 * 365);
+        // Calculate total yield: principal * apr * days / (10000 * 365)
+        // APR is in basis points (e.g., 1200 = 12%)
+        totalYield = (principal * apr * durationDays) / (10000 * 365);
+
+        // Split: platform gets platformFeeRate% of total yield
+        platformFee = (totalYield * platformFeeRate) / 10000;
+        investorYield = totalYield - platformFee;
+
+        return (totalYield, investorYield, platformFee);
     }
 
     /**
@@ -314,13 +473,13 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
      * @return True if the invoice is overdue
      */
     function isOverdue(uint256 tokenId) external view returns (bool) {
-        IInvoice.Data memory data = invoice.getInvoice(tokenId);
+        IInvoice.InvoiceData memory data = invoice.getInvoice(tokenId);
 
         if (data.status != IInvoice.Status.FUNDED) {
             return false;
         }
 
-        uint256 gracePeriodEnd = data.dueDate + (GRACE_PERIOD_DAYS * 1 days);
+        uint256 gracePeriodEnd = data.dueAt + (GRACE_PERIOD_DAYS * 1 days);
         return block.timestamp > gracePeriodEnd && repaymentPool[tokenId] == 0;
     }
 
@@ -342,5 +501,62 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
      */
     function unpause() external onlyRole(PAUSER_ROLE) {
         _unpause();
+    }
+
+    /**
+     * @notice Updates the platform treasury address
+     * @dev Implements {IInvoiceFundingPool-setPlatformTreasury}
+     * @param newTreasury New treasury address
+     * @dev Only callable by DEFAULT_ADMIN_ROLE
+     */
+    function setPlatformTreasury(address newTreasury)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        if (newTreasury == address(0)) {
+            revert IInvoiceFundingPool.InvalidPlatformTreasury(newTreasury);
+        }
+
+        address oldTreasury = platformTreasury;
+        platformTreasury = newTreasury;
+
+        emit IInvoiceFundingPool.PlatformTreasuryUpdated(oldTreasury, newTreasury);
+    }
+
+    /**
+     * @notice Updates the platform fee rate
+     * @dev Implements {IInvoiceFundingPool-setPlatformFeeRate}
+     * @param newRate New fee rate in basis points (max 10000 = 100%)
+     * @dev Only callable by DEFAULT_ADMIN_ROLE
+     */
+    function setPlatformFeeRate(uint256 newRate)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        if (newRate > 10000) {
+            revert IInvoiceFundingPool.InvalidPlatformFeeRate(newRate);
+        }
+
+        uint256 oldRate = platformFeeRate;
+        platformFeeRate = newRate;
+
+        emit IInvoiceFundingPool.PlatformFeeRateUpdated(oldRate, newRate);
+    }
+
+    // ============ ERC721 RECEIVER ============
+
+    /**
+     * @notice Handles the receipt of an NFT
+     * @dev Required to receive ERC721 tokens via safeTransferFrom
+     * @dev This contract receives invoice NFTs during the listing phase (two-step custody)
+     * @return bytes4 The function selector to confirm the token transfer
+     */
+    function onERC721Received(
+        address /* operator */,
+        address /* from */,
+        uint256 /* tokenId */,
+        bytes calldata /* data */
+    ) external pure override returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
     }
 }

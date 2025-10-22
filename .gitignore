@@ -12,6 +12,10 @@ build
 .next
 out
 
+# Database Types
+# NOTE: Generated types (src/types/db) are COMMITTED for hackathon
+# Do NOT add src/types to .gitignore
+
 # Solidity/Foundry
 libs/smart-contracts/lib/
 libs/smart-contracts/cache/
@@ -20,6 +24,7 @@ libs/smart-contracts/cache_hardhat/
 libs/smart-contracts/artifacts/
 libs/smart-contracts/out/
 libs/smart-contracts/broadcast/
+libs/smart-contracts/ignition/deployments/
 libs/smart-contracts/remappings.txt
 
 # Wake LSP (if accidentally re-enabled)

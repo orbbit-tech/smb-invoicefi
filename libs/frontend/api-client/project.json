@@ -1,0 +1,31 @@
+{
+  "name": "api-client",
+  "sourceRoot": "libs/frontend/api-client/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:swc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "libs/frontend/api-client/dist",
+        "main": "libs/frontend/api-client/src/index.ts",
+        "tsConfig": "libs/frontend/api-client/tsconfig.lib.json",
+        "skipTypeCheck": true,
+        "stripLeadingPaths": true
+      }
+    },
+    "generate-api": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "echo 'Generating API client from Swagger spec...'",
+          "openapi-generator-cli generate -i http://localhost:9000/api/docs/swagger.json -g typescript-fetch -o libs/frontend/api-client/src/generated --additional-properties=useSingleRequestParameter=false,withInterfaces=true --skip-validate-spec",
+          "echo 'Fixing generated imports...'",
+          "node libs/frontend/api-client/scripts/fix-generated-imports.js",
+          "echo 'API client generated successfully!'"
+        ],
+        "parallel": false
+      }
+    }
+  }
+}

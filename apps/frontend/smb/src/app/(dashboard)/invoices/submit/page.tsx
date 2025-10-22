@@ -9,9 +9,10 @@ import { Textarea } from '@ui';
 import { Alert, AlertDescription } from '@ui';
 import { Separator } from '@ui';
 import { DatePickerWithInput } from '@ui';
-import { CircleCheck, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { Dropzone, DropzoneContent, DropzoneEmptyState } from '@ui';
+import { Check, ArrowRight, Loader2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { StepIndicator } from '@/components/common/step-indicator';
 
 interface InvoiceFormData {
   invoiceNumber: string;
@@ -20,6 +21,7 @@ interface InvoiceFormData {
   payerName: string;
   payerIndustry: string;
   description: string;
+  uploadedFiles: File[];
 }
 
 export default function SubmitInvoicePage() {
@@ -33,6 +35,7 @@ export default function SubmitInvoicePage() {
     payerName: '',
     payerIndustry: '',
     description: '',
+    uploadedFiles: [],
   });
   const [errors, setErrors] = useState<
     Partial<Record<keyof InvoiceFormData, string>>
@@ -47,6 +50,32 @@ export default function SubmitInvoicePage() {
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
+  };
+
+  const handleFileUpload = (acceptedFiles: File[]) => {
+    setFormData((prev) => ({
+      ...prev,
+      uploadedFiles: [...prev.uploadedFiles, ...acceptedFiles].slice(0, 5), // Max 5 files
+    }));
+    // Clear error when files are uploaded
+    if (errors.uploadedFiles) {
+      setErrors((prev) => ({ ...prev, uploadedFiles: undefined }));
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      uploadedFiles: prev.uploadedFiles.filter((_, i) => i !== index),
+    }));
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   const validateStep1 = (): boolean => {
@@ -71,6 +100,9 @@ export default function SubmitInvoicePage() {
     }
     if (!formData.payerName.trim()) {
       newErrors.payerName = 'Payer name is required';
+    }
+    if (formData.uploadedFiles.length === 0) {
+      newErrors.uploadedFiles = 'Please upload at least one invoice document';
     }
 
     setErrors(newErrors);
@@ -118,86 +150,41 @@ export default function SubmitInvoicePage() {
       payerName: '',
       payerIndustry: '',
       description: '',
+      uploadedFiles: [],
     });
     setStep(1);
   };
 
   const handleViewInvoices = () => {
-    router.push('/invoices');
+    router.push('/');
   };
 
   return (
-    <div className="py-8 max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <Link href="/invoices">
-          <Button variant="ghost" size="sm" className="mb-4">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Invoices
-          </Button>
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Submit Invoice</h1>
+        <h1 className="text-xl font-bold tracking-tight">Submit Invoice</h1>
         <p className="text-muted-foreground mt-1">
           Get funded in under 24 hours. Receive 80% of your invoice value.
         </p>
       </div>
 
       {/* Progress Indicator */}
-      <div className="mb-8 flex items-center justify-center gap-2">
-        <div className="flex items-center gap-2">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-              step >= 1
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            1
-          </div>
-          <span className={step >= 1 ? 'font-medium' : 'text-muted-foreground'}>
-            Invoice Details
-          </span>
-        </div>
-        <div className="w-12 h-px bg-border" />
-        <div className="flex items-center gap-2">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-              step >= 2
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            2
-          </div>
-          <span className={step >= 2 ? 'font-medium' : 'text-muted-foreground'}>
-            Review & Submit
-          </span>
-        </div>
-        <div className="w-12 h-px bg-border" />
-        <div className="flex items-center gap-2">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-              step >= 3
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            3
-          </div>
-          <span className={step >= 3 ? 'font-medium' : 'text-muted-foreground'}>
-            Success
-          </span>
-        </div>
-      </div>
+      <StepIndicator
+        currentStep={step}
+        steps={[
+          { number: 1, label: 'Invoice Details' },
+          { number: 2, label: 'Review & Submit' },
+          { number: 3, label: 'Success' },
+        ]}
+        className="mb-8"
+      />
 
       {/* Form */}
       {step === 1 && (
         <Card>
           <CardHeader>
             <CardTitle>Invoice Details</CardTitle>
-            <CardDescription>
-              Enter the details of your invoice to get started
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -305,10 +292,73 @@ export default function SubmitInvoicePage() {
                   onChange={(e) => handleChange('description', e.target.value)}
                 />
               </div>
+
+              <div className="space-y-2 col-span-1 sm:col-span-2">
+                <Label>
+                  Upload Invoice Documents{' '}
+                  <span className="text-destructive">*</span>
+                </Label>
+                <Dropzone
+                  accept={{
+                    'application/pdf': ['.pdf'],
+                    'image/*': ['.png', '.jpg', '.jpeg'],
+                    'application/msword': ['.doc'],
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                      ['.docx'],
+                    'application/vnd.ms-excel': ['.xls'],
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+                      ['.xlsx'],
+                  }}
+                  maxFiles={5}
+                  maxSize={5 * 1024 * 1024} // 5MB
+                  onDrop={handleFileUpload}
+                  disabled={formData.uploadedFiles.length >= 5}
+                  src={formData.uploadedFiles}
+                >
+                  <DropzoneEmptyState />
+                  <DropzoneContent />
+                </Dropzone>
+                {errors.uploadedFiles && (
+                  <p className="text-sm text-destructive">
+                    {errors.uploadedFiles}
+                  </p>
+                )}
+                {formData.uploadedFiles.length > 0 && (
+                  <div className="space-y-2 mt-3">
+                    <p className="text-sm font-medium">Files</p>
+                    <div className="space-y-2">
+                      {formData.uploadedFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 rounded-md border bg-muted/50"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {file.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatFileSize(file.size)}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveFile(index)}
+                            className="ml-2"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-end pt-4">
-              <Button onClick={handleNext} className="font-semibold">
+              <Button onClick={handleNext}>
                 Next: Review & Submit
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -383,11 +433,39 @@ export default function SubmitInvoicePage() {
                   </div>
                 </>
               )}
+
+              {formData.uploadedFiles.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Uploaded Documents ({formData.uploadedFiles.length})
+                    </p>
+                    <div className="space-y-1">
+                      {formData.uploadedFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 rounded-md bg-muted/50"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {file.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatFileSize(file.size)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
           <Alert>
-            <CircleCheck className="h-4 w-4" />
+            <Check className="h-4 w-4" />
             <AlertDescription>
               By submitting this invoice, you agree to our terms and conditions.
               Your invoice will be verified and listed for funding within 24
@@ -420,12 +498,12 @@ export default function SubmitInvoicePage() {
           {/* Success Icon & Message */}
           <div className="text-center space-y-4">
             <div className="flex justify-center">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center">
-                <CircleCheck className="h-12 w-12 text-primary " />
+              <div className="w-12 h-12 rounded-full flex items-center justify-center bg-primary/10 text-primary">
+                <Check className="h-6 w-6 text-primary" />
               </div>
             </div>
             <div>
-              <h2 className="text-3xl font-bold tracking-tight">
+              <h2 className="text-2xl font-bold tracking-tight">
                 Invoice Submitted Successfully!
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -437,7 +515,7 @@ export default function SubmitInvoicePage() {
           {/* Summary Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Submission Summary</CardTitle>
+              <CardTitle>Submission Summary</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-6">
@@ -493,9 +571,7 @@ export default function SubmitInvoicePage() {
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-semibold text-primary">
-                      1
-                    </span>
+                    <span className="text-sm font-semibold ">1</span>
                   </div>
                   <div>
                     <p className="font-semibold">Invoice Verification</p>
@@ -508,9 +584,7 @@ export default function SubmitInvoicePage() {
 
                 <div className="flex gap-4">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-semibold text-primary">
-                      2
-                    </span>
+                    <span className="text-sm font-semibold ">2</span>
                   </div>
                   <div>
                     <p className="font-semibold">Listing for Funding</p>
@@ -523,9 +597,7 @@ export default function SubmitInvoicePage() {
 
                 <div className="flex gap-4">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-semibold text-primary">
-                      3
-                    </span>
+                    <span className="text-sm font-semibold ">3</span>
                   </div>
                   <div>
                     <p className="font-semibold">Receive Funding</p>

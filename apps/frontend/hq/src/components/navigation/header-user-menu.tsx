@@ -40,7 +40,7 @@ export function HeaderUserMenu({ member }: HeaderUserMenuProps) {
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2 focus:outline-none">
           <Avatar className="h-8 w-8 cursor-pointer">
-            <AvatarFallback className="bg-primary text-primary-foreground">
+            <AvatarFallback className="bg-primary -foreground">
               {initials}
             </AvatarFallback>
           </Avatar>

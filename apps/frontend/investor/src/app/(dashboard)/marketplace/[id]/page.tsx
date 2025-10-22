@@ -134,7 +134,7 @@ export default function InvoiceDetailPage() {
           {/* Key Metrics */}
           <Card className="p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
+              <TrendingUp className="h-5 w-5 " />
               <h2 className="text-lg font-semibold">Investment Overview</h2>
             </div>
             <Separator />
@@ -250,7 +250,7 @@ export default function InvoiceDetailPage() {
           {/* Documents Section */}
           <Card className="p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
+              <FileText className="h-5 w-5 " />
               <h2 className="text-lg font-semibold">Documents</h2>
             </div>
             <Separator />
@@ -283,7 +283,7 @@ export default function InvoiceDetailPage() {
           {/* Risk Assessment */}
           <Card className="p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-primary" />
+              <ShieldCheck className="h-5 w-5 " />
               <h2 className="text-lg font-semibold">Risk Assessment</h2>
             </div>
             <Separator />
@@ -440,7 +440,7 @@ export default function InvoiceDetailPage() {
               <div className="space-y-6 py-6">
                 {/* Success Icon */}
                 <div className="flex justify-center rounded-full">
-                  <CheckCircle2 className="h-16 w-16 text-primary" />
+                  <CheckCircle2 className="h-16 w-16 " />
                 </div>
 
                 {/* Success Message */}

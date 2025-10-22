@@ -10,20 +10,30 @@ interface IInvoice {
     // ============ ENUMS ============
 
     /**
-     * @notice Invoice lifecycle statuses
+     * @notice Invoice lifecycle statuses (on-chain only)
+     * @dev All pre-listing states (Draft, Submitted, Underwriting, Approved, Declined)
+     *      are tracked off-chain in database
+     * @dev All post-funding operational states (Awaiting_Payment, Due_Date, Grace_Period)
+     *      are tracked off-chain in database
+     * @dev All collections states (Collection, Partial_Paid, Unpaid, Charge_Off)
+     *      are tracked off-chain in database
      * @dev Status transitions are enforced by the implementing contract
-     * @dev DRAFT and LISTED are off-chain database statuses only (no NFT exists)
-     * @dev FUNDED onwards are on-chain statuses (NFT exists and owned by investor)
      */
     enum Status {
-        DRAFT, // 0 - Created off-chain in database, awaiting admin approval (no NFT)
-        LISTED, // 1 - Approved, visible in marketplace (stored in database, no NFT yet)
-        FUNDED, // 2 - NFT minted to investor, USDC transferred, awaiting repayment
-        REPAID, // 3 - Repayment received, yield distributed to investor
-        DEFAULTED // 4 - No repayment received after grace period, defaulted
+        LISTED, // 0 - NFT minted to contract, awaiting investor funding (two-step custody)
+        FUNDED, // 1 - NFT transferred to investor, payment token transferred to SMB, awaiting repayment
+        FULLY_PAID, // 2 - Repayment deposited to contract, awaiting admin settlement
+        SETTLED, // 3 - Funds distributed to investor, invoice lifecycle complete (terminal)
+        DEFAULTED // 4 - No repayment received after grace period, collections initiated (terminal)
     }
 
     // ============ ERRORS ============
+
+    /**
+     * @notice Thrown when an invalid issuer address is provided
+     * @param issuer The invalid address provided
+     */
+    error InvalidIssuer(address issuer);
 
     /**
      * @notice Thrown when an invalid recipient address is provided
@@ -39,22 +49,16 @@ interface IInvoice {
 
     /**
      * @notice Thrown when an invalid due date is provided
-     * @param dueDate The invalid due date provided
+     * @param dueAt The invalid due date provided
      * @param currentTime The current block timestamp
      */
-    error InvalidDueDate(uint256 dueDate, uint256 currentTime);
+    error InvalidDueAt(uint256 dueAt, uint256 currentTime);
 
     /**
-     * @notice Thrown when an invalid issuer address is provided
-     * @param issuer The invalid address provided
-     */
-    error InvalidIssuer(address issuer);
-
-    /**
-     * @notice Thrown when an invalid whitelist address is provided
+     * @notice Thrown when the whitelist contract address is not set (zero address)
      * @param whitelist The invalid address provided
      */
-    error InvalidWhitelistAddress(address whitelist);
+    error WhitelistContractNotSet(address whitelist);
 
     /**
      * @notice Thrown when attempting to access a non-existent invoice
@@ -76,33 +80,56 @@ interface IInvoice {
      */
     error RecipientNotWhitelisted(address recipient);
 
+    /**
+     * @notice Thrown when an issuer is not whitelisted
+     * @param issuer The address that is not whitelisted
+     */
+    error IssuerNotWhitelisted(address issuer);
+
     // ============ STRUCTS ============
 
     /**
      * @notice Invoice data structure
-     * @param amount Invoice principal amount in USDC (6 decimals)
-     * @param dueDate Unix timestamp when payment is due
-     * @param apy Annual Percentage Yield in basis points (e.g., 1200 = 12%)
+     * @param amount Invoice principal amount in payment token base units
+     * @param paymentToken ERC20 stablecoin address used for settlement (USDC, XSGD, EURC, etc.)
+     * @param dueAt Unix timestamp when payment is due
+     * @param apr Annual Percentage Rate in basis points (e.g., 1200 = 12%)
      * @param status Current lifecycle status of the invoice
      * @param issuer Address of the entity that issued the invoice and receives funding
-     * @param metadataURI URI pointing to invoice metadata (IPFS/S3, contains payer info and other details)
+     * @param uri URI pointing to invoice metadata (IPFS/S3, contains payer info and other details)
      */
-    struct Data {
+    struct InvoiceData {
         uint256 amount;
-        uint256 dueDate;
-        uint256 apy;
+        address paymentToken;
+        uint256 dueAt;
+        uint256 apr;
         Status status;
         address issuer;
-        string metadataURI;
+        string uri;
     }
 
     // ============ EVENTS ============
 
+    /**
+     * @notice Emitted when a new invoice NFT is minted
+     * @param tokenId The ID of the newly minted invoice NFT
+     * @param recipient The address receiving the invoice NFT (investor)
+     * @param issuer The address of the entity that issued the invoice (SMB)
+     * @param amount Invoice principal amount in payment token base units
+     * @param paymentToken ERC20 stablecoin address used for settlement
+     * @param dueAt Unix timestamp when payment is due
+     * @param apr Annual Percentage Rate in basis points
+     * @param uri URI pointing to invoice metadata
+     */
     event InvoiceMinted(
         uint256 indexed tokenId,
-        uint256 amount,
+        address indexed recipient,
         address indexed issuer,
-        uint256 dueDate
+        uint256 amount,
+        address paymentToken,
+        uint256 dueAt,
+        uint256 apr,
+        string uri
     );
 
     event StatusUpdated(
@@ -114,24 +141,28 @@ interface IInvoice {
     // ============ FUNCTIONS ============
 
     /**
-     * @notice Mints a new invoice NFT directly to the recipient (lazy minting)
-     * @param mintTo Address receiving the newly minted invoice NFT
-     * @param amount Invoice amount in USDC (6 decimals)
-     * @param dueDate Unix timestamp when payment is due
-     * @param apy Annual percentage yield in basis points
+     * @notice Mints a new invoice NFT with specified initial status (two-step custody)
+     * @param mintTo Address receiving the newly minted invoice NFT (contract for listing, investor for funding)
+     * @param amount Invoice amount in payment token base units
+     * @param paymentToken ERC20 stablecoin address used for settlement
+     * @param dueAt Unix timestamp when payment is due
+     * @param apr Annual percentage rate in basis points
      * @param issuer Address of the entity that issued the invoice and receives funding
-     * @param metadataURI URI for invoice metadata (contains payer info and other details)
+     * @param uri URI for invoice metadata (contains payer info and other details)
+     * @param initialStatus Initial status (LISTED when platform lists, FUNDED for legacy direct funding)
      * @return tokenId The newly minted invoice token ID
-     * @dev Only called by InvoiceFundingPool when an invoice is funded
-     * @dev NFT is minted with FUNDED status (skipping DRAFT/LISTED which are off-chain)
+     * @dev Called by InvoiceFundingPool for both listing (LISTED) and funding (FUNDED)
+     * @dev Two-step custody: First mint to contract with LISTED, then transfer to investor when funded
      */
     function mint(
         address mintTo,
         uint256 amount,
-        uint256 dueDate,
-        uint256 apy,
+        address paymentToken,
+        uint256 dueAt,
+        uint256 apr,
         address issuer,
-        string memory metadataURI
+        string memory uri,
+        Status initialStatus
     ) external returns (uint256);
 
     /**
@@ -146,7 +177,7 @@ interface IInvoice {
      * @param tokenId The ID of the invoice NFT
      * @return The invoice data struct
      */
-    function getInvoice(uint256 tokenId) external view returns (Data memory);
+    function getInvoice(uint256 tokenId) external view returns (InvoiceData memory);
 
     /**
      * @notice Pauses all token transfers and minting

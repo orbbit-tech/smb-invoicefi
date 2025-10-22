@@ -1,4 +1,4 @@
-import { ethers, network } from 'hardhat';
+import { network } from 'hardhat';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
@@ -10,6 +10,9 @@ import * as readline from 'readline';
  * @dev Use this if automatic transfer during deployment was skipped or failed
  */
 async function main() {
+  // Connect to network (Hardhat v3 pattern)
+  const { viem } = await network.connect();
+
   const MULTISIG_ADDRESS = process.env.MULTISIG_ADDRESS;
 
   if (!MULTISIG_ADDRESS) {
@@ -20,22 +23,28 @@ async function main() {
   console.log('  TRANSFER CONTROL TO MULTI-SIG');
   console.log('═══════════════════════════════════════════════');
   console.log('');
-  console.log('Network:', network.name);
-  console.log('Chain ID:', network.config.chainId);
+
+  // Get network info from Viem PublicClient (official Hardhat + Viem pattern)
+  const publicClient = await viem.getPublicClient();
+  const chainId = await publicClient.getChainId();
+  const networkName = publicClient.chain.name;
+
+  console.log('Network:', networkName);
+  console.log('Chain ID:', chainId);
   console.log('Multi-sig address:', MULTISIG_ADDRESS);
   console.log('');
 
   // Load deployment addresses
-  const deploymentFile = path.join(__dirname, '..', `deployments-${network.config.chainId}.json`);
+  const deploymentFile = path.join(__dirname, '..', `deployments-${chainId}.json`);
 
   if (!fs.existsSync(deploymentFile)) {
     throw new Error(`Deployment file not found: ${deploymentFile}`);
   }
 
   const deployments = JSON.parse(fs.readFileSync(deploymentFile, 'utf8'));
-  const [deployer] = await ethers.getSigners();
+  const [deployer] = await viem.getWalletClients();
 
-  console.log('Deployer address:', deployer.address);
+  console.log('Deployer address:', deployer.account.address);
   console.log('');
   console.log('This will grant ALL admin roles to the multi-sig wallet.');
   console.log('');
@@ -65,34 +74,36 @@ async function main() {
 
   console.log('\n🔄 Starting transfer...\n');
 
+  const multisigAddress = MULTISIG_ADDRESS as `0x${string}`;
+
   // Load contracts
-  const invoice = await ethers.getContractAt('Invoice', deployments.contracts.invoice);
-  const pool = await ethers.getContractAt('InvoiceFundingPool', deployments.contracts.invoiceFundingPool);
-  const whitelist = await ethers.getContractAt('Whitelist', deployments.contracts.whitelist);
+  const invoice = await viem.getContractAt('Invoice', deployments.contracts.invoice as `0x${string}`);
+  const pool = await viem.getContractAt('InvoiceFundingPool', deployments.contracts.invoiceFundingPool as `0x${string}`);
+  const whitelist = await viem.getContractAt('Whitelist', deployments.contracts.whitelist as `0x${string}`);
 
   // Get role IDs
-  const ADMIN_ROLE = await invoice.DEFAULT_ADMIN_ROLE();
-  const PAUSER_ROLE = await invoice.PAUSER_ROLE();
-  const OPERATOR_ROLE = await pool.OPERATOR_ROLE();
-  const WHITELIST_MANAGER_ROLE = await whitelist.WHITELIST_MANAGER_ROLE();
+  const ADMIN_ROLE = await invoice.read.DEFAULT_ADMIN_ROLE();
+  const PAUSER_ROLE = await invoice.read.PAUSER_ROLE();
+  const OPERATOR_ROLE = await pool.read.OPERATOR_ROLE();
+  const WHITELIST_OPERATOR_ROLE = await whitelist.read.WHITELIST_OPERATOR_ROLE();
 
   // Invoice Contract
   console.log('📄 Invoice Contract');
   console.log('─'.repeat(50));
 
-  const invoiceHasAdmin = await invoice.hasRole(ADMIN_ROLE, MULTISIG_ADDRESS);
+  const invoiceHasAdmin = await invoice.read.hasRole([ADMIN_ROLE, multisigAddress]);
   if (!invoiceHasAdmin) {
     console.log('  Granting DEFAULT_ADMIN_ROLE...');
-    await (await invoice.grantRole(ADMIN_ROLE, MULTISIG_ADDRESS)).wait();
+    await invoice.write.grantRole([ADMIN_ROLE, multisigAddress]);
     console.log('  ✅ Granted');
   } else {
     console.log('  ✓ Already has DEFAULT_ADMIN_ROLE');
   }
 
-  const invoiceHasPauser = await invoice.hasRole(PAUSER_ROLE, MULTISIG_ADDRESS);
+  const invoiceHasPauser = await invoice.read.hasRole([PAUSER_ROLE, multisigAddress]);
   if (!invoiceHasPauser) {
     console.log('  Granting PAUSER_ROLE...');
-    await (await invoice.grantRole(PAUSER_ROLE, MULTISIG_ADDRESS)).wait();
+    await invoice.write.grantRole([PAUSER_ROLE, multisigAddress]);
     console.log('  ✅ Granted');
   } else {
     console.log('  ✓ Already has PAUSER_ROLE');
@@ -104,28 +115,28 @@ async function main() {
   console.log('💰 InvoiceFundingPool Contract');
   console.log('─'.repeat(50));
 
-  const poolHasAdmin = await pool.hasRole(ADMIN_ROLE, MULTISIG_ADDRESS);
+  const poolHasAdmin = await pool.read.hasRole([ADMIN_ROLE, multisigAddress]);
   if (!poolHasAdmin) {
     console.log('  Granting DEFAULT_ADMIN_ROLE...');
-    await (await pool.grantRole(ADMIN_ROLE, MULTISIG_ADDRESS)).wait();
+    await pool.write.grantRole([ADMIN_ROLE, multisigAddress]);
     console.log('  ✅ Granted');
   } else {
     console.log('  ✓ Already has DEFAULT_ADMIN_ROLE');
   }
 
-  const poolHasOperator = await pool.hasRole(OPERATOR_ROLE, MULTISIG_ADDRESS);
+  const poolHasOperator = await pool.read.hasRole([OPERATOR_ROLE, multisigAddress]);
   if (!poolHasOperator) {
     console.log('  Granting OPERATOR_ROLE...');
-    await (await pool.grantRole(OPERATOR_ROLE, MULTISIG_ADDRESS)).wait();
+    await pool.write.grantRole([OPERATOR_ROLE, multisigAddress]);
     console.log('  ✅ Granted');
   } else {
     console.log('  ✓ Already has OPERATOR_ROLE');
   }
 
-  const poolHasPauser = await pool.hasRole(PAUSER_ROLE, MULTISIG_ADDRESS);
+  const poolHasPauser = await pool.read.hasRole([PAUSER_ROLE, multisigAddress]);
   if (!poolHasPauser) {
     console.log('  Granting PAUSER_ROLE...');
-    await (await pool.grantRole(PAUSER_ROLE, MULTISIG_ADDRESS)).wait();
+    await pool.write.grantRole([PAUSER_ROLE, multisigAddress]);
     console.log('  ✅ Granted');
   } else {
     console.log('  ✓ Already has PAUSER_ROLE');
@@ -137,22 +148,22 @@ async function main() {
   console.log('✅ Whitelist Contract');
   console.log('─'.repeat(50));
 
-  const whitelistHasAdmin = await whitelist.hasRole(ADMIN_ROLE, MULTISIG_ADDRESS);
+  const whitelistHasAdmin = await whitelist.read.hasRole([ADMIN_ROLE, multisigAddress]);
   if (!whitelistHasAdmin) {
     console.log('  Granting DEFAULT_ADMIN_ROLE...');
-    await (await whitelist.grantRole(ADMIN_ROLE, MULTISIG_ADDRESS)).wait();
+    await whitelist.write.grantRole([ADMIN_ROLE, multisigAddress]);
     console.log('  ✅ Granted');
   } else {
     console.log('  ✓ Already has DEFAULT_ADMIN_ROLE');
   }
 
-  const whitelistHasManager = await whitelist.hasRole(WHITELIST_MANAGER_ROLE, MULTISIG_ADDRESS);
-  if (!whitelistHasManager) {
-    console.log('  Granting WHITELIST_MANAGER_ROLE...');
-    await (await whitelist.grantRole(WHITELIST_MANAGER_ROLE, MULTISIG_ADDRESS)).wait();
+  const whitelistHasOperator = await whitelist.read.hasRole([WHITELIST_OPERATOR_ROLE, multisigAddress]);
+  if (!whitelistHasOperator) {
+    console.log('  Granting WHITELIST_OPERATOR_ROLE...');
+    await whitelist.write.grantRole([WHITELIST_OPERATOR_ROLE, multisigAddress]);
     console.log('  ✅ Granted');
   } else {
-    console.log('  ✓ Already has WHITELIST_MANAGER_ROLE');
+    console.log('  ✓ Already has WHITELIST_OPERATOR_ROLE');
   }
 
   console.log('');
@@ -160,13 +171,13 @@ async function main() {
   // Verify all roles
   console.log('🔍 Verifying multi-sig has all roles...');
 
-  const invoiceAdminCheck = await invoice.hasRole(ADMIN_ROLE, MULTISIG_ADDRESS);
-  const invoicePauserCheck = await invoice.hasRole(PAUSER_ROLE, MULTISIG_ADDRESS);
-  const poolAdminCheck = await pool.hasRole(ADMIN_ROLE, MULTISIG_ADDRESS);
-  const poolOperatorCheck = await pool.hasRole(OPERATOR_ROLE, MULTISIG_ADDRESS);
-  const poolPauserCheck = await pool.hasRole(PAUSER_ROLE, MULTISIG_ADDRESS);
-  const whitelistAdminCheck = await whitelist.hasRole(ADMIN_ROLE, MULTISIG_ADDRESS);
-  const whitelistManagerCheck = await whitelist.hasRole(WHITELIST_MANAGER_ROLE, MULTISIG_ADDRESS);
+  const invoiceAdminCheck = await invoice.read.hasRole([ADMIN_ROLE, multisigAddress]);
+  const invoicePauserCheck = await invoice.read.hasRole([PAUSER_ROLE, multisigAddress]);
+  const poolAdminCheck = await pool.read.hasRole([ADMIN_ROLE, multisigAddress]);
+  const poolOperatorCheck = await pool.read.hasRole([OPERATOR_ROLE, multisigAddress]);
+  const poolPauserCheck = await pool.read.hasRole([PAUSER_ROLE, multisigAddress]);
+  const whitelistAdminCheck = await whitelist.read.hasRole([ADMIN_ROLE, multisigAddress]);
+  const whitelistOperatorCheck = await whitelist.read.hasRole([WHITELIST_OPERATOR_ROLE, multisigAddress]);
 
   if (
     !invoiceAdminCheck ||
@@ -175,7 +186,7 @@ async function main() {
     !poolOperatorCheck ||
     !poolPauserCheck ||
     !whitelistAdminCheck ||
-    !whitelistManagerCheck
+    !whitelistOperatorCheck
   ) {
     throw new Error('❌ Verification failed! Multi-sig does not have all required roles.');
   }
@@ -198,8 +209,8 @@ async function main() {
   console.log('⚠️  Deployer still has admin roles (backup).');
   console.log('');
   console.log('Next steps:');
-  console.log('  1. Verify: npx hardhat run scripts/verify-multisig-control.ts --network', network.name);
-  console.log('  2. (Optional) Revoke deployer: npx hardhat run scripts/revoke-deployer-roles.ts --network', network.name);
+  console.log('  1. Verify: npx hardhat run scripts/verify-multisig-control.ts --network', networkName);
+  console.log('  2. (Optional) Revoke deployer: npx hardhat run scripts/revoke-deployer-roles.ts --network', networkName);
   console.log('');
   console.log('All future admin actions must go through the multi-sig at:');
   console.log('  https://app.safe.global');

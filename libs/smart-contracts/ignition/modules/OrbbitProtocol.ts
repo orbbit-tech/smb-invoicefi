@@ -1,5 +1,4 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules';
-import deploymentConfig from '../../config/deployment.config';
 
 /**
  * @title Orbbit Protocol Ignition Module
@@ -11,39 +10,58 @@ import deploymentConfig from '../../config/deployment.config';
  *      4. Configures inter-contract roles
  *
  * @dev Usage:
- *      Base Sepolia: npx hardhat ignition deploy ignition/modules/OrbbitProtocol.ts --network baseSepolia
- *      Base Mainnet: npx hardhat ignition deploy ignition/modules/OrbbitProtocol.ts --network base
+ *      Base Sepolia (testnet):
+ *        npx hardhat ignition deploy ignition/modules/OrbbitProtocol.ts \
+ *          --network baseSepolia \
+ *          --parameters ignition/parameters/base-sepolia.json
  *
- * @dev Parameters can be overridden using ignition parameters:
- *      npx hardhat ignition deploy ... --parameters ignition/parameters/base-sepolia.json
+ *      Base Mainnet (production):
+ *        npx hardhat ignition deploy ignition/modules/OrbbitProtocol.ts \
+ *          --network base \
+ *          --parameters ignition/parameters/base-mainnet.json
+ *
+ * @dev Parameters (defined in parameter JSON files):
+ *      - paymentToken: USDC contract address (network-specific)
+ *      - tokenName: Invoice NFT name (default: "Orbbit Invoice")
+ *      - tokenSymbol: Invoice NFT symbol (default: "ORBINV")
+ *      - metadataBaseUri: Base URI for NFT metadata
+ *      - metadataExtension: File extension for metadata (default: ".json")
+ *      - gracePeriodDays: Grace period for defaults (default: 30)
+ *      - platformTreasury: Platform treasury address (default: deployer)
+ *      - platformFeeRate: Platform fee rate in basis points (default: 3000 = 30%)
+ *      - maxBatchSize: Maximum batch size for whitelist operations (default: 50)
+ *
+ * @dev IMPORTANT: Always use parameter files to ensure correct network configuration
  */
 const OrbbitProtocolModule = buildModule('OrbbitProtocol', (m) => {
   // ============================================
-  // CONFIGURATION
+  // PARAMETERS
   // ============================================
 
-  const { token, contract } = deploymentConfig;
-
-  // Parameters with defaults from deployment config
-  const tokenName = m.getParameter('tokenName', token.name);
-  const tokenSymbol = m.getParameter('tokenSymbol', token.symbol);
-  const metadataBaseUri = m.getParameter('metadataBaseUri', token.metadataBaseUri);
-  const metadataExtension = m.getParameter('metadataExtension', token.metadataExtension);
-  const gracePeriodDays = m.getParameter('gracePeriodDays', contract.gracePeriodDays);
-
-  // Payment token (USDC) - can be overridden per network
-  // For Base Sepolia: 0x036CbD53842c5426634e7929541eC2318f3dCF7e
-  // For Base Mainnet: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+  // All parameters are provided via parameter JSON files
+  // Defaults are safe testnet values as fallback
   const paymentToken = m.getParameter(
     'paymentToken',
-    '0x036CbD53842c5426634e7929541eC2318f3dCF7e' // Default to Base Sepolia USDC
+    '0x036CbD53842c5426634e7929541eC2318f3dCF7e' // Base Sepolia USDC
   );
+  const tokenName = m.getParameter('tokenName', 'Orbbit Invoice');
+  const tokenSymbol = m.getParameter('tokenSymbol', 'ORBINV');
+  const metadataBaseUri = m.getParameter(
+    'metadataBaseUri',
+    'https://api.orbbit.com/metadata/'
+  );
+  const metadataExtension = m.getParameter('metadataExtension', '.json');
+  const gracePeriodDays = m.getParameter('gracePeriodDays', 30);
+  // Platform fee parameters (30% = 3000 basis points)
+  const platformTreasury = m.getParameter('platformTreasury', m.getAccount(0)); // Default to deployer
+  const platformFeeRate = m.getParameter('platformFeeRate', 3000); // 30%
+  const maxBatchSize = m.getParameter('maxBatchSize', 50); // Default: 50
 
   // ============================================
   // 1. DEPLOY WHITELIST
   // ============================================
 
-  const whitelist = m.contract('Whitelist');
+  const whitelist = m.contract('Whitelist', [maxBatchSize]);
 
   // ============================================
   // 2. DEPLOY INVOICE NFT
@@ -66,6 +84,8 @@ const OrbbitProtocolModule = buildModule('OrbbitProtocol', (m) => {
     invoice,
     gracePeriodDays,
     whitelist,
+    platformTreasury,
+    platformFeeRate,
   ]);
 
   // ============================================

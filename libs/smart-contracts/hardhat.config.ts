@@ -2,11 +2,9 @@ import type { HardhatUserConfig } from 'hardhat/config';
 import hardhatKeystore from '@nomicfoundation/hardhat-keystore';
 import hardhatIgnition from '@nomicfoundation/hardhat-ignition';
 import { configVariable } from 'hardhat/config';
-import '@nomicfoundation/hardhat-ethers';
-import '@nomicfoundation/hardhat-ethers-chai-matchers';
-import '@nomicfoundation/hardhat-ignition-ethers';
+import hardhatViem from '@nomicfoundation/hardhat-viem';
+import '@nomicfoundation/hardhat-ignition-viem';
 import '@nomicfoundation/hardhat-network-helpers';
-import '@nomicfoundation/hardhat-typechain';
 import '@nomicfoundation/hardhat-verify';
 import * as dotenv from 'dotenv';
 
@@ -15,7 +13,7 @@ dotenv.config();
 
 const config: HardhatUserConfig = {
   // Register plugins
-  plugins: [hardhatKeystore, hardhatIgnition],
+  plugins: [hardhatKeystore, hardhatIgnition, hardhatViem],
 
   solidity: {
     version: '0.8.20',
@@ -99,11 +97,7 @@ const config: HardhatUserConfig = {
     ],
   },
 
-  // TypeChain configuration - output to shared location
-  typechain: {
-    outDir: '../../../libs/frontend/ui/generated/contracts',
-    target: 'ethers-v6',
-  },
+  // TypeChain configuration - output to shared location (removed - using Viem)
 
   // Hardhat Ignition configuration
   ignition: {

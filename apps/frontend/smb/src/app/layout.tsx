@@ -1,8 +1,10 @@
 import './tailwind.css';
+import '@rainbow-me/rainbowkit/styles.css';
 
 import { Inter } from 'next/font/google';
 import { QueryProvider } from '@/providers/query-provider';
 import { JotaiProvider } from '@/providers/jotai-provider';
+import { WagmiProvider } from '@/providers/wagmi-provider';
 import { Metadata } from 'next';
 import { Toaster } from 'sonner';
 
@@ -25,12 +27,14 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} w-full`}>
       <body>
-        <JotaiProvider>
+        <WagmiProvider>
           <QueryProvider>
-            {children}
-            <Toaster />
+            <JotaiProvider>
+              {children}
+              <Toaster />
+            </JotaiProvider>
           </QueryProvider>
-        </JotaiProvider>
+        </WagmiProvider>
       </body>
     </html>
   );
