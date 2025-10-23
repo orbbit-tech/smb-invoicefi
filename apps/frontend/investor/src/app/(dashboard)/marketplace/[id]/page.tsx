@@ -1,34 +1,38 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useAccount } from 'wagmi';
 import {
   Card,
   Badge,
   Button,
   Separator,
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  InvoiceDetailHeader,
+  InvoiceMetrics,
+  PayerInformation,
+  RiskAssessment,
+  FinancialBreakdown,
+  DocumentsSection,
 } from '@ui';
 import {
   ArrowLeft,
-  FileText,
-  ShieldCheck,
-  TrendingUp,
   Loader2,
   CheckCircle2,
   ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { type InvoiceData } from '@/components/invoices';
-import { getInvoiceById } from '@/data/mock-invoices';
+import { useMarketplaceInvoice } from '@/hooks/api';
+import { useInvoiceData } from '@/hooks/blockchain';
+import { mapMarketplaceDetail } from '@/lib/mappers/invoice-mapper';
+import { NFTOwnership } from '@/components/portfolio';
 
 /**
  * Invoice Detail Page
@@ -43,15 +47,72 @@ import { getInvoiceById } from '@/data/mock-invoices';
 export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { address } = useAccount();
   const invoiceId = params.id as string;
-  const invoice = getInvoiceById(invoiceId);
+
+  // Fetch invoice data from API
+  const { data: apiData, isLoading, isError } = useMarketplaceInvoice(invoiceId);
+
+  // Map API data to frontend format
+  const invoiceDetail = useMemo(() => {
+    if (!apiData) return null;
+    return mapMarketplaceDetail(apiData);
+  }, [apiData]);
+
+  // Fetch blockchain data if NFT token ID exists
+  const contractAddress = process.env.NEXT_PUBLIC_INVOICE_CONTRACT_ADDRESS as `0x${string}` | undefined;
+  const { data: blockchainData } = useInvoiceData(
+    invoiceDetail?.nftTokenId,
+    contractAddress
+  );
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  if (!invoice) {
+  // Convert to InvoiceData format for components
+  const invoice: InvoiceData | null = useMemo(() => {
+    if (!invoiceDetail) return null;
+    return {
+      id: invoiceDetail.id,
+      companyName: invoiceDetail.issuer.name,
+      companyLogoUrl: undefined,
+      dueDate: invoiceDetail.dueDate.toISOString(),
+      category: invoiceDetail.issuer.industry || 'General',
+      amount: invoiceDetail.amount,
+      funded: 0,
+      payerName: invoiceDetail.payer.name,
+      payerLogoUrl: undefined,
+      daysUntilDue: invoiceDetail.daysUntilDue,
+      return: invoiceDetail.expectedReturn,
+      apr: invoiceDetail.apr,
+      discountRate: invoiceDetail.discountRate,
+      riskScore: invoiceDetail.riskScore as 'Low' | 'Medium' | 'High',
+      status: 'active',
+    };
+  }, [invoiceDetail]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Button variant="ghost" onClick={() => router.back()} className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Marketplace
+        </Button>
+        <Card className="p-12">
+          <div className="flex flex-col items-center justify-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading invoice details...</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state
+  if (isError || !invoice) {
     return (
       <div className="space-y-6">
         <Button variant="ghost" onClick={() => router.back()} className="gap-2">
@@ -60,7 +121,12 @@ export default function InvoiceDetailPage() {
         </Button>
         <Card className="p-12">
           <div className="text-center">
-            <p className="text-lg text-muted-foreground">Invoice not found</p>
+            <p className="text-lg text-destructive">
+              {isError ? 'Failed to load invoice' : 'Invoice not found'}
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Please try again or return to the marketplace
+            </p>
           </div>
         </Card>
       </div>
@@ -101,7 +167,7 @@ export default function InvoiceDetailPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       {/* Back Button */}
       <Button variant="ghost" onClick={() => router.back()} className="gap-2">
         <ArrowLeft className="h-4 w-4" />
@@ -109,205 +175,64 @@ export default function InvoiceDetailPage() {
       </Button>
 
       {/* Header Section */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-16 w-16 bg-neutral-200/80 shadow-sm">
-            <AvatarImage src={invoice.companyLogoUrl} />
-            <AvatarFallback className="bg-neutral-200/80 font-semibold text-lg">
-              {invoice.companyName[0].toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground leading-tight">
-              {invoice.companyName}
-            </h1>
-            <p className="text-muted-foreground">
-              Invoice #{invoice.id} • {invoice.category}
-            </p>
-          </div>
-        </div>
-      </div>
+      <InvoiceDetailHeader invoice={invoice} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content - Left Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Key Metrics */}
-          <Card className="p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 " />
-              <h2 className="text-lg font-semibold">Investment Overview</h2>
-            </div>
-            <Separator />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Invoice Amount</p>
-                <p className="text-2xl font-bold">
-                  ${invoice.amount.toLocaleString()}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">APY</p>
-                <p className="text-2xl font-bold">{invoice.apy}%</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Term</p>
-                <p className="text-2xl font-bold">{invoice.daysUntilDue}d</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Expected Return</p>
-                <p className="text-2xl font-bold">
-                  ${invoice.return.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </Card>
-
           {/* Financial Breakdown */}
-          <Card className="p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Financial Details</h2>
-            <Separator />
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Invoice Amount</span>
-                <span className="font-semibold">
-                  ${invoice.amount.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Discount Rate</span>
-                <span className="font-semibold">
-                  {(invoice.discountRate * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Funding Amount</span>
-                <span className="font-semibold">
-                  ${fundingAmountRequired.toLocaleString()}
-                </span>
-              </div>
-              <Separator />
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Due Date</span>
-                <span className="font-semibold">
-                  {new Date(invoice.dueDate).toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Days Until Due</span>
-                <span className="font-semibold">{invoice.daysUntilDue}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between items-center">
-                <span className="font-semibold">Expected Return</span>
-                <span className="text-lg font-bold">
-                  ${invoice.return.toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </Card>
+          <FinancialBreakdown
+            invoice={invoice}
+            lineItems={[
+              {
+                label: 'Invoice Amount',
+                value: `$${invoice.amount.toLocaleString()}`,
+              },
+              {
+                label: 'Discount Rate',
+                value: `${(invoice.discountRate * 100).toFixed(1)}%`,
+              },
+              {
+                label: 'Funding Amount',
+                value: `$${fundingAmountRequired.toLocaleString()}`,
+              },
+              {
+                label: 'Due Date',
+                value: new Date(invoice.dueDate).toLocaleDateString(),
+                emphasis: true,
+              },
+              {
+                label: 'Days Until Due',
+                value: invoice.daysUntilDue,
+              },
+              {
+                label: 'Expected Return',
+                value: `$${invoice.return.toLocaleString()}`,
+                emphasis: true,
+              },
+            ]}
+          />
 
           {/* Payer Information */}
-          <Card className="p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Payer Information</h2>
-            <Separator />
-            <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12 bg-neutral-200/80 shadow-sm">
-                <AvatarImage src={invoice.payerLogoUrl} />
-                <AvatarFallback className="bg-neutral-200/80 font-semibold">
-                  {invoice.payerName[0].toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold">{invoice.payerName}</p>
-                <p className="text-sm text-muted-foreground">
-                  Payment due on{' '}
-                  {new Date(invoice.dueDate).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-            <div className="bg-neutral-100/80 p-4 rounded-md space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Payment History
-                </span>
-                <span className="text-sm font-semibold">100% On-Time</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Total Invoices Paid
-                </span>
-                <span className="text-sm font-semibold">127</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Average Payment Time
-                </span>
-                <span className="text-sm font-semibold">28 days</span>
-              </div>
-            </div>
-          </Card>
+          <PayerInformation invoice={invoice} />
 
           {/* Documents Section */}
-          <Card className="p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 " />
-              <h2 className="text-lg font-semibold">Documents</h2>
-            </div>
-            <Separator />
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                disabled
-              >
-                <FileText className="h-4 w-4" />
-                Invoice Document.pdf
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                disabled
-              >
-                <FileText className="h-4 w-4" />
-                Purchase Order.pdf
-              </Button>
-              <p className="text-xs text-muted-foreground mt-2">
-                Documents will be available after connecting your wallet
-              </p>
-            </div>
-          </Card>
+          <DocumentsSection />
         </div>
 
         {/* Sidebar - Right Column */}
         <div className="lg:col-span-1 space-y-6">
+          {/* NFT Ownership */}
+          <NFTOwnership
+            tokenId={invoice.id.toString()}
+            contractAddress="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+            blockchainTxHash={`0x${invoice.id.toString().padStart(64, '0')}`}
+            companyName={invoice.companyName}
+            companyLogoUrl={invoice.companyLogoUrl}
+          />
+
           {/* Risk Assessment */}
-          <Card className="p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 " />
-              <h2 className="text-lg font-semibold">Risk Assessment</h2>
-            </div>
-            <Separator />
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">
-                  Risk Level
-                </span>
-                <Badge variant="secondary">{invoice.riskScore}</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Industry</span>
-                <Badge variant="secondary">{invoice.category}</Badge>
-              </div>
-            </div>
-            <div className="bg-neutral-100/80 p-4 rounded-md space-y-2">
-              <p className="text-sm font-semibold">Top :</p>
-              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                <li>Strong payer credit history</li>
-                <li>Established business relationship</li>
-                <li>Short payment term (30 days)</li>
-              </ul>
-            </div>
-          </Card>
+          <RiskAssessment invoice={invoice} />
 
           {/* Fund Button - Primary Action */}
           <Card className="p-6 space-y-4 bg-primary/5 border-primary/20">
@@ -315,11 +240,15 @@ export default function InvoiceDetailPage() {
               <p className="text-sm text-muted-foreground">
                 Ready to fund this invoice?
               </p>
-              <Button className="w-full" onClick={() => setIsModalOpen(true)}>
+              <Button
+                className="w-full"
+                onClick={() => setIsModalOpen(true)}
+                disabled={!address}
+              >
                 Fund Invoice
               </Button>
               <p className="text-xs text-muted-foreground text-center">
-                Connect your wallet to continue
+                {!address ? 'Connect your wallet to invest' : 'Review details and confirm'}
               </p>
             </div>
           </Card>
@@ -357,8 +286,8 @@ export default function InvoiceDetailPage() {
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">APY</span>
-                  <span className="text-sm font-semibold">{invoice.apy}%</span>
+                  <span className="text-sm text-muted-foreground">APR</span>
+                  <span className="text-sm font-semibold">{invoice.apr}%</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Term</span>
@@ -440,15 +369,15 @@ export default function InvoiceDetailPage() {
               <div className="space-y-6 py-6">
                 {/* Success Icon */}
                 <div className="flex justify-center rounded-full">
-                  <CheckCircle2 className="h-16 w-16 " />
+                  <CheckCircle2 className="h-12 w-12 " />
                 </div>
 
                 {/* Success Message */}
                 <div className="text-center space-y-2">
-                  <DialogTitle className="text-2xl">
+                  <DialogTitle className="text-xl">
                     Investment Successful!
                   </DialogTitle>
-                  <DialogDescription className="text-base">
+                  <DialogDescription className="text-sm">
                     You've successfully funded invoice #{invoice.id}
                   </DialogDescription>
                 </div>

@@ -14,14 +14,6 @@ export default interface InvoiceTable {
 
   payerCompanyId: ColumnType<string, string, string>;
 
-  /** Invoice principal amount in cents (e.g., $10,000 = 1000000) */
-  amountCents: ColumnType<string, string, string>;
-
-  /** Annual Percentage Rate in basis points (e.g., 36.5% = 3650) */
-  aprBps: ColumnType<string | null, string | null, string | null>;
-
-  discountRateBps: ColumnType<string | null, string | null, string | null>;
-
   invoiceDate: ColumnType<string, string, string>;
 
   /** Unix timestamp when payment is due (UTC) */
@@ -46,6 +38,14 @@ export default interface InvoiceTable {
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
 
   deletedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  /** Invoice principal amount in 6-decimal format (e.g., for USDC: 1,000,000 = $1, so $10,000 = 10,000,000,000) */
+  amount: ColumnType<string, string, string>;
+
+  /** Annual Percentage Rate with 6 decimals (e.g., 36.5% = 365,000, where 1,000,000 = 100%) */
+  apr: ColumnType<string | null, string | null, string | null>;
+
+  discountRate: ColumnType<string | null, string | null, string | null>;
 }
 
 export type InvoiceDb = Selectable<InvoiceTable>;

@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  Card,
   Badge,
   Button,
   NFTFlipCard,
@@ -9,7 +8,7 @@ import {
   AvatarImage,
   AvatarFallback,
 } from '@ui';
-import { ExternalLink, Hash, FileText, Copy } from 'lucide-react';
+import { ExternalLink, FileText, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface NFTOwnershipProps {
@@ -37,12 +36,14 @@ export function NFTOwnership({
   const txUrl = `https://basescan.org/tx/${blockchainTxHash}`;
 
   /* ========================================
-     COLOR SCHEME OPTIONS - Uncomment one!
+     GLASSMORPHISM DESIGN - Apple-inspired premium aesthetic
      ======================================== */
 
-  // OPTION 1: Neutral Slate/Gray (Sophisticated & Professional)
+  // Front: Primary accent fading to light slate
   const frontGradient =
     'from-primary/9 via-primary/5 to-slate-50 dark:to-slate-950';
+
+  // Back: Light slate with subtle primary accent
   const backGradient =
     'from-slate-50 via-slate-100 to-primary/10 dark:from-slate-950 dark:via-slate-900';
 
@@ -59,14 +60,14 @@ export function NFTOwnership({
     }
   };
 
-  // Front face content - NFT artwork and basic info
+  // Front face content - NFT artwork and basic info with glassmorphism
   const frontFace = (
     <div
-      className={`w-full h-full bg-gradient-to-br ${frontGradient} flex items-center justify-center p-6`}
+      className={`w-full h-full bg-gradient-to-br ${frontGradient} backdrop-blur-xl shadow-2xl ring-1 ring-white/10 flex items-center justify-center p-6`}
     >
       <div className="text-center space-y-4">
         {/* NFT Artwork */}
-        <Avatar className="h-16 w-16 mx-auto shadow-lg">
+        <Avatar className="h-12 w-12 mx-auto shadow-lg">
           <AvatarImage src={companyLogoUrl} alt={companyName} />
           <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 font-bold text-5xl ">
             {companyName[0].toUpperCase()}
@@ -77,24 +78,29 @@ export function NFTOwnership({
         <div>
           <p className="font-semibold mb-2">{companyName}</p>
           <Badge variant="secondary" className="text-xs gap-1">
-            Token #{tokenId}
+            NFT #{tokenId}
           </Badge>
         </div>
       </div>
     </div>
   );
 
-  // Back face content - Blockchain verification details
+  // Back face content - Blockchain verification details with glassmorphism
   const backFace = (
     <div
-      className={`w-full h-full bg-gradient-to-br ${backGradient} p-6 flex flex-col`}
+      className={`w-full h-full bg-gradient-to-br ${backGradient} backdrop-blur-xl shadow-2xl ring-1 ring-white/10 p-6 flex flex-col`}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 " />
           <h3 className="text-sm font-semibold">Blockchain Details</h3>
         </div>
-        <Badge variant="outline" className="text-xs">
+        <Badge variant="outline" className="text-xs flex items-center gap-1.5">
+          <img
+            src="/base-chain-logo.png"
+            alt="Base"
+            className="h-3 w-3 rounded-full"
+          />
           Base
         </Badge>
       </div>
@@ -142,32 +148,14 @@ export function NFTOwnership({
   );
 
   return (
-    <Card className="p-6 space-y-6">
-      <div className="flex items-center gap-2">
-        <FileText className="h-5 w-5 " />
-        <h2 className="text-lg font-semibold">NFT Ownership</h2>
-      </div>
-
-      {/* Flippable NFT Card */}
-      <div className="aspect-16/9 w-full">
-        <NFTFlipCard
-          front={frontFace}
-          back={backFace}
-          className="h-full"
-          clickToFlip={true}
-          hoverToFlip={true}
-        />
-      </div>
-
-      {/* BaseScan CTA Button */}
-      <Button
-        variant="outline"
-        className="w-full gap-2"
-        onClick={() => window.open(basescanUrl, '_blank')}
-      >
-        <ExternalLink className="h-4 w-4" />
-        View on BaseScan
-      </Button>
-    </Card>
+    <div className="aspect-16/9 w-full">
+      <NFTFlipCard
+        front={frontFace}
+        back={backFace}
+        className="h-full"
+        clickToFlip={true}
+        hoverToFlip={true}
+      />
+    </div>
   );
 }

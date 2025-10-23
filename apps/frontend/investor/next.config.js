@@ -14,6 +14,19 @@ const nextConfig = {
       '@react-native-async-storage/async-storage': false,
       'pino-pretty': false,
     };
+
+    // Exclude node_modules and build artifacts from file watching
+    config.watchOptions = {
+      ignored: [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/.next/**',
+        '**/dist/**',
+        '**/build/**',
+        '**/.playwright-mcp/**',
+      ],
+    };
+
     return config;
   },
 };

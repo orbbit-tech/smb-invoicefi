@@ -4,7 +4,7 @@ import { MarketplaceService } from './marketplace.service';
 import { MarketplaceListResponseDto, MarketplaceDetailDto } from './marketplace.dto';
 
 @ApiTags('Investor - Marketplace')
-@Controller('api/investor/marketplace')
+@Controller('investor/marketplace')
 export class MarketplaceController {
   constructor(private readonly marketplaceService: MarketplaceService) {}
 

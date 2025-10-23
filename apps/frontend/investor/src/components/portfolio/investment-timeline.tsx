@@ -1,12 +1,11 @@
 'use client';
 
 import { Card, Separator, Badge } from '@ui';
-import { Clock, CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle } from 'lucide-react';
 
 interface TimelineEvent {
   date: string;
   label: string;
-  description: string;
   status: 'completed' | 'pending' | 'upcoming';
 }
 
@@ -40,13 +39,11 @@ export function InvestmentTimeline({
     {
       date: fundingDate,
       label: 'Investment Funded',
-      description: 'Your investment was successfully funded on-chain',
       status: 'completed',
     },
     {
       date: dueDate,
       label: 'Payment Due',
-      description: 'Expected payment date from payer',
       status: status === 'repaid' ? 'completed' : 'upcoming',
     },
   ];
@@ -55,7 +52,6 @@ export function InvestmentTimeline({
     events.push({
       date: settlementDate,
       label: 'Payment Settled',
-      description: 'Investment completed and returns distributed',
       status: 'completed',
     });
   }
@@ -63,28 +59,27 @@ export function InvestmentTimeline({
   return (
     <Card className="p-6 space-y-4">
       <div className="flex items-center gap-2">
-        <Clock className="h-5 w-5 " />
         <h2 className="text-lg font-semibold">Investment Timeline</h2>
       </div>
       <Separator />
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         {events.map((event, index) => (
           <div key={index} className="flex gap-4">
             {/* Timeline indicator */}
             <div className="flex flex-col items-center">
               <div className="relative">
                 {event.status === 'completed' ? (
-                  <CheckCircle2 className="h-6 w-6 " />
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
                 ) : event.status === 'pending' ? (
-                  <Circle className="h-6 w-6  animate-pulse" />
+                  <Circle className="h-5 w-5 text-primary animate-pulse" />
                 ) : (
-                  <Circle className="h-6 w-6 text-muted-foreground" />
+                  <Circle className="h-5 w-5 text-muted-foreground" />
                 )}
               </div>
               {index < events.length - 1 && (
                 <div
-                  className={`w-0.5 h-12 mt-2 ${
+                  className={`w-0.5 h-6 mt-2 ${
                     event.status === 'completed'
                       ? 'bg-primary'
                       : 'bg-muted-foreground/20'
@@ -94,31 +89,10 @@ export function InvestmentTimeline({
             </div>
 
             {/* Event details */}
-            <div className="flex-1 pb-4">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <h3 className="font-semibold text-sm">{event.label}</h3>
-                <Badge
-                  variant={
-                    event.status === 'completed'
-                      ? 'default'
-                      : event.status === 'pending'
-                      ? 'secondary'
-                      : 'outline'
-                  }
-                  className="text-xs"
-                >
-                  {event.status === 'completed'
-                    ? 'Completed'
-                    : event.status === 'pending'
-                    ? 'In Progress'
-                    : 'Upcoming'}
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mb-1">
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm mb-1">{event.label}</h3>
+              <p className="text-xs text-muted-foreground">
                 {formatDate(event.date)}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {event.description}
               </p>
             </div>
           </div>

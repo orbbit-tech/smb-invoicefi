@@ -96,7 +96,7 @@ export class SupabaseService implements OnModuleInit {
    * @returns Supabase query builder
    */
   from<T = any>(tableName: string) {
-    return this.getClient().from<T>(tableName);
+    return this.getClient().from(tableName) as any;
   }
 
   /**
@@ -147,7 +147,7 @@ export class SupabaseService implements OnModuleInit {
     callback: (sql: postgres.Sql) => Promise<T>
   ): Promise<T> {
     const sql = this.getPostgresClient();
-    return sql.begin(callback);
+    return sql.begin(callback) as Promise<T>;
   }
 
   /**

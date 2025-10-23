@@ -31,7 +31,7 @@ contract InvoiceFundingPoolTest is Test {
     // Sample invoice data
     uint256 constant INVOICE_AMOUNT = 10000 * 10 ** 6; // 10,000 USDC
     uint256 dueAt; // Will be set in setUp
-    uint256 constant APR = 1200; // 12% in basis points
+    uint256 constant APR = 120_000; // 12% with 6 decimals (was 1200 in basis points)
     string constant METADATA_URI = 'ipfs://QmTest123';
 
     // Configuration constants (matching deployment defaults)
@@ -40,7 +40,8 @@ contract InvoiceFundingPoolTest is Test {
     string constant METADATA_BASE_URI = 'https://api.orbbit.com/metadata/';
     string constant METADATA_EXTENSION = '.json';
     uint256 constant GRACE_PERIOD_DAYS = 30;
-    uint256 constant PLATFORM_FEE_RATE = 3000; // 25%
+    uint256 constant PLATFORM_FEE_RATE = 3000; // 30%
+    uint256 constant MAX_INVOICE_AMOUNT = 10_000_000 * 10 ** 6; // 10M USDC
 
     event InvoiceListed(
         uint256 indexed tokenId,
@@ -96,7 +97,8 @@ contract InvoiceFundingPoolTest is Test {
             GRACE_PERIOD_DAYS,
             address(whitelist),
             platformTreasury,
-            PLATFORM_FEE_RATE
+            PLATFORM_FEE_RATE,
+            MAX_INVOICE_AMOUNT
         );
 
         // Grant roles to Invoice contract - MINTER_ROLE goes to pool for two-step custody
@@ -165,7 +167,8 @@ contract InvoiceFundingPoolTest is Test {
             GRACE_PERIOD_DAYS,
             address(whitelist),
             platformTreasury,
-            PLATFORM_FEE_RATE
+            PLATFORM_FEE_RATE,
+            MAX_INVOICE_AMOUNT
         );
     }
 
@@ -177,7 +180,8 @@ contract InvoiceFundingPoolTest is Test {
             GRACE_PERIOD_DAYS,
             address(whitelist),
             platformTreasury,
-            PLATFORM_FEE_RATE
+            PLATFORM_FEE_RATE,
+            MAX_INVOICE_AMOUNT
         );
     }
 
@@ -189,7 +193,8 @@ contract InvoiceFundingPoolTest is Test {
             0,
             address(whitelist),
             platformTreasury,
-            PLATFORM_FEE_RATE
+            PLATFORM_FEE_RATE,
+            MAX_INVOICE_AMOUNT
         );
     }
 
@@ -567,9 +572,9 @@ contract InvoiceFundingPoolTest is Test {
         // List and fund invoice (two-step)
         uint256 tokenId = _listAndFundInvoice();
 
-        // Calculate yield: principal * apr * days / (10000 * 365)
-        // 10,000 USDC * 1200 * 30 / (10000 * 365) = 98.63 USDC
-        uint256 expectedYield = (INVOICE_AMOUNT * APR * 30) / (10000 * 365);
+        // Calculate yield: principal * apr * days / (APR_DECIMALS * DAYS_IN_YEAR)
+        // 10,000 USDC * 120_000 * 30 / (1_000_000 * 365) = 98.63 USDC
+        uint256 expectedYield = (INVOICE_AMOUNT * APR * 30) / (pool.APR_DECIMALS() * pool.DAYS_IN_YEAR());
         uint256 totalRepayment = INVOICE_AMOUNT + expectedYield;
 
         vm.prank(smb);
@@ -862,7 +867,7 @@ contract InvoiceFundingPoolTest is Test {
             dueAt,
             fundingTime
         );
-        uint256 expectedYield = (INVOICE_AMOUNT * APR * 30) / (10000 * 365);
+        uint256 expectedYield = (INVOICE_AMOUNT * APR * 30) / (pool.APR_DECIMALS() * pool.DAYS_IN_YEAR());
         assertEq(totalYield, expectedYield, '30-day yield should be correct');
     }
 
@@ -877,7 +882,7 @@ contract InvoiceFundingPoolTest is Test {
             dueAt60,
             fundingTime
         );
-        uint256 expectedYield = (INVOICE_AMOUNT * APR * 60) / (10000 * 365);
+        uint256 expectedYield = (INVOICE_AMOUNT * APR * 60) / (pool.APR_DECIMALS() * pool.DAYS_IN_YEAR());
         assertEq(totalYield, expectedYield, '60-day yield should be correct');
     }
 
@@ -893,16 +898,16 @@ contract InvoiceFundingPoolTest is Test {
     }
 
     function testCalculateYieldHighAPR() public view {
-        // 25% APR = 2500 basis points
+        // 25% APR with 6 decimals = 250_000
         uint256 fundingTime = block.timestamp;
-        uint256 highAPR = 2500;
+        uint256 highAPR = 250_000;
         (uint256 totalYield, , ) = pool.calculateYield(
             INVOICE_AMOUNT,
             highAPR,
             dueAt,
             fundingTime
         );
-        uint256 expectedYield = (INVOICE_AMOUNT * highAPR * 30) / (10000 * 365);
+        uint256 expectedYield = (INVOICE_AMOUNT * highAPR * 30) / (pool.APR_DECIMALS() * pool.DAYS_IN_YEAR());
         assertEq(totalYield, expectedYield, 'High APR yield should be correct');
     }
 
@@ -1198,7 +1203,7 @@ contract InvoiceFundingPoolTest is Test {
         );
 
         // Expected yield: 10,000 USDC * 12% * 30 days / 365 days
-        uint256 expectedYield = (INVOICE_AMOUNT * APR * 30) / (10000 * 365);
+        uint256 expectedYield = (INVOICE_AMOUNT * APR * 30) / (pool.APR_DECIMALS() * pool.DAYS_IN_YEAR());
         assertEq(
             yieldAtFunding,
             expectedYield,
@@ -1223,7 +1228,7 @@ contract InvoiceFundingPoolTest is Test {
         );
 
         // Yield should still be based on the original 30-day term, not negative or zero
-        uint256 expectedYield = (INVOICE_AMOUNT * APR * 30) / (10000 * 365);
+        uint256 expectedYield = (INVOICE_AMOUNT * APR * 30) / (pool.APR_DECIMALS() * pool.DAYS_IN_YEAR());
         assertEq(
             totalYield,
             expectedYield,

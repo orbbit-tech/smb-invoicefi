@@ -90,10 +90,10 @@ interface IInvoice {
 
     /**
      * @notice Invoice data structure
-     * @param amount Invoice principal amount in payment token base units
+     * @param amount Invoice principal amount in payment token base units (e.g., for USDC: 1_000_000 = $1)
      * @param paymentToken ERC20 stablecoin address used for settlement (USDC, XSGD, EURC, etc.)
      * @param dueAt Unix timestamp when payment is due
-     * @param apr Annual Percentage Rate in basis points (e.g., 1200 = 12%)
+     * @param apr Annual Percentage Rate with 6 decimals (e.g., 120_000 = 12%, 1_000_000 = 100%)
      * @param status Current lifecycle status of the invoice
      * @param issuer Address of the entity that issued the invoice and receives funding
      * @param uri URI pointing to invoice metadata (IPFS/S3, contains payer info and other details)
@@ -115,10 +115,10 @@ interface IInvoice {
      * @param tokenId The ID of the newly minted invoice NFT
      * @param recipient The address receiving the invoice NFT (investor)
      * @param issuer The address of the entity that issued the invoice (SMB)
-     * @param amount Invoice principal amount in payment token base units
+     * @param amount Invoice principal amount in payment token base units (e.g., for USDC: 1_000_000 = $1)
      * @param paymentToken ERC20 stablecoin address used for settlement
      * @param dueAt Unix timestamp when payment is due
-     * @param apr Annual Percentage Rate in basis points
+     * @param apr Annual Percentage Rate with 6 decimals (e.g., 120_000 = 12%, 1_000_000 = 100%)
      * @param uri URI pointing to invoice metadata
      */
     event InvoiceMinted(
@@ -143,16 +143,17 @@ interface IInvoice {
     /**
      * @notice Mints a new invoice NFT with specified initial status (two-step custody)
      * @param mintTo Address receiving the newly minted invoice NFT (contract for listing, investor for funding)
-     * @param amount Invoice amount in payment token base units
+     * @param amount Invoice amount in payment token base units (e.g., for USDC: 1_000_000 = $1)
      * @param paymentToken ERC20 stablecoin address used for settlement
      * @param dueAt Unix timestamp when payment is due
-     * @param apr Annual percentage rate in basis points
+     * @param apr Annual percentage rate with 6 decimals (e.g., 120_000 = 12%, 1_000_000 = 100%)
      * @param issuer Address of the entity that issued the invoice and receives funding
      * @param uri URI for invoice metadata (contains payer info and other details)
      * @param initialStatus Initial status (LISTED when platform lists, FUNDED for legacy direct funding)
      * @return tokenId The newly minted invoice token ID
      * @dev Called by InvoiceFundingPool for both listing (LISTED) and funding (FUNDED)
      * @dev Two-step custody: First mint to contract with LISTED, then transfer to investor when funded
+     * @dev APR uses 6 decimals where 1_000_000 = 100% for precise fee splitting
      */
     function mint(
         address mintTo,

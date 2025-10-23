@@ -44,7 +44,7 @@ describe('InvoicesService', () => {
 
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe('invoice-123');
-      expect(result.data[0].amount).toBe(1000000);
+      expect(result.data[0].amount).toBe(10000000000);
       expect(result.data[0].payer.name).toBe('Acme Corp');
       expect(result.meta.total).toBe(1);
       expect(result.meta.totalPages).toBe(1);
@@ -129,7 +129,7 @@ describe('InvoicesService', () => {
     it('should create invoice and return full details', async () => {
       const createDto = {
         payerCompanyId: 'payer-123',
-        amount: 1000000,
+        amount: 10000000000,
         invoiceNumber: 'INV-001',
         invoiceDate: 1704067200,
         dueAt: 1706659200,
@@ -160,7 +160,7 @@ describe('InvoicesService', () => {
       expect(repository.create).toHaveBeenCalledWith({
         organizationId: 'org-123',
         payerCompanyId: 'payer-123',
-        amountCents: '1000000',
+        amount: '10000000000',
         invoiceNumber: 'INV-001',
         invoiceDate: '1704067200',
         dueAt: '1706659200',
@@ -217,7 +217,7 @@ describe('InvoicesService', () => {
   describe('update', () => {
     it('should update invoice and return updated details', async () => {
       const updateDto = {
-        amount: 2000000,
+        amount: 20000000000,
         description: 'Updated',
       };
 
@@ -225,7 +225,7 @@ describe('InvoicesService', () => {
       repository.findById.mockResolvedValue({
         invoice: {
           ...mockInvoice,
-          amountCents: '2000000',
+          amount: '20000000000',
           payerId: 'payer-123',
           payerName: 'Acme Corp',
           payerCreditScore: 'A',
@@ -243,7 +243,7 @@ describe('InvoicesService', () => {
       const result = await service.update('invoice-123', 'org-123', updateDto);
 
       expect(repository.update).toHaveBeenCalledWith('invoice-123', 'org-123', {
-        amountCents: '2000000',
+        amount: '20000000000',
         description: 'Updated',
       });
     });

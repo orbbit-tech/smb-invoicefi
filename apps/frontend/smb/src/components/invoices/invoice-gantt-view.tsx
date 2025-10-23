@@ -16,15 +16,10 @@ import {
   type GanttStatus,
   type GanttContextProps,
   type Range,
-  Badge,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   cn,
 } from '@ui';
 import { useMemo, useState, useContext, useEffect, useRef } from 'react';
+import { InvoiceStatusBadge } from './invoice-status-badge';
 
 interface InvoiceGanttViewProps {
   invoices: Invoice[];
@@ -32,33 +27,45 @@ interface InvoiceGanttViewProps {
 
 type ViewOption = 'daily' | 'monthly' | 'quarterly';
 
-// Helper component to scroll timeline to today when view range changes
+// Helper component to scroll timeline to today on mount and when view range changes
 function ScrollToTodayEffect({ viewRange }: { viewRange: Range }) {
   const gantt = useContext(GanttContext) as GanttContextProps;
   const prevViewRangeRef = useRef<Range | null>(null);
+  const hasScrolledRef = useRef(false);
 
   useEffect(() => {
-    // Skip on initial mount - only run when viewRange actually changes
-    if (prevViewRangeRef.current === null) {
-      prevViewRangeRef.current = viewRange;
+    const isInitialMount = prevViewRangeRef.current === null;
+    const viewRangeChanged = prevViewRangeRef.current !== viewRange;
+
+    // Check if timeline data is ready
+    const isTimelineReady = gantt.timelineData && gantt.timelineData.length > 0;
+
+    // Only scroll if:
+    // 1. This is initial mount and timeline is ready, OR
+    // 2. viewRange actually changed
+    if (!isTimelineReady) {
       return;
     }
 
-    // Only scroll if viewRange actually changed
-    if (prevViewRangeRef.current === viewRange) {
+    if (!isInitialMount && !viewRangeChanged) {
       return;
     }
 
+    // Update the ref to track current viewRange
     prevViewRangeRef.current = viewRange;
 
-    // Wait for next tick to ensure GanttProvider has updated
+    // Wait for next tick to ensure GanttProvider has fully updated the DOM
     const timer = setTimeout(() => {
       const scrollElement = gantt.ref?.current;
       if (!scrollElement) return;
 
       // Calculate today's position in the timeline
       const today = new Date();
-      const timelineStartDate = new Date(gantt.timelineData[0]?.year ?? 0, 0, 1);
+      const timelineStartDate = new Date(
+        gantt.timelineData[0]?.year ?? 0,
+        0,
+        1
+      );
 
       // Get offset calculation helpers based on range
       const getDifferenceIn = (range: Range) => {
@@ -109,10 +116,12 @@ function ScrollToTodayEffect({ viewRange }: { viewRange: Range }) {
         left: targetScrollLeft,
         behavior: 'smooth',
       });
-    }, 100);
+
+      hasScrolledRef.current = true;
+    }, 150);
 
     return () => clearTimeout(timer);
-  }, [viewRange]); // Only depend on viewRange, not gantt!
+  }, [viewRange, gantt.timelineData, gantt.ref]);
 
   return null;
 }
@@ -120,6 +129,11 @@ function ScrollToTodayEffect({ viewRange }: { viewRange: Range }) {
 export function InvoiceGanttView({ invoices }: InvoiceGanttViewProps) {
   const [viewRange, setViewRange] = useState<Range>('monthly');
   const router = useRouter();
+
+  // Handler for range changes from the toolbar
+  const handleRangeChange = (newRange: Range) => {
+    setViewRange(newRange);
+  };
 
   // Handler for clicking timeline bars
   const handleBarClick = (e: React.MouseEvent, invoiceId: string) => {
@@ -158,7 +172,7 @@ export function InvoiceGanttView({ invoices }: InvoiceGanttViewProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       <style>{`
         /* Custom gantt bar styling - make bars smaller while keeping row height */
         .gantt-row-custom .pointer-events-auto.absolute {
@@ -167,34 +181,27 @@ export function InvoiceGanttView({ invoices }: InvoiceGanttViewProps) {
           transform: translateY(-50%);
         }
       `}</style>
-      {/* View Range Selector */}
-      <div className="flex justify-end">
-        <Select
-          value={viewRange}
-          onValueChange={(value) => setViewRange(value as Range)}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select view" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="daily">Week</SelectItem>
-            <SelectItem value="monthly">Month</SelectItem>
-            <SelectItem value="quarterly">Quarter</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       <GanttProvider
         zoom={viewRange === 'daily' ? 200 : viewRange === 'monthly' ? 150 : 100}
         range={viewRange}
         rowHeight={64}
-        className="border rounded-lg h-[600px]"
+        className="shadow-md rounded-lg h-[600px]"
+        showToolbar={true}
+        onRangeChange={handleRangeChange}
       >
         {/* Auto-scroll to today when view range changes */}
         <ScrollToTodayEffect viewRange={viewRange} />
         <GanttSidebar showHeader={false} className="!overflow-visible">
           <div>
-            <GanttSidebarHeader leftText="Invoices" rightText={null} />
+            {/* Custom Sidebar Header */}
+            <div
+              className="sticky top-0 z-10 flex shrink-0 items-end justify-between gap-2.5 border-border/50 border-b bg-backdrop/90 p-2.5 font-medium text-muted-foreground text-xs backdrop-blur-sm"
+              style={{ height: 'var(--gantt-header-height)' }}
+            >
+              <p className="flex-1 truncate text-left">Invoices</p>
+              <p className="shrink-0">Amount</p>
+            </div>
             {/* Custom Sidebar Items - No spacing, just dividers */}
             <div className="divide-y divide-border/50">
               {features.map((feature) => {
@@ -277,9 +284,7 @@ function InvoiceGanttSidebarItem({
         <p className="flex-1 truncate text-left font-medium text-sm">
           {invoice.payer.name}
         </p>
-        <Badge className={cn(getStatusBadgeColor(invoice.status), 'text-xs')}>
-          {getStatusDisplayName(invoice.status)}
-        </Badge>
+        <InvoiceStatusBadge status={invoice.status} size="sm" />
       </div>
       <p className="text-muted-foreground text-xs">
         {formatCurrency(invoice.amount)}
@@ -291,26 +296,11 @@ function InvoiceGanttSidebarItem({
 // Helper function to map InvoiceStatus to GanttStatus
 function getGanttStatus(status: InvoiceStatus): GanttStatus {
   switch (status) {
-    case InvoiceStatus.REPAID:
+    case InvoiceStatus.LISTED:
       return {
-        id: 'repaid',
-        name: 'Repaid',
-        color: 'hsl(142, 76%, 36%)', // green
-      };
-    case InvoiceStatus.OVERDUE:
-    case InvoiceStatus.DEFAULTED:
-    case InvoiceStatus.UNDER_COLLECTION:
-      return {
-        id: 'overdue',
-        name: 'Overdue',
-        color: 'hsl(0, 84%, 60%)', // red
-      };
-    case InvoiceStatus.DISBURSED:
-    case InvoiceStatus.PENDING_REPAYMENT:
-      return {
-        id: 'pending',
-        name: 'Pending',
-        color: 'hsl(217, 91%, 60%)', // blue
+        id: 'listed',
+        name: 'Listed',
+        color: 'hsl(43, 96%, 56%)', // amber
       };
     case InvoiceStatus.FULLY_FUNDED:
       return {
@@ -318,11 +308,23 @@ function getGanttStatus(status: InvoiceStatus): GanttStatus {
         name: 'Funded',
         color: 'hsl(271, 91%, 65%)', // purple
       };
-    case InvoiceStatus.LISTED:
+    case InvoiceStatus.FULLY_PAID:
       return {
-        id: 'listed',
-        name: 'Listed',
-        color: 'hsl(43, 96%, 56%)', // amber
+        id: 'paid',
+        name: 'Paid',
+        color: 'hsl(142, 76%, 36%)', // green
+      };
+    case InvoiceStatus.DEFAULTED:
+      return {
+        id: 'defaulted',
+        name: 'Defaulted',
+        color: 'hsl(0, 84%, 60%)', // red
+      };
+    case InvoiceStatus.SETTLED:
+      return {
+        id: 'settled',
+        name: 'Settled',
+        color: 'hsl(0, 0%, 63%)', // gray
       };
     default:
       return {
@@ -339,37 +341,4 @@ function formatCurrency(amount: number) {
     currency: 'USD',
     minimumFractionDigits: 0,
   }).format(amount);
-}
-
-function getStatusBadgeColor(status: InvoiceStatus): string {
-  switch (status) {
-    case InvoiceStatus.REPAID:
-      return 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300';
-    case InvoiceStatus.OVERDUE:
-    case InvoiceStatus.DEFAULTED:
-    case InvoiceStatus.UNDER_COLLECTION:
-      return 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300';
-    case InvoiceStatus.DISBURSED:
-    case InvoiceStatus.PENDING_REPAYMENT:
-      return 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300';
-    case InvoiceStatus.FULLY_FUNDED:
-      return 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300';
-    case InvoiceStatus.LISTED:
-      return 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300';
-    default:
-      return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
-  }
-}
-
-function getStatusDisplayName(status: InvoiceStatus): string {
-  switch (status) {
-    case InvoiceStatus.PENDING_REPAYMENT:
-      return 'PENDING';
-    case InvoiceStatus.UNDER_COLLECTION:
-      return 'COLLECTION';
-    case InvoiceStatus.FULLY_FUNDED:
-      return 'FUNDED';
-    default:
-      return status;
-  }
 }

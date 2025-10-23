@@ -9,7 +9,7 @@ import { useWalletModal } from './use-wallet-modal';
 /**
  * WalletConnector - Custom wallet connection button with modal
  *
- * Shows "Connect Wallet" when disconnected → Opens custom modal
+ * Shows "Setup Wallet" when disconnected → Opens custom modal
  * Shows wallet address when connected (Base network only)
  * Shows "Wrong network" button if user is on unsupported chain
  * Uses RainbowKit's ConnectButton.Custom for wallet state management

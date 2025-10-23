@@ -9,29 +9,29 @@ export default interface YieldCalculationTable {
 
   positionId: ColumnType<string, string, string>;
 
-  principalCents: ColumnType<string, string, string>;
-
-  aprBps: ColumnType<string, string, string>;
-
   fundingTimestamp: ColumnType<string, string, string>;
 
   dueTimestamp: ColumnType<string, string, string>;
 
   durationDays: ColumnType<number, number, number>;
 
-  totalYieldCents: ColumnType<string, string, string>;
-
-  investorYieldCents: ColumnType<string, string, string>;
-
-  platformFeeCents: ColumnType<string, string, string>;
-
-  platformFeeRateBps: ColumnType<string, string | undefined, string>;
-
   calculatedAt: ColumnType<string, string, string>;
 
   createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  principal: ColumnType<string, string, string>;
+
+  apr: ColumnType<string, string, string>;
+
+  totalYield: ColumnType<string, string, string>;
+
+  investorYield: ColumnType<string, string, string>;
+
+  platformFee: ColumnType<string, string, string>;
+
+  platformFeeRate: ColumnType<string, string, string>;
 }
 
 export type YieldCalculationDb = Selectable<YieldCalculationTable>;

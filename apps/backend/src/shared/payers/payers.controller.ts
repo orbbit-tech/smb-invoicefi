@@ -4,7 +4,7 @@ import { PayersService } from './payers.service';
 import { PayerDetailDto } from './payers.dto';
 
 @ApiTags('Shared - Payers')
-@Controller('api/shared/payers')
+@Controller('shared/payers')
 export class PayersController {
   constructor(private readonly payersService: PayersService) {}
 

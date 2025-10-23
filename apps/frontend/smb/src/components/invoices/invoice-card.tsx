@@ -58,13 +58,13 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
           </div>
         </div>
 
-        {/* APY display */}
+        {/* APR display */}
         <div className="flex items-center justify-between pt-2 border-t border-border/40">
           <div className="flex items-center gap-2 text-muted-foreground">
             <TrendingUp className="h-4 w-4" />
-            <span className="text-xs">APY</span>
+            <span className="text-xs">APR</span>
           </div>
-          <p className="font-semibold text-success">{invoice.apy}%</p>
+          <p className="font-semibold text-success">{invoice.apr}%</p>
         </div>
       </CardContent>
       <CardFooter className="pt-4">

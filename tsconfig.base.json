@@ -15,6 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@api-client": ["libs/frontend/api-client/src/index.ts"],
       "@libs/contracts/types": [
         "libs/frontend/ui/generated/contracts/index.ts"
       ],

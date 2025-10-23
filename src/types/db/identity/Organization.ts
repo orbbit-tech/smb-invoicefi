@@ -46,6 +46,9 @@ export default interface OrganizationTable {
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
 
   deletedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  /** Stytch organization ID for B2B authentication */
+  stytchOrganizationId: ColumnType<string | null, string | null, string | null>;
 }
 
 export type OrganizationDb = Selectable<OrganizationTable>;

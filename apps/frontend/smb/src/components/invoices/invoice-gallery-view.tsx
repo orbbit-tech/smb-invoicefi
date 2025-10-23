@@ -1,9 +1,17 @@
 'use client';
 
-import { Card, CardHeader, CardContent, Badge, Button } from '@ui';
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  Badge,
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from '@ui';
 import { Invoice } from '@/types/invoice';
 import { InvoiceStatusBadge } from './invoice-status-badge';
-import { Eye, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import Link from 'next/link';
 
 interface InvoiceGalleryViewProps {
@@ -23,21 +31,7 @@ export function InvoiceGalleryView({ invoices }: InvoiceGalleryViewProps) {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric',
     }).format(date);
-  };
-
-  const getRiskColor = (riskScore: string) => {
-    switch (riskScore) {
-      case 'LOW':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'MEDIUM':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'HIGH':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
-    }
   };
 
   if (invoices.length === 0) {
@@ -51,78 +45,55 @@ export function InvoiceGalleryView({ invoices }: InvoiceGalleryViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {invoices.map((invoice) => (
-        <Card key={invoice.id} className="hover:shadow-lg transition-shadow">
-          <CardHeader className="space-y-3">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Invoice</p>
-                <h3 className="font-mono text-base font-semibold">
-                  {invoice.invoiceNumber}
-                </h3>
+        <Link key={invoice.id} href={`/invoices/${invoice.id}`}>
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardHeader className="p-4 pb-3">
+              {/* Avatar and Status Badge Row */}
+              <div className="flex items-start justify-between mb-3">
+                <Avatar className="h-10 w-10 shrink-0">
+                  <AvatarImage
+                    src={invoice.payer.logoUrl}
+                    alt={invoice.payer.name}
+                  />
+                  <AvatarFallback className="bg-muted text-base font-medium">
+                    {invoice.payer.name[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <InvoiceStatusBadge status={invoice.status} />
               </div>
-              <InvoiceStatusBadge status={invoice.status} />
-            </div>
 
-            <div className="flex items-baseline gap-1">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xl font-semibold">
-                {formatCurrency(invoice.amount)}
-              </span>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            {/* Payer Information */}
-            <div>
-              <p className="text-sm font-medium">{invoice.payer.name}</p>
-              {invoice.payer.industry && (
+              {/* Invoice Info */}
+              <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">
+                  {invoice.invoiceNumber}
+                </p>
+                <h4 className="font-semibold text-sm truncate">
+                  {invoice.payer.name}
+                </h4>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 space-y-2">
+              {/* Amount */}
+              <div className="text-lg font-bold">
+                {formatCurrency(invoice.amount)}
+              </div>
+
+              {/* Due Date */}
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                <span>Due: {formatDate(invoice.dueDate)}</span>
+                <span className="ml-1">({invoice.daysUntilDue}d)</span>
+              </div>
+
+              {/* Industry */}
+              {invoice.payer.industry && (
+                <p className="text-xs text-muted-foreground truncate">
                   {invoice.payer.industry}
                 </p>
               )}
-            </div>
-
-            {/* Metrics Row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  <span>Due Date</span>
-                </div>
-                <p className="text-sm font-medium">
-                  {formatDate(invoice.dueDate)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {invoice.daysUntilDue} days
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>APY</span>
-                </div>
-                <p className="text-sm font-medium">{invoice.apy}%</p>
-              </div>
-            </div>
-
-            {/* Risk Badge */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Risk:</span>
-              <Badge className={getRiskColor(invoice.riskScore)} variant="secondary">
-                {invoice.riskScore}
-              </Badge>
-            </div>
-
-            {/* Actions */}
-            <Link href={`/invoices/${invoice.id}`} className="block">
-              <Button variant="outline" size="sm" className="w-full">
-                <Eye className="h-4 w-4 mr-2" />
-                View Details
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
       ))}
     </div>
   );

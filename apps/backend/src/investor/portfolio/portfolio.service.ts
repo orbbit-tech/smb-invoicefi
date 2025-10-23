@@ -19,7 +19,9 @@ export class PortfolioService {
    * Get portfolio summary with aggregated metrics
    */
   async getSummary(investorAddress: string): Promise<PortfolioSummaryDto> {
-    const positions = await this.portfolioRepository.getSummary(investorAddress);
+    const positions = await this.portfolioRepository.getSummary(
+      investorAddress
+    );
 
     let totalInvested = 0;
     let totalCurrentValue = 0;
@@ -34,7 +36,9 @@ export class PortfolioService {
     for (const pos of positions) {
       const fundedAmount = Number(pos.fundedAmountCents);
       const expectedRepayment = Number(pos.expectedRepaymentCents);
-      const actualYield = pos.actualYieldCents ? Number(pos.actualYieldCents) : null;
+      const actualYield = pos.actualYieldCents
+        ? Number(pos.actualYieldCents)
+        : null;
 
       totalInvested += fundedAmount;
 
@@ -44,28 +48,32 @@ export class PortfolioService {
         totalUnrealizedGains += expectedRepayment - fundedAmount;
       } else if (pos.positionStatus === 'SETTLED') {
         settledCount++;
-        const settledAmount = actualYield !== null ? fundedAmount + actualYield : expectedRepayment;
+        const settledAmount =
+          actualYield !== null ? fundedAmount + actualYield : expectedRepayment;
         totalCurrentValue += settledAmount;
         totalRealizedGains += settledAmount - fundedAmount;
       } else if (pos.positionStatus === 'DEFAULTED') {
         defaultedCount++;
         // For defaulted positions, current value might be 0 or partial recovery
-        const recoveredAmount = actualYield !== null ? fundedAmount + actualYield : 0;
+        const recoveredAmount =
+          actualYield !== null ? fundedAmount + actualYield : 0;
         totalCurrentValue += recoveredAmount;
         totalRealizedGains += recoveredAmount - fundedAmount;
       }
 
-      // Calculate APY for this position (simplified)
+      // Calculate APR for this position (simplified)
       if (expectedRepayment > 0 && fundedAmount > 0) {
-        const returnBps = ((expectedRepayment - fundedAmount) / fundedAmount) * 10000;
+        const returnBps =
+          ((expectedRepayment - fundedAmount) / fundedAmount) * 10000;
         totalApy += returnBps / 100; // Convert to percentage
         apyCount++;
       }
     }
 
-    const totalReturnPct = totalInvested > 0
-      ? ((totalCurrentValue - totalInvested) / totalInvested) * 100
-      : 0;
+    const totalReturnPct =
+      totalInvested > 0
+        ? ((totalCurrentValue - totalInvested) / totalInvested) * 100
+        : 0;
 
     const averageApy = apyCount > 0 ? totalApy / apyCount : 0;
 
@@ -88,7 +96,9 @@ export class PortfolioService {
   private transformPositionToDto(pos: any): InvestorPositionDto {
     const fundedAmount = Number(pos.fundedAmountCents);
     const expectedRepayment = Number(pos.expectedRepaymentCents);
-    const actualYield = pos.actualYieldCents ? Number(pos.actualYieldCents) : null;
+    const actualYield = pos.actualYieldCents
+      ? Number(pos.actualYieldCents)
+      : null;
 
     let currentValue = 0;
     let realizedGains = 0;
@@ -99,7 +109,8 @@ export class PortfolioService {
       currentValue = expectedRepayment;
       unrealizedGains = expectedRepayment - fundedAmount;
     } else if (pos.positionStatus === 'SETTLED') {
-      actualRepayment = actualYield !== null ? fundedAmount + actualYield : expectedRepayment;
+      actualRepayment =
+        actualYield !== null ? fundedAmount + actualYield : expectedRepayment;
       currentValue = actualRepayment;
       realizedGains = actualRepayment - fundedAmount;
     } else if (pos.positionStatus === 'DEFAULTED') {
@@ -108,9 +119,10 @@ export class PortfolioService {
       realizedGains = actualRepayment - fundedAmount;
     }
 
-    const returnPct = fundedAmount > 0
-      ? ((currentValue - fundedAmount) / fundedAmount) * 100
-      : 0;
+    const returnPct =
+      fundedAmount > 0
+        ? ((currentValue - fundedAmount) / fundedAmount) * 100
+        : 0;
 
     return {
       id: pos.id,
@@ -124,7 +136,7 @@ export class PortfolioService {
       invoice: {
         id: pos.invoiceId,
         invoiceNumber: pos.invoiceNumber,
-        amount: Number(pos.amountCents),
+        amount: Number(pos.amount),
         dueAt: Number(pos.dueAt),
         lifecycleStatus: pos.lifecycleStatus,
         riskScore: pos.riskScore || 'UNKNOWN',
@@ -140,7 +152,7 @@ export class PortfolioService {
         fundedAt: Number(pos.fundedAt),
         fundingTxHash: pos.fundingTxHash,
         expectedRepayment,
-        expectedReturnBps: Number(pos.expectedReturnBps || 0),
+        expectedReturn: Number(pos.expectedReturn || 0),
       },
       payer: {
         id: pos.payerId,
@@ -176,7 +188,9 @@ export class PortfolioService {
       sortOrder,
     });
 
-    const data = result.positions.map((pos) => this.transformPositionToDto(pos));
+    const data = result.positions.map((pos) =>
+      this.transformPositionToDto(pos)
+    );
 
     return {
       data,
@@ -192,8 +206,14 @@ export class PortfolioService {
   /**
    * Get single position by ID
    */
-  async getPositionById(positionId: string, investorAddress: string): Promise<InvestorPositionDto> {
-    const position = await this.portfolioRepository.getPositionById(positionId, investorAddress);
+  async getPositionById(
+    positionId: string,
+    investorAddress: string
+  ): Promise<InvestorPositionDto> {
+    const position = await this.portfolioRepository.getPositionById(
+      positionId,
+      investorAddress
+    );
 
     if (!position) {
       throw new NotFoundException(`Position with ID ${positionId} not found`);

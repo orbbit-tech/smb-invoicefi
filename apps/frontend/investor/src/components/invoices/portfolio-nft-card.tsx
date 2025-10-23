@@ -63,9 +63,9 @@ export function PortfolioNFTCard({
       <div className="relative h-48 bg-gradient-to-br from-primary/20 via-primary/10 to-background flex items-center justify-center border-b-2 border-primary/20">
         {/* NFT Artwork/Logo */}
         <div className="text-center space-y-2">
-          <Avatar className="h-20 w-20 mx-auto bg-neutral-200/80 shadow-lg">
+          <Avatar className="h-20 w-20 mx-auto bg-neutral-100/90 shadow-lg">
             <AvatarImage src={invoice.companyLogoUrl} />
-            <AvatarFallback className="bg-neutral-200/80 font-bold text-2xl">
+            <AvatarFallback className="bg-neutral-100/90 font-bold text-2xl">
               {invoice.companyName[0].toUpperCase()}
             </AvatarFallback>
           </Avatar>
@@ -152,8 +152,8 @@ export function PortfolioNFTCard({
             </p>
           </div>
           <div className="bg-neutral-100/80 p-3 rounded-md">
-            <p className="text-xs text-muted-foreground mb-1">APY</p>
-            <p className="text-sm font-semibold">{invoice.apy}%</p>
+            <p className="text-xs text-muted-foreground mb-1">APR</p>
+            <p className="text-sm font-semibold">{invoice.apr}%</p>
           </div>
           <div className="bg-neutral-100/80 p-3 rounded-md">
             <p className="text-xs text-muted-foreground mb-1">Term</p>
@@ -173,9 +173,9 @@ export function PortfolioNFTCard({
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">Payer</p>
           <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8 bg-neutral-200/80 shadow-sm">
+            <Avatar className="h-8 w-8 bg-neutral-100/90 shadow-sm">
               <AvatarImage src={invoice.payerLogoUrl} />
-              <AvatarFallback className="bg-neutral-200/80 font-semibold text-xs">
+              <AvatarFallback className="bg-neutral-100/90 font-semibold text-xs">
                 {invoice.payerName[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>

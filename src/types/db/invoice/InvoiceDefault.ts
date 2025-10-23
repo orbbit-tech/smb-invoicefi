@@ -17,12 +17,6 @@ export default interface InvoiceDefaultTable {
 
   collectionAgency: ColumnType<string | null, string | null, string | null>;
 
-  recoveredAmountCents: ColumnType<string | null, string | null, string | null>;
-
-  recoveryCostCents: ColumnType<string | null, string | null, string | null>;
-
-  finalLossCents: ColumnType<string | null, string | null, string | null>;
-
   collectionStatus: ColumnType<string | null, string | null, string | null>;
 
   notes: ColumnType<string | null, string | null, string | null>;
@@ -32,6 +26,12 @@ export default interface InvoiceDefaultTable {
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
 
   deletedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  recoveredAmount: ColumnType<string | null, string | null, string | null>;
+
+  recoveryCost: ColumnType<string | null, string | null, string | null>;
+
+  finalLoss: ColumnType<string | null, string | null, string | null>;
 }
 
 export type InvoiceDefaultDb = Selectable<InvoiceDefaultTable>;

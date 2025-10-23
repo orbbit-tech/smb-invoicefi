@@ -4,7 +4,7 @@ import { BlockchainService } from './blockchain.service';
 import { NftDataDto } from './blockchain.dto';
 
 @ApiTags('Shared - Blockchain')
-@Controller('api/shared/blockchain')
+@Controller('shared/blockchain')
 export class BlockchainController {
   constructor(private readonly blockchainService: BlockchainService) {}
 

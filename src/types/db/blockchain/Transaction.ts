@@ -17,8 +17,6 @@ export default interface TransactionTable {
 
   toAddress: ColumnType<string | null, string | null, string | null>;
 
-  amountCents: ColumnType<string | null, string | null, string | null>;
-
   blockNumber: ColumnType<string, string, string>;
 
   blockTimestamp: ColumnType<string, string, string>;
@@ -34,6 +32,8 @@ export default interface TransactionTable {
   createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  amount: ColumnType<string | null, string | null, string | null>;
 }
 
 export type TransactionDb = Selectable<TransactionTable>;

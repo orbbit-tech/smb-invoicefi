@@ -24,7 +24,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@components/*": ["./src/components/*"],
-      "@ui": ["../../../libs/frontend/ui/src/index.ts"]
+      "@ui": ["../../../libs/frontend/ui/src/index.ts"],
+      "@api-client": ["../../../libs/frontend/api-client/src/index.ts"]
     }
   },
   "include": [

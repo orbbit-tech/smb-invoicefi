@@ -22,12 +22,13 @@ export function StepIndicator({
     const isActive = currentStep === stepNumber;
 
     return cn(
-      'text-sm w-5 h-5 rounded-full flex items-center justify-center font-semibold transition-all',
+      'text-sm w-5 h-5 rounded-full flex items-center justify-center transition-all',
       {
         // Completed state: solid primary background
         'bg-primary text-primary-foreground': isCompleted,
         // Active state: light background with ring highlight
-        'bg-primary/10 text-primary ring-2 ring-primary ring-offset-2': isActive,
+        'bg-primary/10 text-primary ring-2 ring-primary ring-offset-2':
+          isActive,
         // Upcoming state: muted grey
         'bg-muted text-muted-foreground': !isCompleted && !isActive,
       }
@@ -41,7 +42,7 @@ export function StepIndicator({
 
     return cn('transition-all', {
       // Active step: bold and dark
-      'font-bold text-foreground': isActive,
+      'font-semibold text-foreground': isActive,
       // Completed step: medium weight
       'font-medium text-foreground': isCompleted,
       // Upcoming step: muted

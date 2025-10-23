@@ -1,7 +1,11 @@
 import { NotFoundException } from '@nestjs/common';
 import { MarketplaceService } from './marketplace.service';
 import { MarketplaceRepository } from './marketplace.repository';
-import { mockInvoice, mockOrganization, mockPayer } from '../../test/test-utils';
+import {
+  mockInvoice,
+  mockOrganization,
+  mockPayer,
+} from '../../test/test-utils';
 
 describe('MarketplaceService', () => {
   let service: MarketplaceService;
@@ -17,7 +21,7 @@ describe('MarketplaceService', () => {
   });
 
   describe('list', () => {
-    it('should return marketplace invoices with calculated APY', async () => {
+    it('should return marketplace invoices with calculated APR', async () => {
       const mockResult = {
         invoices: [
           {
@@ -45,16 +49,16 @@ describe('MarketplaceService', () => {
       const result = await service.listInvoices();
 
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].amount).toBe(1000000);
+      expect(result.data[0].amount).toBe(10000000000);
 
-      // Check APY calculation (36.5% APR, 30 days period)
-      expect(result.data[0].apy).toBeGreaterThan(0);
+      // Check APR calculation (36.5% APR, 30 days period)
+      expect(result.data[0].apr).toBeGreaterThan(0);
 
-      // Check discount rate (500 bps = 5%)
-      expect(result.data[0].discountRateBps).toBe(500);
+      // Check discount rate (50,000 = 5% in 6-decimal format)
+      expect(result.data[0].discountRate).toBe(50000);
 
-      // Check expected return (5% of 1M = 50000)
-      expect(result.data[0].expectedReturn).toBe(50000);
+      // Check expected return (5% of $10,000 = $500, in 6-decimal: 500,000,000)
+      expect(result.data[0].expectedReturn).toBe(500000000);
 
       expect(result.meta.total).toBe(1);
     });
@@ -69,14 +73,14 @@ describe('MarketplaceService', () => {
       });
 
       await service.listInvoices(
-        'LOW',      // riskScore
-        1000,       // minApr
-        5000,       // maxApr
-        undefined,  // minAmount
-        undefined,  // maxAmount
-        'Acme',     // search
-        2,          // page
-        50          // limit
+        'LOW', // riskScore
+        1000, // minApr
+        5000, // maxApr
+        undefined, // minAmount
+        undefined, // maxAmount
+        'Acme', // search
+        2, // page
+        50 // limit
       );
 
       expect(repository.list).toHaveBeenCalledWith({
@@ -96,7 +100,7 @@ describe('MarketplaceService', () => {
     it('should calculate correct discount rate from basis points', async () => {
       const invoiceWith10PercentDiscount = {
         ...mockInvoice,
-        discountRateBps: '1000', // 10%
+        discountRate: '100000', // 10% in 6-decimal format
         lifecycleStatus: 'LISTED',
         issuerId: 'org-123',
         issuerName: 'Test',
@@ -119,8 +123,8 @@ describe('MarketplaceService', () => {
 
       const result = await service.listInvoices();
 
-      expect(result.data[0].discountRateBps).toBe(1000); // 10% = 1000 bps
-      expect(result.data[0].expectedReturn).toBe(100000); // $100k
+      expect(result.data[0].discountRate).toBe(100000); // 10% in 6-decimal format
+      expect(result.data[0].expectedReturn).toBe(1000000000); // $1,000 in 6-decimal format
     });
   });
 
@@ -150,8 +154,8 @@ describe('MarketplaceService', () => {
           assessedRiskScore: 'LOW',
           fraudCheckStatus: 'PASSED',
           payerVerificationStatus: 'VERIFIED',
-          approvedAmountCents: '1000000',
-          approvedAprBps: '3650',
+          approvedAmount: '10000000000',
+          approvedApr: '365000',
           notes: null,
           completedAt: '1704067200',
           createdAt: new Date('2024-01-01'),
@@ -160,7 +164,7 @@ describe('MarketplaceService', () => {
         },
       };
 
-      repository.findById.mockResolvedValue(mockDetail);
+      repository.findById.mockResolvedValue(mockDetail as any);
 
       const result = await service.getInvoiceDetail('invoice-123');
 
@@ -197,7 +201,7 @@ describe('MarketplaceService', () => {
         underwriting: null,
       };
 
-      repository.findById.mockResolvedValue(mockDetail);
+      repository.findById.mockResolvedValue(mockDetail as any);
 
       const result = await service.getInvoiceDetail('invoice-123');
 

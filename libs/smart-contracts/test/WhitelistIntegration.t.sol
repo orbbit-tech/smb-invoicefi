@@ -56,7 +56,8 @@ contract WhitelistIntegrationTest is Test {
             GRACE_PERIOD,
             address(whitelist),
             platformTreasury,
-            PLATFORM_FEE_RATE
+            PLATFORM_FEE_RATE,
+            10_000_000 * 10 ** 6 // 10M USDC max
         );
 
         // Grant roles

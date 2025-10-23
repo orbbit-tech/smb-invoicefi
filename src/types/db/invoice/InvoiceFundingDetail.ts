@@ -11,23 +11,23 @@ export default interface InvoiceFundingDetailTable {
 
   investorAddress: ColumnType<string, string, string>;
 
-  fundedAmountCents: ColumnType<string, string, string>;
-
   fundedAt: ColumnType<string, string, string>;
 
   fundingTxHash: ColumnType<string | null, string | null, string | null>;
 
   paymentTokenAddress: ColumnType<string | null, string | null, string | null>;
 
-  expectedRepaymentCents: ColumnType<string | null, string | null, string | null>;
-
-  expectedReturnBps: ColumnType<string | null, string | null, string | null>;
-
   createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
 
   deletedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  fundedAmount: ColumnType<string, string, string>;
+
+  expectedRepayment: ColumnType<string | null, string | null, string | null>;
+
+  expectedReturn: ColumnType<string | null, string | null, string | null>;
 }
 
 export type InvoiceFundingDetailDb = Selectable<InvoiceFundingDetailTable>;

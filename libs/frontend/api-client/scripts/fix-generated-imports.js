@@ -56,6 +56,14 @@ function fixImports(filePath) {
     modified = true;
   }
 
+  // Fix 5: Fix missing 'import {' after 'import type' statements
+  // Pattern: import type { X } from 'Y';\n    Z, (missing import {)
+  const missingImportPattern = /(import type \{ [^}]+ \} from ['"][^'"]+['"];\n)(\s{4}[A-Z][a-zA-Z]+)/g;
+  if (missingImportPattern.test(content)) {
+    content = content.replace(missingImportPattern, '$1import {\n$2');
+    modified = true;
+  }
+
   if (modified) {
     fs.writeFileSync(filePath, content, 'utf8');
     console.log(`  ✓ Fixed: ${path.basename(filePath)}`);

@@ -127,9 +127,9 @@ interface IInvoiceFundingPool {
      * @notice Emitted when an invoice is listed (minted to contract with LISTED status)
      * @param tokenId The ID of the newly listed invoice NFT
      * @param issuer The address of the SMB that issued the invoice
-     * @param amount The principal amount in payment token base units
+     * @param amount The principal amount in payment token base units (e.g., for USDC: 1_000_000 = $1)
      * @param dueAt Unix timestamp when payment is due
-     * @param apr Annual percentage rate in basis points
+     * @param apr Annual percentage rate with 6 decimals (e.g., 120_000 = 12%, 1_000_000 = 100%)
      */
     event InvoiceListed(
         uint256 indexed tokenId,
@@ -225,13 +225,20 @@ interface IInvoiceFundingPool {
      */
     event PlatformFeeRateUpdated(uint256 oldRate, uint256 newRate);
 
+    /**
+     * @notice Emitted when maximum invoice amount is updated
+     * @param oldMax Previous maximum invoice amount
+     * @param newMax New maximum invoice amount
+     */
+    event MaxInvoiceAmountUpdated(uint256 oldMax, uint256 newMax);
+
     // ============ FUNCTIONS ============
 
     /**
      * @notice Lists an invoice by minting NFT to contract (Step 1 of two-step custody)
-     * @param amount Invoice principal amount in payment token base units
+     * @param amount Invoice principal amount in payment token base units (e.g., for USDC: 1_000_000 = $1)
      * @param dueAt Unix timestamp when payment is due
-     * @param apr Annual percentage rate in basis points (e.g., 1200 = 12%)
+     * @param apr Annual percentage rate with 6 decimals (e.g., 120_000 = 12%, 365_000 = 36.5%, no upper limit)
      * @param issuer Address of the entity that issued the invoice and receives funding
      * @param uri URI for invoice metadata (IPFS/S3, contains payer info and other details)
      * @return tokenId The newly minted invoice token ID
@@ -239,6 +246,8 @@ interface IInvoiceFundingPool {
      * @dev NFT minted to contract address with LISTED status
      * @dev Invoice becomes visible on-chain for investor verification
      * @dev Platform pays gas for listing (~$3-5)
+     * @dev APR uses 6 decimals where 1_000_000 = 100% for precise fee splitting
+     * @dev APR must be >= 0, no maximum limit (allows high-risk invoice financing rates >100%)
      */
     function listInvoice(
         uint256 amount,
@@ -306,15 +315,16 @@ interface IInvoiceFundingPool {
 
     /**
      * @notice Calculates yield split between investor and platform
-     * @param principal The principal amount funded
-     * @param apr Annual percentage rate in basis points (total fee SMB pays)
+     * @param principal The principal amount funded in payment token base units
+     * @param apr Annual percentage rate with 6 decimals (e.g., 120_000 = 12%, 1_000_000 = 100%)
      * @param dueAt The due date of the invoice
      * @param fundingTimestamp The timestamp when the invoice was funded
-     * @return totalYield Total yield amount (principal * apr * duration)
-     * @return investorYield Yield amount going to investor
-     * @return platformFee Fee amount going to platform treasury
-     * @dev Uses simple interest: yield = principal * apr * days / (10000 * 365)
-     * @dev Platform fee = totalYield * platformFeeRate / 10000
+     * @return totalYield Total yield amount in payment token base units (principal * apr * duration)
+     * @return investorYield Yield amount going to investor in payment token base units
+     * @return platformFee Fee amount going to platform treasury in payment token base units
+     * @dev Uses simple interest: yield = principal * apr * days / (APR_DECIMALS * DAYS_IN_YEAR)
+     * @dev APR uses 6 decimals where APR_DECIMALS (1_000_000) = 100%
+     * @dev Platform fee = totalYield * platformFeeRate / BASIS_POINTS (platformFeeRate in basis points)
      * @dev Investor yield = totalYield - platformFee
      */
     function calculateYield(
@@ -383,4 +393,12 @@ interface IInvoiceFundingPool {
      * @dev Only callable by DEFAULT_ADMIN_ROLE
      */
     function setPlatformFeeRate(uint256 newRate) external;
+
+    /**
+     * @notice Updates the maximum invoice amount
+     * @param newMax New maximum invoice amount in payment token base units
+     * @dev Only callable by DEFAULT_ADMIN_ROLE
+     * @dev Must be greater than 0
+     */
+    function setMaxInvoiceAmount(uint256 newMax) external;
 }

@@ -132,26 +132,20 @@ export function InvoiceMultiView({
                 <DropdownMenuRadioItem value="all">
                   All Statuses
                 </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value={InvoiceStatus.CREATED}>
-                  Created
-                </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value={InvoiceStatus.LISTED}>
                   Listed
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value={InvoiceStatus.FULLY_FUNDED}>
-                  Fully Funded
+                  Funded
                 </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value={InvoiceStatus.DISBURSED}>
-                  Disbursed
+                <DropdownMenuRadioItem value={InvoiceStatus.FULLY_PAID}>
+                  Paid
                 </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value={InvoiceStatus.PENDING_REPAYMENT}>
-                  Pending Repayment
+                <DropdownMenuRadioItem value={InvoiceStatus.DEFAULTED}>
+                  Defaulted
                 </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value={InvoiceStatus.REPAID}>
-                  Repaid
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value={InvoiceStatus.OVERDUE}>
-                  Overdue
+                <DropdownMenuRadioItem value={InvoiceStatus.SETTLED}>
+                  Settled
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>

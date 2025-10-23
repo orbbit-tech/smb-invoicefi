@@ -48,9 +48,9 @@ export class MarketplaceRepository {
       .select([
         'i.id',
         'i.invoiceNumber',
-        'i.amountCents',
-        'i.aprBps',
-        'i.discountRateBps',
+        'i.amount',
+        'i.apr',
+        'i.discountRate',
         'i.invoiceDate',
         'i.dueAt',
         'i.lifecycleStatus',
@@ -75,19 +75,19 @@ export class MarketplaceRepository {
     }
 
     if (minApr !== undefined) {
-      query = query.where('i.aprBps', '>=', minApr.toString());
+      query = query.where('i.apr', '>=', minApr.toString());
     }
 
     if (maxApr !== undefined) {
-      query = query.where('i.aprBps', '<=', maxApr.toString());
+      query = query.where('i.apr', '<=', maxApr.toString());
     }
 
     if (minAmount !== undefined) {
-      query = query.where('i.amountCents', '>=', minAmount.toString());
+      query = query.where('i.amount', '>=', minAmount.toString());
     }
 
     if (maxAmount !== undefined) {
-      query = query.where('i.amountCents', '<=', maxAmount.toString());
+      query = query.where('i.amount', '<=', maxAmount.toString());
     }
 
     if (search) {
@@ -100,9 +100,11 @@ export class MarketplaceRepository {
       );
     }
 
-    // Get total count
-    const countQuery = query.select(({ fn }) => [fn.countAll<number>().as('count')]);
-    const countResult = await countQuery.executeTakeFirst();
+    // Get total count - create a separate count query from the base filtered query
+    const countResult = await query
+      .clearSelect()
+      .select(({ fn }) => [fn.countAll<number>().as('count')])
+      .executeTakeFirst();
     const total = Number(countResult?.count || 0);
 
     // Apply sorting and pagination
@@ -132,9 +134,9 @@ export class MarketplaceRepository {
       .select([
         'i.id',
         'i.invoiceNumber',
-        'i.amountCents',
-        'i.aprBps',
-        'i.discountRateBps',
+        'i.amount',
+        'i.apr',
+        'i.discountRate',
         'i.invoiceDate',
         'i.dueAt',
         'i.lifecycleStatus',

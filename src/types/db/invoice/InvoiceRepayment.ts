@@ -9,8 +9,6 @@ export default interface InvoiceRepaymentTable {
 
   invoiceId: ColumnType<string, string, string>;
 
-  repaymentAmountCents: ColumnType<string, string, string>;
-
   depositedBy: ColumnType<string | null, string | null, string | null>;
 
   depositedAt: ColumnType<string, string, string>;
@@ -28,6 +26,8 @@ export default interface InvoiceRepaymentTable {
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
 
   deletedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  repaymentAmount: ColumnType<string, string, string>;
 }
 
 export type InvoiceRepaymentDb = Selectable<InvoiceRepaymentTable>;

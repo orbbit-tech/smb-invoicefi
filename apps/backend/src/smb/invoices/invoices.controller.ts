@@ -13,6 +13,7 @@ import {
   ApiResponse,
   ApiQuery,
   ApiParam,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { InvoicesService } from './invoices.service';
 import {
@@ -22,18 +23,27 @@ import {
   UpdateInvoiceDto,
   InvoiceStatusHistoryDto,
 } from './invoices.dto';
+import { OrgId } from '../../shared/auth/org-id.decorator';
+import { Public } from '../../shared/auth/public.decorator';
 
 @ApiTags('SMB - Invoices')
-@Controller('api/smb/invoices')
+@ApiBearerAuth()
+@Public() // TODO: Remove once authentication is implemented
+@Controller('smb/invoices')
 export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 
   @Get()
   @ApiOperation({
     summary: 'List invoices',
-    description: 'Get paginated list of invoices with filtering and sorting',
+    description: 'Get paginated list of invoices with filtering and sorting. Organization ID is extracted from JWT token or query parameter (dev mode).',
   })
-  @ApiQuery({ name: 'organizationId', required: true })
+  @ApiQuery({
+    name: 'organizationId',
+    required: false,
+    description: 'Organization ID (optional during development when using @Public())',
+    example: 'org_01tech',
+  })
   @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'page', required: false, type: Number })
@@ -45,8 +55,12 @@ export class InvoicesController {
     description: 'Invoices retrieved successfully',
     type: InvoiceListResponseDto,
   })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - invalid or missing JWT token',
+  })
   async list(
-    @Query('organizationId') organizationId: string,
+    @OrgId() organizationId: string,
     @Query('status') status?: string,
     @Query('search') search?: string,
     @Query('page') page?: number,
@@ -68,19 +82,28 @@ export class InvoicesController {
   @Get(':id')
   @ApiOperation({
     summary: 'Get invoice by ID',
-    description: 'Retrieve detailed invoice information including documents and status history',
+    description: 'Retrieve detailed invoice information including documents and status history. Organization ID is extracted from JWT token or query parameter (dev mode).',
   })
   @ApiParam({ name: 'id', description: 'Invoice ID' })
-  @ApiQuery({ name: 'organizationId', required: true })
+  @ApiQuery({
+    name: 'organizationId',
+    required: false,
+    description: 'Organization ID (optional during development when using @Public())',
+    example: 'org_01tech',
+  })
   @ApiResponse({
     status: 200,
     description: 'Invoice retrieved successfully',
     type: InvoiceDetailDto,
   })
   @ApiResponse({ status: 404, description: 'Invoice not found' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - invalid or missing JWT token',
+  })
   async getById(
     @Param('id') id: string,
-    @Query('organizationId') organizationId: string
+    @OrgId() organizationId: string
   ): Promise<InvoiceDetailDto> {
     return await this.invoicesService.getById(id, organizationId);
   }
@@ -88,16 +111,19 @@ export class InvoicesController {
   @Post()
   @ApiOperation({
     summary: 'Create invoice',
-    description: 'Create a new invoice in DRAFT status',
+    description: 'Create a new invoice in DRAFT status. Organization ID is extracted from JWT token.',
   })
-  @ApiQuery({ name: 'organizationId', required: true })
   @ApiResponse({
     status: 201,
     description: 'Invoice created successfully',
     type: InvoiceDetailDto,
   })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - invalid or missing JWT token',
+  })
   async create(
-    @Query('organizationId') organizationId: string,
+    @OrgId() organizationId: string,
     @Body() dto: CreateInvoiceDto
   ): Promise<InvoiceDetailDto> {
     return await this.invoicesService.create(organizationId, dto);
@@ -106,10 +132,9 @@ export class InvoicesController {
   @Patch(':id')
   @ApiOperation({
     summary: 'Update invoice',
-    description: 'Update invoice details (only DRAFT status invoices can be updated)',
+    description: 'Update invoice details (only DRAFT status invoices can be updated). Organization ID is extracted from JWT token.',
   })
   @ApiParam({ name: 'id', description: 'Invoice ID' })
-  @ApiQuery({ name: 'organizationId', required: true })
   @ApiResponse({
     status: 200,
     description: 'Invoice updated successfully',
@@ -117,9 +142,13 @@ export class InvoicesController {
   })
   @ApiResponse({ status: 400, description: 'Invoice cannot be updated (not in DRAFT status)' })
   @ApiResponse({ status: 404, description: 'Invoice not found' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - invalid or missing JWT token',
+  })
   async update(
     @Param('id') id: string,
-    @Query('organizationId') organizationId: string,
+    @OrgId() organizationId: string,
     @Body() dto: UpdateInvoiceDto
   ): Promise<InvoiceDetailDto> {
     return await this.invoicesService.update(id, organizationId, dto);
@@ -128,19 +157,28 @@ export class InvoicesController {
   @Get(':id/status-history')
   @ApiOperation({
     summary: 'Get invoice status history',
-    description: 'Retrieve complete status transition history for an invoice',
+    description: 'Retrieve complete status transition history for an invoice. Organization ID is extracted from JWT token or query parameter (dev mode).',
   })
   @ApiParam({ name: 'id', description: 'Invoice ID' })
-  @ApiQuery({ name: 'organizationId', required: true })
+  @ApiQuery({
+    name: 'organizationId',
+    required: false,
+    description: 'Organization ID (optional during development when using @Public())',
+    example: 'org_01tech',
+  })
   @ApiResponse({
     status: 200,
     description: 'Status history retrieved successfully',
     type: [InvoiceStatusHistoryDto],
   })
   @ApiResponse({ status: 404, description: 'Invoice not found' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - invalid or missing JWT token',
+  })
   async getStatusHistory(
     @Param('id') id: string,
-    @Query('organizationId') organizationId: string
+    @OrgId() organizationId: string
   ): Promise<InvoiceStatusHistoryDto[]> {
     return await this.invoicesService.getStatusHistory(id, organizationId);
   }

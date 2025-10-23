@@ -90,14 +90,14 @@ export class MarketplaceInvoiceDto {
   @ApiProperty()
   invoiceNumber: string;
 
-  @ApiProperty({ description: 'Amount in cents' })
+  @ApiProperty({ description: 'Amount in 6-decimal format (e.g., for USDC: 1,000,000 = $1)' })
   amount: number;
 
-  @ApiProperty({ description: 'APR in basis points' })
-  aprBps: number;
+  @ApiProperty({ description: 'APR with 6 decimals (e.g., 365,000 = 36.5%, where 1,000,000 = 100%)' })
+  apr: number;
 
-  @ApiProperty({ description: 'Discount rate in basis points' })
-  discountRateBps: number;
+  @ApiProperty({ description: 'Discount rate with 6 decimals (e.g., 60,000 = 6%)' })
+  discountRate: number;
 
   @ApiProperty({ description: 'Unix timestamp' })
   invoiceDate: number;
@@ -108,10 +108,7 @@ export class MarketplaceInvoiceDto {
   @ApiProperty({ description: 'Days until due date' })
   daysUntilDue: number;
 
-  @ApiProperty({ description: 'Calculated APY percentage' })
-  apy: number;
-
-  @ApiProperty({ description: 'Expected return in cents' })
+  @ApiProperty({ description: 'Expected return in 6-decimal format' })
   expectedReturn: number;
 
   @ApiProperty()
@@ -162,10 +159,10 @@ export class MarketplaceDetailDto extends MarketplaceInvoiceDto {
   @ApiProperty({ type: [DocumentDto] })
   documents: DocumentDto[];
 
-  @ApiProperty({ description: 'Funding amount in cents (after discount)' })
+  @ApiProperty({ description: 'Funding amount in 6-decimal format (after discount)' })
   fundingAmount: number;
 
-  @ApiProperty({ description: 'Expected repayment in cents' })
+  @ApiProperty({ description: 'Expected repayment in 6-decimal format' })
   expectedRepayment: number;
 
   @ApiProperty({ description: 'Token ID if NFT is minted' })

@@ -39,9 +39,9 @@ export class InvoicesRepository {
       .select([
         'i.id',
         'i.invoiceNumber',
-        'i.amountCents',
-        'i.aprBps',
-        'i.discountRateBps',
+        'i.amount',
+        'i.apr',
+        'i.discountRate',
         'i.invoiceDate',
         'i.dueAt',
         'i.lifecycleStatus',
@@ -70,8 +70,27 @@ export class InvoicesRepository {
       );
     }
 
-    // Get total count
-    const countQuery = query.select(({ fn }) => [fn.countAll<number>().as('count')]);
+    // Get total count - use separate query to avoid GROUP BY issues
+    let countQuery = this.db
+      .selectFrom('invoice.invoice as i')
+      .innerJoin('business.payerCompany as pc', 'i.payerCompanyId', 'pc.id')
+      .select(({ fn }) => [fn.countAll<number>().as('count')])
+      .where('i.organizationId', '=', organizationId)
+      .where('i.deletedAt', 'is', null);
+
+    // Apply same filters to count query
+    if (status) {
+      countQuery = countQuery.where('i.lifecycleStatus', '=', status);
+    }
+    if (search) {
+      countQuery = countQuery.where((eb) =>
+        eb.or([
+          eb('i.invoiceNumber', 'ilike', `%${search}%`),
+          eb('pc.name', 'ilike', `%${search}%`),
+        ])
+      );
+    }
+
     const countResult = await countQuery.executeTakeFirst();
     const total = Number(countResult?.count || 0);
 
@@ -101,9 +120,9 @@ export class InvoicesRepository {
       .select([
         'i.id',
         'i.invoiceNumber',
-        'i.amountCents',
-        'i.aprBps',
-        'i.discountRateBps',
+        'i.amount',
+        'i.apr',
+        'i.discountRate',
         'i.invoiceDate',
         'i.dueAt',
         'i.lifecycleStatus',
@@ -160,7 +179,7 @@ export class InvoicesRepository {
   async create(data: {
     organizationId: string;
     payerCompanyId: string;
-    amountCents: string;
+    amount: string;
     invoiceNumber: string;
     invoiceDate: string;
     dueAt: string;
@@ -173,7 +192,7 @@ export class InvoicesRepository {
         .values({
           organizationId: data.organizationId,
           payerCompanyId: data.payerCompanyId,
-          amountCents: data.amountCents,
+          amount: data.amount,
           invoiceNumber: data.invoiceNumber,
           invoiceDate: data.invoiceDate,
           dueAt: data.dueAt,
@@ -204,7 +223,7 @@ export class InvoicesRepository {
    */
   async update(id: string, organizationId: string, data: Partial<{
     payerCompanyId: string;
-    amountCents: string;
+    amount: string;
     invoiceNumber: string;
     invoiceDate: string;
     dueAt: string;

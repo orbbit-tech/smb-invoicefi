@@ -7,7 +7,7 @@ interface PerformanceMetricsProps {
   userInvestment: number;
   expectedReturn: number;
   actualReturn?: number;
-  apy: number;
+  apr: number;
   fundingDate: string;
   settlementDate?: string;
   status: 'active' | 'funded' | 'repaid';
@@ -22,7 +22,7 @@ export function PerformanceMetrics({
   userInvestment,
   expectedReturn,
   actualReturn,
-  apy,
+  apr,
   fundingDate,
   settlementDate,
   status,
@@ -32,7 +32,7 @@ export function PerformanceMetrics({
   const realizedGain = status === 'repaid' ? actualProfit : 0;
   const unrealizedGain = status !== 'repaid' ? expectedProfit : 0;
 
-  // Calculate effective APY if completed
+  // Calculate effective APR if completed
   const holdingPeriodDays = settlementDate
     ? Math.floor(
         (new Date(settlementDate).getTime() - new Date(fundingDate).getTime()) /
@@ -42,7 +42,7 @@ export function PerformanceMetrics({
   const effectiveAPY =
     status === 'repaid' && actualReturn && holdingPeriodDays > 0
       ? ((actualProfit / userInvestment) * 365) / holdingPeriodDays
-      : apy;
+      : apr;
 
   const getPerformanceComparison = () => {
     if (status !== 'repaid' || !actualReturn) return null;
@@ -122,12 +122,12 @@ export function PerformanceMetrics({
           </div>
         )}
 
-        {/* APY */}
+        {/* APR */}
         <div className="bg-neutral-100/80 p-4 rounded-md">
           <div className="flex items-center gap-1 mb-1">
             <Percent className="h-3 w-3 text-muted-foreground" />
             <p className="text-xs text-muted-foreground">
-              {status === 'repaid' ? 'Effective APY' : 'Target APY'}
+              {status === 'repaid' ? 'Effective APR' : 'Target APR'}
             </p>
           </div>
           <p className="text-xl font-bold">

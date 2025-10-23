@@ -8,7 +8,7 @@ import {
 } from './portfolio.dto';
 
 @ApiTags('Investor - Portfolio')
-@Controller('api/investor/portfolio')
+@Controller('investor/portfolio')
 export class PortfolioController {
   constructor(private readonly portfolioService: PortfolioService) {}
 

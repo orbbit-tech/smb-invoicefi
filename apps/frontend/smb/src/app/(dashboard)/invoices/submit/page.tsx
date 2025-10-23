@@ -10,9 +10,17 @@ import { Alert, AlertDescription } from '@ui';
 import { Separator } from '@ui';
 import { DatePickerWithInput } from '@ui';
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from '@ui';
-import { Check, ArrowRight, Loader2, X } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, Loader2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { StepIndicator } from '@/components/common/step-indicator';
+import { useCreateInvoice } from '@/hooks/api';
+import { toast } from 'sonner';
+
+// TODO: Replace with actual organizationId from auth context
+const TEMP_ORGANIZATION_ID = 'org_123';
+// TODO: Implement payer selection or creation in the form
+// For now, using placeholder payer ID
+const TEMP_PAYER_ID = 'payer_123';
 
 interface InvoiceFormData {
   invoiceNumber: string;
@@ -27,7 +35,6 @@ interface InvoiceFormData {
 export default function SubmitInvoicePage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<InvoiceFormData>({
     invoiceNumber: '',
     amount: '',
@@ -40,6 +47,9 @@ export default function SubmitInvoicePage() {
   const [errors, setErrors] = useState<
     Partial<Record<keyof InvoiceFormData, string>>
   >({});
+
+  // Use create invoice mutation
+  const createInvoice = useCreateInvoice();
 
   const handleChange = (
     field: keyof InvoiceFormData,
@@ -120,15 +130,34 @@ export default function SubmitInvoicePage() {
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
+    try {
+      // Convert form data to API format
+      const amountInCents = Math.round(parseFloat(formData.amount) * 100);
+      const dueDateTimestamp = formData.dueDate
+        ? Math.floor(formData.dueDate.getTime() / 1000)
+        : Math.floor(Date.now() / 1000);
+      const invoiceDateTimestamp = Math.floor(Date.now() / 1000);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+      await createInvoice.mutateAsync({
+        organizationId: TEMP_ORGANIZATION_ID,
+        data: {
+          payerCompanyId: TEMP_PAYER_ID, // TODO: Get from payer selection
+          amount: amountInCents,
+          invoiceNumber: formData.invoiceNumber,
+          invoiceDate: invoiceDateTimestamp,
+          dueAt: dueDateTimestamp,
+          description: formData.description || undefined,
+          // TODO: Implement document upload
+          // documents: []
+        },
+      });
 
-    setIsSubmitting(false);
-
-    // Show success step
-    setStep(3);
+      toast.success('Invoice submitted successfully!');
+      setStep(3);
+    } catch (error) {
+      console.error('Failed to submit invoice:', error);
+      toast.error('Failed to submit invoice. Please try again.');
+    }
   };
 
   const formatCurrency = (value: string) => {
