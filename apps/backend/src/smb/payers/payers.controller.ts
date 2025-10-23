@@ -4,7 +4,7 @@ import { PayersService } from './payers.service';
 import { PayerCompanyDto } from './payers.dto';
 
 @ApiTags('SMB - Payers')
-@Controller('api/smb/payers')
+@Controller('smb/payers')
 export class PayersController {
   constructor(private readonly payersService: PayersService) {}
 

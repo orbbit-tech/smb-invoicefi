@@ -3,15 +3,20 @@
  * This is only a minimal backend to get started.
  */
 
-import { Logger } from '@nestjs/common';
+import { Logger, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const globalPrefix = 'api';
-  app.setGlobalPrefix(globalPrefix);
+
+  // Enable API versioning
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+    prefix: 'v',
+  });
 
   // Enable CORS for frontend applications
   app.enableCors({
@@ -29,6 +34,7 @@ async function bootstrap() {
     .setDescription('Orbbit Web3 Invoice Financing Platform - Backend API Documentation\n\nServes offchain data for SMB and Investor frontend applications.')
     .setVersion('1.0')
     .addBearerAuth()
+    .addTag('Authentication', 'Email OTP authentication endpoints')
     .addTag('App', 'Application health and info endpoints')
     .addTag('SMB - Dashboard', 'SMB dashboard aggregate metrics')
     .addTag('SMB - Invoices', 'Invoice management for SMBs (CRUD operations)')
@@ -67,7 +73,7 @@ async function bootstrap() {
   const port = process.env.PORT || 9000;
   await app.listen(port);
   Logger.log(
-    `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`
+    `🚀 Application is running on: http://localhost:${port}/v1`
   );
 }
 

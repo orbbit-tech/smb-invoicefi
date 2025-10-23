@@ -54,6 +54,13 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '../../shadcn/ui/context-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../shadcn/ui/select';
 import { cn } from '../../../lib/utils';
 
 const draggingAtom = atom(false);
@@ -438,6 +445,49 @@ const headers: Record<Range, FC> = {
   quarterly: QuarterlyHeader,
 };
 
+export type GanttToolbarProps = {
+  className?: string;
+  onRangeChange?: (range: Range) => void;
+  children?: ReactNode;
+};
+
+export const GanttToolbar: FC<GanttToolbarProps> = ({
+  className,
+  onRangeChange,
+  children,
+}) => {
+  const gantt = useContext(GanttContext);
+
+  const handleRangeChange = (value: string) => {
+    onRangeChange?.(value as Range);
+  };
+
+  return (
+    <div
+      className={cn(
+        'sticky top-0 z-30 flex items-center justify-end border-border/50 border-b bg-backdrop/90 px-4 py-2 backdrop-blur-sm',
+        className
+      )}
+      style={{ height: 'var(--gantt-toolbar-height)' }}
+    >
+      {children ? (
+        children
+      ) : (
+        <Select value={gantt.range} onValueChange={handleRangeChange}>
+          <SelectTrigger className="w-[120px] h-8">
+            <SelectValue placeholder="Select view" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="daily">Week</SelectItem>
+            <SelectItem value="monthly">Month</SelectItem>
+            <SelectItem value="quarterly">Quarter</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
+    </div>
+  );
+};
+
 export type GanttHeaderProps = {
   className?: string;
 };
@@ -573,7 +623,7 @@ export const GanttSidebar: FC<GanttSidebarProps> = ({
 }) => (
   <div
     className={cn(
-      'sticky left-0 z-30 h-max min-h-full overflow-clip border-border/50 border-r bg-background/90 backdrop-blur-md',
+      'sticky left-0 z-30 h-max min-h-full overflow-clip border-border/50 border-r bg-muted',
       className
     )}
     data-roadmap-ui="gantt-sidebar"
@@ -1172,6 +1222,9 @@ export type GanttProviderProps = {
   onAddItem?: (date: Date) => void;
   children: ReactNode;
   className?: string;
+  showToolbar?: boolean;
+  onRangeChange?: (range: Range) => void;
+  toolbarHeight?: number;
 };
 
 export const GanttProvider: FC<GanttProviderProps> = ({
@@ -1181,6 +1234,9 @@ export const GanttProvider: FC<GanttProviderProps> = ({
   onAddItem,
   children,
   className,
+  showToolbar = false,
+  onRangeChange,
+  toolbarHeight = 48,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [timelineData, setTimelineData] = useState<TimelineData>(
@@ -1207,8 +1263,9 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         '--gantt-header-height': `${headerHeight}px`,
         '--gantt-row-height': `${rowHeight}px`,
         '--gantt-sidebar-width': `${sidebarWidth}px`,
+        '--gantt-toolbar-height': `${showToolbar ? toolbarHeight : 0}px`,
       } as CSSProperties),
-    [zoom, columnWidth, sidebarWidth]
+    [zoom, columnWidth, sidebarWidth, showToolbar, toolbarHeight]
   );
 
   useEffect(() => {
@@ -1382,17 +1439,22 @@ export const GanttProvider: FC<GanttProviderProps> = ({
     >
       <div
         className={cn(
-          'gantt relative isolate grid h-full w-full flex-none select-none overflow-auto rounded-sm bg-muted',
+          'gantt relative isolate flex h-full w-full flex-col flex-none select-none bg-muted',
           range,
           className
         )}
-        ref={scrollRef}
-        style={{
-          ...cssVariables,
-          gridTemplateColumns: 'var(--gantt-sidebar-width) 1fr',
-        }}
+        style={cssVariables}
       >
-        {children}
+        {showToolbar && <GanttToolbar onRangeChange={onRangeChange} />}
+        <div
+          className="grid h-full w-full overflow-auto"
+          ref={scrollRef}
+          style={{
+            gridTemplateColumns: 'var(--gantt-sidebar-width) 1fr',
+          }}
+        >
+          {children}
+        </div>
       </div>
     </GanttContext.Provider>
   );

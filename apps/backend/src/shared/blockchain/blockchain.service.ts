@@ -21,7 +21,7 @@ export class BlockchainService {
     const invoice: NftInvoiceDto = {
       id: nft.invoiceId,
       invoiceNumber: nft.invoiceNumber,
-      amount: Number(nft.amountCents),
+      amount: Number(nft.amount),
       dueAt: Number(nft.dueAt),
       lifecycleStatus: nft.lifecycleStatus,
       onChainStatus: nft.onChainStatus || undefined,
@@ -34,7 +34,7 @@ export class BlockchainService {
       txType: tx.txType,
       fromAddress: tx.fromAddress,
       toAddress: tx.toAddress,
-      amount: Number(tx.amountCents || 0),
+      amount: Number(tx.amount || 0),
       blockNumber: Number(tx.blockNumber),
       blockTimestamp: Number(tx.blockTimestamp),
       gasUsed: Number(tx.gasUsed),

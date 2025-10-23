@@ -1,9 +1,16 @@
 'use client';
 
-import { Button } from '@ui';
-import { Card, CardContent, CardHeader, CardTitle } from '@ui';
-import { Separator } from '@ui';
-import { Badge } from '@ui';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Separator,
+  Badge,
+  InvoiceDetailHeader,
+  InvoiceMetrics,
+} from '@ui';
 import { Invoice, InvoiceStatus } from '@/types/invoice';
 import { InvoiceStatusBadge } from './invoice-status-badge';
 import {
@@ -103,10 +110,10 @@ export function InvoiceDetailClient({ invoice }: InvoiceDetailClientProps) {
   const timelineSteps = getTimelineSteps();
 
   return (
-    <div className="py-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div>
-        <Link href="/invoices">
+        <Link href="/">
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Invoices
@@ -128,93 +135,63 @@ export function InvoiceDetailClient({ invoice }: InvoiceDetailClientProps) {
         {/* Left Column - Main Details */}
         <div className="lg:col-span-2 space-y-6">
           {/* Invoice Information Card */}
+          <InvoiceMetrics
+            invoice={{
+              id: invoice.id,
+              companyName: invoice.payer.name,
+              amount: invoice.amount,
+              dueDate: invoice.dueDate,
+              apr: invoice.apr,
+              daysUntilDue: invoice.daysUntilDue,
+              discountRate: 0,
+              payerName: invoice.payer.name,
+            }}
+            title="Invoice Information"
+            metrics={[
+              {
+                label: 'Invoice Amount',
+                value: formatCurrency(invoice.amount),
+              },
+              {
+                label: 'Expected Funding',
+                value: formatCurrency(expectedFunding),
+                subtitle: '80% of invoice value',
+              },
+              {
+                label: 'Due Date',
+                value: formatDate(invoice.dueDate),
+                subtitle:
+                  invoice.daysUntilDue > 0
+                    ? `${invoice.daysUntilDue} days remaining`
+                    : 'Overdue',
+              },
+              {
+                label: 'Payer',
+                value: invoice.payer.name,
+                subtitle: invoice.payer.industry,
+              },
+            ]}
+          />
+
+          {/* Additional Details Card */}
+          {invoice.description && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Description</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm">{invoice.description}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* APR and Created Date */}
           <Card>
-            <CardHeader>
-              <CardTitle>Invoice Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="flex items-start gap-3">
-                  <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Invoice Amount
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {formatCurrency(invoice.amount)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Expected Funding
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {formatCurrency(expectedFunding)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      80% of invoice value
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Due Date</p>
-                    <p className="font-semibold">
-                      {formatDate(invoice.dueDate)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {invoice.daysUntilDue > 0
-                        ? `${invoice.daysUntilDue} days remaining`
-                        : 'Overdue'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Payer</p>
-                    <p className="font-semibold">{invoice.payer.name}</p>
-                    {invoice.payer.industry && (
-                      <p className="text-xs text-muted-foreground">
-                        {invoice.payer.industry}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {invoice.description && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Description
-                    </p>
-                    <p className="text-sm">{invoice.description}</p>
-                  </div>
-                </>
-              )}
-
-              <Separator />
-
+            <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Risk Score</p>
-                  <Badge
-                    variant={
-                      invoice.riskScore === 'LOW' ? 'default' : 'secondary'
-                    }
-                  >
-                    {invoice.riskScore}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">APY</p>
-                  <p className="text-lg font-semibold">{invoice.apy}%</p>
+                  <p className="text-sm text-muted-foreground">APR</p>
+                  <p className="text-lg font-semibold">{invoice.apr}%</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Created</p>

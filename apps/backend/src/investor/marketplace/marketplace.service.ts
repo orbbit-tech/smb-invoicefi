@@ -15,14 +15,15 @@ export class MarketplaceService {
   constructor(private readonly marketplaceRepository: MarketplaceRepository) {}
 
   /**
-   * Calculate APY from APR and days until due
+   * Calculate APR from APR and days until due
+   * @param apr - APR in 6-decimal format (e.g., 365,000 = 36.5%)
    */
-  private calculateApy(aprBps: number, daysUntilDue: number): number {
+  private calculateApy(apr: number, daysUntilDue: number): number {
     if (daysUntilDue <= 0) return 0;
-    const aprDecimal = aprBps / 10000;
+    const aprDecimal = apr / 1000000;
     const daysInYear = 365;
-    const apy = (aprDecimal * daysInYear) / daysUntilDue;
-    return Math.round(apy * 10000) / 100; // Return as percentage with 2 decimals
+    const calculatedApr = (aprDecimal * daysInYear) / daysUntilDue;
+    return Math.round(calculatedApr * 1000000); // Return in 6-decimal format
   }
 
   /**
@@ -36,17 +37,29 @@ export class MarketplaceService {
 
   /**
    * Calculate expected return based on amount and discount rate
+   * @param amount - Amount in 6-decimal format (e.g., 10,000,000,000 = $10,000)
+   * @param discountRate - Discount rate in 6-decimal format (e.g., 60,000 = 6%)
    */
-  private calculateExpectedReturn(amountCents: number, discountRateBps: number): number {
-    const discountDecimal = discountRateBps / 10000;
-    return Math.round(amountCents * discountDecimal);
+  private calculateExpectedReturn(
+    amount: number,
+    discountRate: number
+  ): number {
+    const discountDecimal = discountRate / 1000000;
+    return Math.round(amount * discountDecimal);
   }
 
   /**
    * Calculate funding amount (amount - discount)
+   * @param amount - Amount in 6-decimal format
+   * @param discountRate - Discount rate in 6-decimal format
    */
-  private calculateFundingAmount(amountCents: number, discountRateBps: number): number {
-    return amountCents - this.calculateExpectedReturn(amountCents, discountRateBps);
+  private calculateFundingAmount(
+    amount: number,
+    discountRate: number
+  ): number {
+    return (
+      amount - this.calculateExpectedReturn(amount, discountRate)
+    );
   }
 
   /**
@@ -78,23 +91,25 @@ export class MarketplaceService {
     });
 
     const data: MarketplaceInvoiceDto[] = result.invoices.map((inv: any) => {
-      const amountCents = Number(inv.amountCents);
-      const aprBps = Number(inv.aprBps || 0);
-      const discountRateBps = Number(inv.discountRateBps || 0);
+      const amount = Number(inv.amount);
+      const apr = Number(inv.apr || 0);
+      const discountRate = Number(inv.discountRate || 0);
       const dueAt = Number(inv.dueAt);
       const daysUntilDue = this.calculateDaysUntilDue(dueAt);
 
       return {
         id: inv.id,
         invoiceNumber: inv.invoiceNumber,
-        amount: amountCents,
-        aprBps,
-        discountRateBps,
+        amount,
+        apr,
+        discountRate,
         invoiceDate: Number(inv.invoiceDate),
         dueAt,
         daysUntilDue,
-        apy: this.calculateApy(aprBps, daysUntilDue),
-        expectedReturn: this.calculateExpectedReturn(amountCents, discountRateBps),
+        expectedReturn: this.calculateExpectedReturn(
+          amount,
+          discountRate
+        ),
         lifecycleStatus: inv.lifecycleStatus,
         riskScore: inv.riskScore || 'UNKNOWN',
         issuer: {
@@ -131,28 +146,32 @@ export class MarketplaceService {
     const result = await this.marketplaceRepository.findById(id);
 
     if (!result || !result.invoice) {
-      throw new NotFoundException(`Invoice with ID ${id} not found or not available in marketplace`);
+      throw new NotFoundException(
+        `Invoice with ID ${id} not found or not available in marketplace`
+      );
     }
 
     const { invoice: inv, underwriting, documents } = result;
 
-    const amountCents = Number(inv.amountCents);
-    const aprBps = Number(inv.aprBps || 0);
-    const discountRateBps = Number(inv.discountRateBps || 0);
+    const amount = Number(inv.amount);
+    const apr = Number(inv.apr || 0);
+    const discountRate = Number(inv.discountRate || 0);
     const dueAt = Number(inv.dueAt);
     const daysUntilDue = this.calculateDaysUntilDue(dueAt);
 
     return {
       id: inv.id,
       invoiceNumber: inv.invoiceNumber,
-      amount: amountCents,
-      aprBps,
-      discountRateBps,
+      amount,
+      apr,
+      discountRate,
       invoiceDate: Number(inv.invoiceDate),
       dueAt,
       daysUntilDue,
-      apy: this.calculateApy(aprBps, daysUntilDue),
-      expectedReturn: this.calculateExpectedReturn(amountCents, discountRateBps),
+      expectedReturn: this.calculateExpectedReturn(
+        amount,
+        discountRate
+      ),
       lifecycleStatus: inv.lifecycleStatus,
       riskScore: inv.riskScore || 'UNKNOWN',
       description: inv.description || undefined,
@@ -186,8 +205,8 @@ export class MarketplaceService {
         fileUrl: doc.fileUrl,
         fileSizeBytes: Number(doc.fileSizeBytes),
       })),
-      fundingAmount: this.calculateFundingAmount(amountCents, discountRateBps),
-      expectedRepayment: amountCents,
+      fundingAmount: this.calculateFundingAmount(amount, discountRate),
+      expectedRepayment: amount,
       nftTokenId: inv.nftTokenId || undefined,
       createdAt: new Date(inv.createdAt).toISOString(),
     };

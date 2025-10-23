@@ -22,7 +22,7 @@ export const viemClientProvider = {
     const publicClient = createPublicClient({
       chain,
       transport: http(config.rpcUrl),
-    });
+    }) as any;
 
     // Create wallet client if private key is provided (for transactions)
     let walletClient: WalletClient | undefined;
@@ -32,7 +32,7 @@ export const viemClientProvider = {
         account,
         chain,
         transport: http(config.rpcUrl),
-      });
+      }) as any;
     }
 
     return {

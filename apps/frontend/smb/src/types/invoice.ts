@@ -1,4 +1,6 @@
-// Invoice types based on PRD Section 6.7 - Invoice Lifecycle State Machine
+// Invoice types based on on-chain smart contract states and application workflow
+// Primary blockchain statuses: LISTED, FULLY_FUNDED, FULLY_PAID, DEFAULTED, SETTLED
+// Application workflow statuses: CREATED, DISBURSED, PENDING_REPAYMENT, REPAID
 
 export enum InvoiceStatus {
   CREATED = 'CREATED',
@@ -6,16 +8,10 @@ export enum InvoiceStatus {
   FULLY_FUNDED = 'FULLY_FUNDED',
   DISBURSED = 'DISBURSED',
   PENDING_REPAYMENT = 'PENDING_REPAYMENT',
+  FULLY_PAID = 'FULLY_PAID',
   REPAID = 'REPAID',
-  OVERDUE = 'OVERDUE',
-  UNDER_COLLECTION = 'UNDER_COLLECTION',
   DEFAULTED = 'DEFAULTED',
-}
-
-export enum RiskScore {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH',
+  SETTLED = 'SETTLED',
 }
 
 export interface Invoice {
@@ -27,14 +23,18 @@ export interface Invoice {
   payer: {
     name: string;
     industry?: string;
+    logoUrl?: string;
   };
-  riskScore: RiskScore;
   status: InvoiceStatus;
-  apy: number; // Annual Percentage Yield
+  apr: number;
   daysUntilDue: number;
   disbursedDate?: Date;
   repaidDate?: Date;
   description?: string;
+  // Blockchain/NFT fields (optional - only present when invoice is tokenized)
+  tokenId?: string;
+  contractAddress?: string;
+  blockchainTxHash?: string;
 }
 
 export interface InvoiceMetrics {

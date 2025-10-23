@@ -4,7 +4,7 @@ import { OrganizationService } from './organization.service';
 import { OrganizationProfileDto } from './organization.dto';
 
 @ApiTags('SMB - Organization')
-@Controller('api/smb/organization')
+@Controller('smb/organization')
 export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
 

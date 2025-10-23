@@ -29,7 +29,7 @@ export class BlockchainRepository {
         'nft.createdAt',
         'i.id as invoiceId',
         'i.invoiceNumber',
-        'i.amountCents',
+        'i.amount',
         'i.dueAt',
         'i.lifecycleStatus',
         'i.onChainStatus',

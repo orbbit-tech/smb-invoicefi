@@ -25,7 +25,7 @@ export interface InvoiceData {
   payerLogoUrl?: string;
   daysUntilDue: number;
   return: number;
-  apy: number;
+  apr: number;
   discountRate: number;
   riskScore: 'Low' | 'Medium' | 'High';
   status?: 'active' | 'funded' | 'repaid';
@@ -73,6 +73,7 @@ export function InvoiceCard({
   const dueDate = new Date(
     Date.now() + invoice.daysUntilDue * 24 * 60 * 60 * 1000
   );
+  const fundingAmount = invoice.amount * (1 - invoice.discountRate / 100);
 
   const handleClick = () => {
     console.log('clicked');
@@ -83,105 +84,84 @@ export function InvoiceCard({
   };
 
   const cardContent = (
-    <Card className="transition-all duration-200 hover:shadow-lg hover:shadow-md p-4 space-y-4 hover:cursor-pointer">
-      <div className="flex flex-col items-center justify-center gap-1">
-        <div className="flex flex-col items-center justify-center gap-2">
-          <Avatar className="h-12 w-12 bg-neutral-200/80 shadow-sm">
+    <Card className="transition-all duration-200 hover:shadow-lg hover:shadow-md p-5 space-y-3 hover:cursor-pointer">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          <Avatar className="h-9 w-9 bg-neutral-100/90 shadow-sm flex-shrink-0">
             <AvatarImage src={invoice.companyLogoUrl} />
-            <AvatarFallback className="bg-neutral-200/80 font-semibold text-sm">
+            <AvatarFallback className="bg-neutral-100/90 font-semibold text-xs">
               {invoice.companyName[0].toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <span className="font-semibold text-sm">{invoice.companyName}</span>
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="font-semibold text-sm truncate">
+              {invoice.companyName}
+            </span>
+            <span className="text-xs text-muted-foreground truncate">
+              {invoice.category}
+            </span>
+          </div>
         </div>
-        <p className="font-semibold text-2xl truncate">
-          ${invoice.amount.toLocaleString()}
-        </p>
       </div>
 
-      <div className="bg-neutral-100/80 p-4 space-y-1 rounded-md">
+      <div className="bg-neutral-100/80 p-3 space-y-1 rounded-md">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Funding Amount</span>
-          <span className="truncate">
-            ${(invoice.amount * (1 - invoice.discountRate)).toLocaleString()}
+          <span className="text-xs text-muted-foreground">Funding Amount</span>
+          <span className="text-xs truncate">
+            ${(invoice.amount * (1 - invoice.discountRate / 100)).toLocaleString()}
           </span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Discount Rate</span>
-          <span className="truncate">{(invoice.discountRate * 100).toFixed(1)}%</span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Term (days)</span>
-          <span className="truncate">{invoice.daysUntilDue}</span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">APY</span>
-          <span className="truncate">{invoice.apy}%</span>
+          <span className="text-xs text-muted-foreground">APR</span>
+          <span className="text-xs truncate">{invoice.apr}%</span>
         </div>
 
         <Separator className="my-1" />
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Expected Return</span>
-          <span className="font-bold truncate">
-            ${(invoice.amount * invoice.discountRate).toLocaleString()}
+          <span className="text-xs text-muted-foreground">Expected Return</span>
+          <span className="font-bold text-xs truncate text-emerald-700">
+            ${(invoice.amount * (invoice.discountRate / 100)).toLocaleString()}
           </span>
         </div>
       </div>
 
-      {/* <div className="bg-neutral-100/80 p-4 rounded-md">
-        <FundingProgress
-          funded={invoice.funded}
-          total={invoice.amount}
-          showLabel={true}
-        />
-      </div> */}
-      <div className="flex flex-col bg-neutral-100/80 p-4 space-y-1 rounded-md">
+      <div className="bg-neutral-100/80 p-3 space-y-1 rounded-md">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Face Value</span>
+          <span className="text-xs truncate">
+            ${invoice.amount.toLocaleString()}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Discount Rate</span>
+          <span className="text-xs truncate">
+            {invoice.discountRate.toFixed(1)}%
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Term (days)</span>
+          <span className="text-xs truncate">{invoice.daysUntilDue}</span>
+        </div>
+      </div>
+
+      <div className="flex flex-col bg-neutral-100/80 p-3 space-y-1 rounded-md">
         <div className="flex justify-between items-center ">
-          <span className="text-muted-foreground text-sm">To Be Paid By</span>
+          <span className="text-muted-foreground text-xs">To Be Paid By</span>
           <div className="flex items-center justify-center gap-1">
-            {/* <Avatar className="h-6 w-6 bg-neutral-200/80 shadow-sm">
-              <AvatarImage src={invoice.payerLogoUrl} />
-              <AvatarFallback className="bg-neutral-200/80 font-semibold text-sm">
-                {invoice.payerName[0].toUpperCase()}
-              </AvatarFallback>
-            </Avatar> */}
-            <span className="font-semibold text-sm">{invoice.payerName}</span>
+            <span className="font-medium text-xs">{invoice.payerName}</span>
           </div>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Due Date</span>
-          <span className="truncate text-sm">
+          <span className="text-xs text-muted-foreground">Due Date</span>
+          <span className="text-xs truncate">
             {new Date(invoice.dueDate).toLocaleDateString()}
           </span>
         </div>
       </div>
-
-      {/* Bottom Section: Metrics Row */}
-      <div className="grid grid-cols-2 gap-3 bg-neutral-100/80 p-4 rounded-md">
-        <div className="flex flex-col items-start gap-1">
-          <span className="text-xs text-muted-foreground font-medium">
-            Industry
-          </span>
-          <Badge variant="secondary"> {invoice.category}</Badge>
-        </div>
-
-        <div className="flex flex-col items-start gap-1">
-          <span className="text-xs text-muted-foreground font-medium">
-            Risk Level
-          </span>
-          <Badge variant="secondary"> {invoice.riskScore}</Badge>
-        </div>
-      </div>
-
-      {/* <div className="flex justify-end">
-        <Button size="sm" className="w-full">
-          Fund
-        </Button>
-      </div> */}
     </Card>
   );
 

@@ -13,14 +13,6 @@ export default interface InvestorPositionTable {
 
   nftId: ColumnType<string, string, string>;
 
-  principalAmountCents: ColumnType<string, string, string>;
-
-  expectedReturnCents: ColumnType<string, string, string>;
-
-  actualReturnCents: ColumnType<string | null, string | null, string | null>;
-
-  aprBps: ColumnType<string, string, string>;
-
   fundedAt: ColumnType<string, string, string>;
 
   maturityDate: ColumnType<string, string, string>;
@@ -32,6 +24,14 @@ export default interface InvestorPositionTable {
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
 
   deletedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  principalAmount: ColumnType<string, string, string>;
+
+  expectedReturn: ColumnType<string, string, string>;
+
+  actualReturn: ColumnType<string | null, string | null, string | null>;
+
+  apr: ColumnType<string, string, string>;
 }
 
 export type InvestorPositionDb = Selectable<InvestorPositionTable>;

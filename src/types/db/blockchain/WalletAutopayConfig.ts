@@ -17,8 +17,6 @@ export default interface WalletAutopayConfigTable {
 
   walletAddress: ColumnType<string | null, string | null, string | null>;
 
-  approvedAmountCents: ColumnType<string | null, string | null, string | null>;
-
   approvedAt: ColumnType<string | null, string | null, string | null>;
 
   achBankAccountId: ColumnType<string | null, string | null, string | null>;
@@ -28,6 +26,8 @@ export default interface WalletAutopayConfigTable {
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
 
   deletedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  approvedAmount: ColumnType<string | null, string | null, string | null>;
 }
 
 export type WalletAutopayConfigDb = Selectable<WalletAutopayConfigTable>;

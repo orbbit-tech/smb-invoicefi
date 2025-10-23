@@ -30,7 +30,7 @@ export class PayersRepository {
       .selectFrom('business.payerRelationship as pr')
       .select([
         'pr.totalInvoicesCount',
-        'pr.totalInvoicesValueCents',
+        'pr.totalInvoicesValue',
         'pr.paidOnTimeCount',
         'pr.latePaymentCount',
         'pr.defaultCount',

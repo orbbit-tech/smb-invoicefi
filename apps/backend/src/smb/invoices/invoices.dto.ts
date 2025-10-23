@@ -44,14 +44,14 @@ export class InvoiceDto {
   @ApiProperty()
   invoiceNumber: string;
 
-  @ApiProperty({ description: 'Amount in cents' })
+  @ApiProperty({ description: 'Amount in 6-decimal format (e.g., for USDC: 1,000,000 = $1)' })
   amount: number;
 
-  @ApiProperty({ description: 'APR in basis points' })
-  aprBps: number;
+  @ApiProperty({ description: 'APR with 6 decimals (e.g., 365,000 = 36.5%, where 1,000,000 = 100%)' })
+  apr: number;
 
-  @ApiProperty({ description: 'Discount rate in basis points' })
-  discountRateBps: number;
+  @ApiProperty({ description: 'Discount rate with 6 decimals (e.g., 60,000 = 6%)' })
+  discountRate: number;
 
   @ApiProperty({ description: 'Unix timestamp' })
   invoiceDate: number;
@@ -173,7 +173,7 @@ export class CreateInvoiceDto {
   @ApiProperty()
   payerCompanyId: string;
 
-  @ApiProperty({ description: 'Amount in cents' })
+  @ApiProperty({ description: 'Amount in 6-decimal format (e.g., for USDC: 1,000,000 = $1)' })
   amount: number;
 
   @ApiProperty()
@@ -205,7 +205,7 @@ export class UpdateInvoiceDto {
   @ApiPropertyOptional()
   payerCompanyId?: string;
 
-  @ApiPropertyOptional({ description: 'Amount in cents' })
+  @ApiPropertyOptional({ description: 'Amount in 6-decimal format (e.g., for USDC: 1,000,000 = $1)' })
   amount?: number;
 
   @ApiPropertyOptional()

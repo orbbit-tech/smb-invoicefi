@@ -39,9 +39,9 @@ export abstract class BaseRepository<
   ): Promise<TSelect | undefined> {
     const db = this.getDb(trx);
     return await db
-      .selectFrom(this.fullTableName)
+      .selectFrom(this.fullTableName as any)
       .selectAll()
-      .where('id', '=', id)
+      .where('id' as any, '=', id)
       .executeTakeFirst() as TSelect | undefined;
   }
 
@@ -53,7 +53,7 @@ export abstract class BaseRepository<
   ): Promise<TSelect[]> {
     const db = this.getDb(trx);
     return await db
-      .selectFrom(this.fullTableName)
+      .selectFrom(this.fullTableName as any)
       .selectAll()
       .execute() as TSelect[];
   }
@@ -67,8 +67,8 @@ export abstract class BaseRepository<
   ): Promise<TSelect> {
     const db = this.getDb(trx);
     return await db
-      .insertInto(this.fullTableName)
-      .values(data)
+      .insertInto(this.fullTableName as any)
+      .values(data as any)
       .returningAll()
       .executeTakeFirstOrThrow() as TSelect;
   }
@@ -83,9 +83,9 @@ export abstract class BaseRepository<
   ): Promise<TSelect> {
     const db = this.getDb(trx);
     return await db
-      .updateTable(this.fullTableName)
-      .set(data)
-      .where('id', '=', id)
+      .updateTable(this.fullTableName as any)
+      .set(data as any)
+      .where('id' as any, '=', id)
       .returningAll()
       .executeTakeFirstOrThrow() as TSelect;
   }
@@ -99,8 +99,8 @@ export abstract class BaseRepository<
   ): Promise<void> {
     const db = this.getDb(trx);
     await db
-      .deleteFrom(this.fullTableName)
-      .where('id', '=', id)
+      .deleteFrom(this.fullTableName as any)
+      .where('id' as any, '=', id)
       .execute();
   }
 
@@ -113,9 +113,9 @@ export abstract class BaseRepository<
   ): Promise<TSelect> {
     const db = this.getDb(trx);
     return await db
-      .updateTable(this.fullTableName)
+      .updateTable(this.fullTableName as any)
       .set({ deletedAt: new Date() } as any)
-      .where('id', '=', id)
+      .where('id' as any, '=', id)
       .returningAll()
       .executeTakeFirstOrThrow() as TSelect;
   }

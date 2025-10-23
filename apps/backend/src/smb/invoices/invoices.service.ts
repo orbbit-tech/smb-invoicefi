@@ -41,9 +41,9 @@ export class InvoicesService {
     const data: InvoiceDto[] = result.invoices.map((inv: any) => ({
       id: inv.id,
       invoiceNumber: inv.invoiceNumber,
-      amount: Number(inv.amountCents),
-      aprBps: Number(inv.aprBps || 0),
-      discountRateBps: Number(inv.discountRateBps || 0),
+      amount: Number(inv.amount),
+      apr: Number(inv.apr || 0),
+      discountRate: Number(inv.discountRate || 0),
       invoiceDate: Number(inv.invoiceDate),
       dueAt: Number(inv.dueAt),
       lifecycleStatus: inv.lifecycleStatus,
@@ -95,9 +95,9 @@ export class InvoicesService {
     const invoiceDetail: InvoiceDetailDto = {
       id: inv.id,
       invoiceNumber: inv.invoiceNumber,
-      amount: Number(inv.amountCents),
-      aprBps: Number(inv.aprBps || 0),
-      discountRateBps: Number(inv.discountRateBps || 0),
+      amount: Number(inv.amount),
+      apr: Number(inv.apr || 0),
+      discountRate: Number(inv.discountRate || 0),
       invoiceDate: Number(inv.invoiceDate),
       dueAt: Number(inv.dueAt),
       lifecycleStatus: inv.lifecycleStatus,
@@ -139,7 +139,7 @@ export class InvoicesService {
     const invoice = await this.invoicesRepository.create({
       organizationId,
       payerCompanyId: dto.payerCompanyId,
-      amountCents: dto.amount.toString(),
+      amount: dto.amount.toString(),
       invoiceNumber: dto.invoiceNumber,
       invoiceDate: dto.invoiceDate.toString(),
       dueAt: dto.dueAt.toString(),
@@ -162,7 +162,7 @@ export class InvoicesService {
     const updateData: any = {};
 
     if (dto.payerCompanyId) updateData.payerCompanyId = dto.payerCompanyId;
-    if (dto.amount) updateData.amountCents = dto.amount.toString();
+    if (dto.amount) updateData.amount = dto.amount.toString();
     if (dto.invoiceNumber) updateData.invoiceNumber = dto.invoiceNumber;
     if (dto.invoiceDate) updateData.invoiceDate = dto.invoiceDate.toString();
     if (dto.dueAt) updateData.dueAt = dto.dueAt.toString();

@@ -4,16 +4,16 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
  * Portfolio summary metrics
  */
 export class PortfolioSummaryDto {
-  @ApiProperty({ description: 'Total invested amount in cents' })
+  @ApiProperty({ description: 'Total invested amount in 6-decimal format' })
   totalInvested: number;
 
-  @ApiProperty({ description: 'Total current value in cents' })
+  @ApiProperty({ description: 'Total current value in 6-decimal format' })
   totalCurrentValue: number;
 
-  @ApiProperty({ description: 'Total realized gains in cents' })
+  @ApiProperty({ description: 'Total realized gains in 6-decimal format' })
   totalRealizedGains: number;
 
-  @ApiProperty({ description: 'Total unrealized gains in cents' })
+  @ApiProperty({ description: 'Total unrealized gains in 6-decimal format' })
   totalUnrealizedGains: number;
 
   @ApiProperty({ description: 'Overall return percentage' })
@@ -28,7 +28,7 @@ export class PortfolioSummaryDto {
   @ApiProperty({ description: 'Number of defaulted positions' })
   defaultedPositionsCount: number;
 
-  @ApiProperty({ description: 'Average APY across all positions' })
+  @ApiProperty({ description: 'Average APR across all positions' })
   averageApy: number;
 }
 
@@ -42,7 +42,7 @@ export class PositionInvoiceDto {
   @ApiProperty()
   invoiceNumber: string;
 
-  @ApiProperty({ description: 'Amount in cents' })
+  @ApiProperty({ description: 'Amount in 6-decimal format' })
   amount: number;
 
   @ApiProperty({ description: 'Unix timestamp' })
@@ -76,7 +76,7 @@ export class PositionNftDto {
  * Investment details (nested in position)
  */
 export class InvestmentDetailDto {
-  @ApiProperty({ description: 'Funded amount in cents' })
+  @ApiProperty({ description: 'Funded amount in 6-decimal format' })
   fundedAmount: number;
 
   @ApiProperty({ description: 'Unix timestamp' })
@@ -85,11 +85,11 @@ export class InvestmentDetailDto {
   @ApiProperty()
   fundingTxHash: string;
 
-  @ApiProperty({ description: 'Expected repayment in cents' })
+  @ApiProperty({ description: 'Expected repayment in 6-decimal format' })
   expectedRepayment: number;
 
-  @ApiProperty({ description: 'Expected return in basis points' })
-  expectedReturnBps: number;
+  @ApiProperty({ description: 'Expected return in 6-decimal format' })
+  expectedReturn: number;
 }
 
 /**
@@ -130,19 +130,21 @@ export class InvestorPositionDto {
   @ApiProperty()
   positionStatus: string;
 
-  @ApiProperty({ description: 'Current value in cents' })
+  @ApiProperty({ description: 'Current value in 6-decimal format' })
   currentValue: number;
 
-  @ApiProperty({ description: 'Realized gains in cents (if settled)' })
+  @ApiProperty({ description: 'Realized gains in 6-decimal format (if settled)' })
   realizedGains: number;
 
-  @ApiProperty({ description: 'Unrealized gains in cents (if active)' })
+  @ApiProperty({ description: 'Unrealized gains in 6-decimal format (if active)' })
   unrealizedGains: number;
 
   @ApiProperty({ description: 'Return percentage' })
   returnPct: number;
 
-  @ApiPropertyOptional({ description: 'Actual repayment in cents (if settled)' })
+  @ApiPropertyOptional({
+    description: 'Actual repayment in 6-decimal format (if settled)',
+  })
   actualRepayment?: number;
 
   @ApiPropertyOptional({ description: 'Unix timestamp (if settled)' })

@@ -1,23 +1,24 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import { useMemo } from 'react';
+import { useAccount } from 'wagmi';
 import {
   Card,
   Badge,
   Button,
   Separator,
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
+  InvoiceDetailHeader,
+  PayerInformation,
+  RiskAssessment,
+  FinancialBreakdown,
+  DocumentsSection,
 } from '@ui';
-import { ArrowLeft, TrendingUp, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { type InvoiceData } from '@/components/invoices';
-import {
-  NFTOwnership,
-  InvestmentTimeline,
-  PaymentStatus,
-  PerformanceMetrics,
-} from '@/components/portfolio';
+import { usePortfolioPosition } from '@/hooks/api';
+import { mapPortfolioPosition } from '@/lib/mappers/invoice-mapper';
+import { NFTOwnership, InvestmentTimeline } from '@/components/portfolio';
 
 /**
  * Portfolio Detail Page
@@ -26,121 +27,85 @@ import {
  * timeline, payment status, and performance metrics
  */
 
-// Helper to get portfolio investment by ID
-// In production, this would fetch from blockchain/API
-const getPortfolioInvestmentById = (id: string): InvoiceData | undefined => {
-  // This is a placeholder - in production, fetch from your data source
-  const MOCK_PORTFOLIO_INVESTMENTS: InvoiceData[] = [
-    {
-      id: 1,
-      amount: 5000,
-      funded: 5000,
-      companyName: 'Gallivant Ice Cream',
-      companyLogoUrl: '/gallivant-ice-cream-logo.png',
-      category: 'CPG',
-      payerName: 'Walmart',
-      payerLogoUrl: '/Walmart-logo.png',
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      daysUntilDue: 30,
-      apy: 10.5,
-      return: 250,
-      riskScore: 'Low' as const,
-      status: 'funded' as const,
-      discountRate: 0.05,
-      tokenId: '1',
-      contractAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-      blockchainTxHash:
-        '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-      fundingDate: new Date(
-        Date.now() - 15 * 24 * 60 * 60 * 1000
-      ).toISOString(),
-      paymentsMade: [],
-    },
-    {
-      id: 4,
-      amount: 22000,
-      funded: 22000,
-      companyName: 'Urban Apparel Supply',
-      companyLogoUrl: '/urban-apparel-logo.png',
-      category: 'Retail',
-      payerName: 'Target',
-      payerLogoUrl: '/target-logo.png',
-      dueDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-      daysUntilDue: 60,
-      apy: 15.2,
-      return: 455,
-      riskScore: 'Medium' as const,
-      status: 'active' as const,
-      discountRate: 0.07,
-      tokenId: '4',
-      contractAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-      blockchainTxHash:
-        '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-      fundingDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      paymentsMade: [],
-    },
-    {
-      id: 2,
-      amount: 8000,
-      funded: 8000,
-      companyName: 'FreshMart Distributors',
-      companyLogoUrl: '/fast-distributor-logo.png',
-      category: 'Shipping',
-      payerName: 'Amazon',
-      payerLogoUrl: '/amazon-logo.png',
-      dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      daysUntilDue: 0,
-      apy: 10.5,
-      return: 400,
-      riskScore: 'Low' as const,
-      status: 'repaid' as const,
-      discountRate: 0.05,
-      tokenId: '2',
-      contractAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-      blockchainTxHash:
-        '0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321',
-      fundingDate: new Date(
-        Date.now() - 50 * 24 * 60 * 60 * 1000
-      ).toISOString(),
-      settlementDate: new Date(
-        Date.now() - 5 * 24 * 60 * 60 * 1000
-      ).toISOString(),
-      actualReturn: 8000,
-      paymentsMade: [
-        {
-          date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          amount: 8000,
-        },
-      ],
-    },
-  ];
-
-  return MOCK_PORTFOLIO_INVESTMENTS.find(
-    (inv) => inv.id.toString() === id.toString()
-  );
-};
-
 export default function PortfolioDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const investmentId = params.id as string;
-  const investment = getPortfolioInvestmentById(investmentId);
+  const { address } = useAccount();
+  const positionId = params.id as string;
 
-  if (!investment) {
+  // Fetch position data from API
+  const { data: positionData, isLoading, isError } = usePortfolioPosition(positionId, address || '');
+
+  // Map to InvoiceData format
+  const investment: InvoiceData | null = useMemo(() => {
+    if (!positionData) return null;
+
+    const mapped = mapPortfolioPosition(positionData);
+    return {
+      id: mapped.id,
+      companyName: mapped.issuer.name,
+      companyLogoUrl: undefined,
+      dueDate: mapped.invoice.dueAt.toISOString(),
+      category: mapped.payer.industry || 'General',
+      amount: mapped.invoice.amount,
+      funded: mapped.investment.fundedAmount,
+      payerName: mapped.payer.name,
+      payerLogoUrl: undefined,
+      daysUntilDue: Math.max(
+        0,
+        Math.ceil((mapped.invoice.dueAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      ),
+      return: mapped.realizedGains + mapped.unrealizedGains,
+      apr: mapped.investment.expectedReturn,
+      discountRate: 0, // Not directly available in position data
+      riskScore: mapped.invoice.riskScore as 'Low' | 'Medium' | 'High',
+      status: mapped.positionStatus === 'settled' ? 'repaid' : 'funded',
+      tokenId: mapped.nft.tokenId,
+      contractAddress: mapped.nft.contractAddress,
+      blockchainTxHash: mapped.investment.fundingTxHash,
+      fundingDate: mapped.investment.fundedAt.toISOString(),
+      settlementDate: mapped.settledAt?.toISOString(),
+      actualReturn: mapped.actualRepayment,
+      paymentsMade: [],
+      userInvestment: mapped.investment.fundedAmount,
+      expectedReturn: mapped.investment.expectedRepayment,
+      profit: mapped.realizedGains,
+    };
+  }, [positionData]);
+
+  // Loading state
+  if (isLoading) {
     return (
       <div className="space-y-6">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/')}
-          className="gap-2"
-        >
+        <Button variant="ghost" onClick={() => router.back()} className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Portfolio
+        </Button>
+        <Card className="p-12">
+          <div className="flex flex-col items-center justify-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading investment details...</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error or not found state
+  if (isError || !investment) {
+    return (
+      <div className="space-y-6">
+        <Button variant="ghost" onClick={() => router.back()} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
           Back to Portfolio
         </Button>
         <Card className="p-12">
           <div className="text-center">
-            <p className="text-lg text-muted-foreground">
-              Investment not found
+            <p className="text-lg text-destructive">
+              {isError ? 'Failed to load investment' : 'Investment not found'}
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Please try again or return to your portfolio
             </p>
           </div>
         </Card>
@@ -148,216 +113,65 @@ export default function PortfolioDetailPage() {
     );
   }
 
-  // Calculate investment amounts
-  const userInvestment = investment.amount * (1 - investment.discountRate);
-  const expectedReturn = investment.amount;
-
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6">
       {/* Back Button */}
-      <Button
-        variant="ghost"
-        onClick={() => router.push('/')}
-        className="gap-2"
-      >
+      <Button variant="ghost" onClick={() => router.back()} className="gap-2">
         <ArrowLeft className="h-4 w-4" />
         Back to Portfolio
       </Button>
 
       {/* Header Section */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-16 w-16 bg-neutral-200/80 shadow-sm">
-            <AvatarImage src={investment.companyLogoUrl} />
-            <AvatarFallback className="bg-neutral-200/80 font-semibold text-lg">
-              {investment.companyName[0].toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground leading-tight">
-              {investment.companyName}
-            </h1>
-            <p className="text-muted-foreground">
-              Invoice NFT #{investment.tokenId} • {investment.category}
-            </p>
-          </div>
-          <div className="ml-auto">
-            <Badge
-              variant={
-                investment.status === 'repaid'
-                  ? 'default'
-                  : investment.status === 'funded'
-                  ? 'secondary'
-                  : 'outline'
-              }
-            >
-              {investment.status === 'repaid'
-                ? 'Completed'
-                : investment.status === 'funded'
-                ? 'Active'
-                : 'Active'}
-            </Badge>
-          </div>
-        </div>
-      </div>
+      <InvoiceDetailHeader invoice={investment} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content - Left Column (2/3 width) */}
+        {/* Main Content - Left Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Key Metrics */}
-          <Card className="p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 " />
-              <h2 className="text-lg font-semibold">Investment Overview</h2>
-            </div>
-            <Separator />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Invoice Amount</p>
-                <p className="text-2xl font-bold">
-                  ${investment.amount.toLocaleString()}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">APY</p>
-                <p className="text-2xl font-bold">{investment.apy}%</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Term</p>
-                <p className="text-2xl font-bold">{investment.daysUntilDue}d</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Your Investment</p>
-                <p className="text-2xl font-bold">
-                  ${userInvestment.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Performance Metrics */}
-          {investment.fundingDate && (
-            <PerformanceMetrics
-              userInvestment={userInvestment}
-              expectedReturn={expectedReturn}
-              actualReturn={investment.actualReturn}
-              apy={investment.apy / 100}
-              fundingDate={investment.fundingDate}
-              settlementDate={investment.settlementDate}
-              status={investment.status || 'active'}
-            />
-          )}
-
           {/* Investment Timeline */}
-          {investment.fundingDate && (
-            <InvestmentTimeline
-              fundingDate={investment.fundingDate}
-              dueDate={investment.dueDate}
-              settlementDate={investment.settlementDate}
-              status={investment.status || 'active'}
-            />
-          )}
+          <InvestmentTimeline investment={investment} />
 
-          {/* Payment Status */}
-          {investment.fundingDate && (
-            <PaymentStatus
-              totalAmount={expectedReturn}
-              paymentsMade={investment.paymentsMade || []}
-              status={investment.status || 'active'}
-              dueDate={investment.dueDate}
-            />
-          )}
+          {/* Financial Breakdown */}
+          <FinancialBreakdown
+            invoice={investment}
+            lineItems={[
+              {
+                label: 'Investment Amount',
+                value: `$${investment.userInvestment?.toLocaleString()}`,
+              },
+              {
+                label: 'Expected Return',
+                value: `$${investment.expectedReturn?.toLocaleString()}`,
+                emphasis: true,
+              },
+              {
+                label: 'Profit',
+                value: `$${investment.profit?.toLocaleString()}`,
+              },
+              {
+                label: 'Due Date',
+                value: new Date(investment.dueDate).toLocaleDateString(),
+                emphasis: true,
+              },
+            ]}
+          />
 
           {/* Payer Information */}
-          <Card className="p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Payer Information</h2>
-            <Separator />
-            <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12 bg-neutral-200/80 shadow-sm">
-                <AvatarImage src={investment.payerLogoUrl} />
-                <AvatarFallback className="bg-neutral-200/80 font-semibold">
-                  {investment.payerName[0].toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold">{investment.payerName}</p>
-                <p className="text-sm text-muted-foreground">
-                  {investment.status === 'repaid'
-                    ? `Paid on ${new Date(
-                        investment.settlementDate || investment.dueDate
-                      ).toLocaleDateString()}`
-                    : `Payment due on ${new Date(
-                        investment.dueDate
-                      ).toLocaleDateString()}`}
-                </p>
-              </div>
-            </div>
-            <div className="bg-neutral-100/80 p-4 rounded-md space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Payment History
-                </span>
-                <span className="text-sm font-semibold">100% On-Time</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Total Invoices Paid
-                </span>
-                <span className="text-sm font-semibold">127</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Average Payment Time
-                </span>
-                <span className="text-sm font-semibold">28 days</span>
-              </div>
-            </div>
-          </Card>
+          <PayerInformation invoice={investment} />
         </div>
 
-        {/* Sidebar - Right Column (1/3 width) */}
+        {/* Sidebar - Right Column */}
         <div className="lg:col-span-1 space-y-6">
           {/* NFT Ownership */}
-          {investment.tokenId &&
-            investment.contractAddress &&
-            investment.blockchainTxHash && (
-              <NFTOwnership
-                tokenId={investment.tokenId}
-                contractAddress={investment.contractAddress}
-                blockchainTxHash={investment.blockchainTxHash}
-                companyName={investment.companyName}
-                companyLogoUrl={investment.companyLogoUrl}
-              />
-            )}
+          <NFTOwnership
+            tokenId={investment.tokenId!}
+            contractAddress={investment.contractAddress!}
+            blockchainTxHash={investment.blockchainTxHash!}
+            companyName={investment.companyName}
+            companyLogoUrl={investment.companyLogoUrl}
+          />
 
           {/* Risk Assessment */}
-          <Card className="p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 " />
-              <h2 className="text-lg font-semibold">Risk Assessment</h2>
-            </div>
-            <Separator />
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">
-                  Risk Level
-                </span>
-                <Badge variant="secondary">{investment.riskScore}</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Industry</span>
-                <Badge variant="secondary">{investment.category}</Badge>
-              </div>
-            </div>
-            <div className="bg-neutral-100/80 p-4 rounded-md space-y-2">
-              <p className="text-sm font-semibold">Key Factors:</p>
-              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                <li>Strong payer credit history</li>
-                <li>Established business relationship</li>
-                <li>Verified invoice documentation</li>
-              </ul>
-            </div>
-          </Card>
+          <RiskAssessment invoice={investment} />
         </div>
       </div>
     </div>

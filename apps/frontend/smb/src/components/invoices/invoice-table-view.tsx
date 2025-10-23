@@ -8,26 +8,23 @@ import {
   TableHeader,
   TableRow,
 } from '@ui';
-import { Button, Badge } from '@ui';
+import { Button } from '@ui';
 import { Invoice } from '@/types/invoice';
 import { InvoiceStatusBadge } from './invoice-status-badge';
-import { ArrowUpDown, Eye } from 'lucide-react';
-import Link from 'next/link';
+import { CopyableText } from '../ui/copyable-text';
+import { ArrowUpDown } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 interface InvoiceTableViewProps {
   invoices: Invoice[];
 }
 
-type SortField =
-  | 'invoiceNumber'
-  | 'amount'
-  | 'dueDate'
-  | 'status'
-  | 'riskScore';
+type SortField = 'invoiceNumber' | 'amount' | 'dueDate' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 export function InvoiceTableView({ invoices }: InvoiceTableViewProps) {
+  const router = useRouter();
   const [sortField, setSortField] = useState<SortField>('dueDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
@@ -70,35 +67,11 @@ export function InvoiceTableView({ invoices }: InvoiceTableViewProps) {
     }).format(date);
   };
 
-  const getRiskColor = (riskScore: string) => {
-    switch (riskScore) {
-      case 'LOW':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'MEDIUM':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'HIGH':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
-    }
-  };
-
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleSort('invoiceNumber')}
-                className="flex items-center gap-1"
-              >
-                Invoice #
-                <ArrowUpDown className="h-3 w-3" />
-              </Button>
-            </TableHead>
             <TableHead>Payer</TableHead>
             <TableHead>
               <Button
@@ -133,25 +106,14 @@ export function InvoiceTableView({ invoices }: InvoiceTableViewProps) {
                 <ArrowUpDown className="h-3 w-3" />
               </Button>
             </TableHead>
-            <TableHead>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleSort('riskScore')}
-                className="flex items-center gap-1"
-              >
-                Risk
-                <ArrowUpDown className="h-3 w-3" />
-              </Button>
-            </TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="text-right">Invoice ID</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {sortedInvoices.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={7}
+                colSpan={5}
                 className="text-center text-muted-foreground"
               >
                 No invoices found
@@ -159,10 +121,11 @@ export function InvoiceTableView({ invoices }: InvoiceTableViewProps) {
             </TableRow>
           ) : (
             sortedInvoices.map((invoice) => (
-              <TableRow key={invoice.id}>
-                <TableCell className="font-medium font-mono">
-                  {invoice.invoiceNumber}
-                </TableCell>
+              <TableRow
+                key={invoice.id}
+                onClick={() => router.push(`/invoices/${invoice.id}`)}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+              >
                 <TableCell>
                   <div>
                     <div className="font-medium">{invoice.payer.name}</div>
@@ -179,25 +142,22 @@ export function InvoiceTableView({ invoices }: InvoiceTableViewProps) {
                 <TableCell>
                   <div>
                     <div>{formatDate(invoice.dueDate)}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {invoice.daysUntilDue} days
-                    </div>
+                    {!['SETTLED', 'REPAID', 'FULLY_PAID', 'DEFAULTED'].includes(
+                      invoice.status
+                    ) && (
+                      <div className="text-xs text-muted-foreground">
+                        {invoice.daysUntilDue} days
+                      </div>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>
                   <InvoiceStatusBadge status={invoice.status} />
                 </TableCell>
-                <TableCell>
-                  <Badge className={getRiskColor(invoice.riskScore)} variant="secondary">
-                    {invoice.riskScore}
-                  </Badge>
-                </TableCell>
                 <TableCell className="text-right">
-                  <Link href={`/invoices/${invoice.id}`}>
-                    <Button variant="ghost" size="sm">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </Link>
+                  <div className="flex items-center justify-end">
+                    <CopyableText text={invoice.invoiceNumber} />
+                  </div>
                 </TableCell>
               </TableRow>
             ))

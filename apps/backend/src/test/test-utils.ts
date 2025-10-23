@@ -2,6 +2,8 @@
  * Test utilities and mocks
  */
 
+/// <reference types="jest" />
+
 import { Kysely } from 'kysely';
 import type Database from '../../../../src/types/db/Database';
 
@@ -41,9 +43,9 @@ export const mockInvoice = {
   id: 'invoice-123',
   organizationId: 'org-123',
   payerCompanyId: 'payer-123',
-  amountCents: '1000000',
-  aprBps: '3650',
-  discountRateBps: '500',
+  amount: '10000000000', // $10,000 in 6-decimal format (was 1,000,000 cents)
+  apr: '365000', // 36.5% in 6-decimal format (was 3,650 bps)
+  discountRate: '50000', // 5% in 6-decimal format (was 500 bps)
   invoiceNumber: 'INV-001',
   invoiceDate: '1704067200',
   dueAt: '9999999999', // Far future date for testing
@@ -99,6 +101,7 @@ export const mockOrganization = {
   kybCompletedAt: '1704067200',
   isWhitelisted: true,
   whitelistedAt: '1704067200',
+  stytchOrganizationId: null,
   createdAt: new Date('2024-01-01'),
   updatedAt: null,
   deletedAt: null,
@@ -146,9 +149,9 @@ export const mockInvestorPosition = {
   userId: 'user-123',
   invoiceId: 'invoice-123',
   nftId: 'nft-123',
-  principalAmountCents: '1000000',
-  expectedReturnCents: '50000',
-  aprBps: '3650',
+  principalAmountCents: '10000000000', // $10,000 in 6-decimal format
+  expectedReturnCents: '500000000', // $500 in 6-decimal format
+  expectedReturn: '50000', // 5% in 6-decimal format (was aprBps: '3650')
   fundedAt: '1704067200',
   maturityDate: '1706659200',
   positionStatus: 'ACTIVE',

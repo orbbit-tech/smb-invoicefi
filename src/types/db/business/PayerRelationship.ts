@@ -13,8 +13,6 @@ export default interface PayerRelationshipTable {
 
   totalInvoicesCount: ColumnType<number | null, number | null, number | null>;
 
-  totalInvoicesValueCents: ColumnType<string | null, string | null, string | null>;
-
   paidOnTimeCount: ColumnType<number | null, number | null, number | null>;
 
   latePaymentCount: ColumnType<number | null, number | null, number | null>;
@@ -34,6 +32,8 @@ export default interface PayerRelationshipTable {
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
 
   deletedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  totalInvoicesValue: ColumnType<string | null, string | null, string | null>;
 }
 
 export type PayerRelationshipDb = Selectable<PayerRelationshipTable>;

@@ -15,10 +15,6 @@ export default interface InvoiceUnderwritingTable {
 
   decisionReason: ColumnType<string | null, string | null, string | null>;
 
-  approvedAmountCents: ColumnType<string | null, string | null, string | null>;
-
-  approvedAprBps: ColumnType<string | null, string | null, string | null>;
-
   assessedRiskScore: ColumnType<string | null, string | null, string | null>;
 
   fraudCheckStatus: ColumnType<string | null, string | null, string | null>;
@@ -32,6 +28,10 @@ export default interface InvoiceUnderwritingTable {
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
 
   deletedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  approvedAmount: ColumnType<string | null, string | null, string | null>;
+
+  approvedApr: ColumnType<string | null, string | null, string | null>;
 }
 
 export type InvoiceUnderwritingDb = Selectable<InvoiceUnderwritingTable>;

@@ -7,20 +7,21 @@ export enum AuthStep {
   CreateOrganization = 'create-organization',
 }
 
-// Organization membership type (will be populated by API)
-export interface OrganizationMembership {
-  organization_id: string;
-  organization_name?: string;
-  organization_slug?: string;
-  member_id?: string;
-  [key: string]: unknown;
+/**
+ * Discovered Organization Interface
+ * Represents an organization the user belongs to (discovered during OTP auth)
+ * Matches the backend API response from /auth/email/otp/authenticate
+ */
+export interface DiscoveredOrganization {
+  organizationId: string | null;  // Our internal org ID (null if org not in our DB yet)
+  stytchOrganizationId: string;   // Stytch's org ID (always present)
 }
 
 // Basic data atoms
 export const emailAtom = atom<string>('');
 export const authStepAtom = atom<AuthStep>(AuthStep.Email);
 export const intermediateSessionTokenAtom = atom<string | null>(null);
-export const discoveredOrganizationsAtom = atom<OrganizationMembership[]>([]);
+export const discoveredOrganizationsAtom = atom<DiscoveredOrganization[]>([]);
 
 export interface BaseSession {
   isAuthenticated: boolean;

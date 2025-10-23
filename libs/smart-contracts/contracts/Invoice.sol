@@ -71,16 +71,17 @@ contract Invoice is IInvoice, ERC721, AccessControl, Pausable {
      * @notice Mints a new invoice NFT with specified initial status (two-step custody)
      * @dev Implements {IInvoice-mint}
      * @param mintTo Address receiving the newly minted invoice NFT (contract for listing, investor for funding)
-     * @param amount Invoice amount in payment token base units
+     * @param amount Invoice amount in payment token base units (e.g., for USDC with 6 decimals: 1_000_000 = $1)
      * @param paymentToken ERC20 stablecoin address used for settlement
      * @param dueAt Unix timestamp when payment is due
-     * @param apr Annual percentage rate in basis points
+     * @param apr Annual percentage rate with 6 decimals (e.g., 120_000 = 12%, 365_000 = 36.5%)
      * @param issuer Address of the entity that issued the invoice and receives funding
      * @param uri URI for invoice metadata (contains payer info and other details)
      * @param initialStatus Initial status (LISTED when platform lists, FUNDED for direct funding)
      * @return tokenId The newly minted invoice token ID
      * @dev Only callable by addresses with MINTER_ROLE (InvoiceFundingPool)
      * @dev Two-step custody: First mint to contract with LISTED, then transfer to investor when funded
+     * @dev APR precision: Uses 6 decimals where 1_000_000 = 100% for precise fee splitting
      */
     function mint(
         address mintTo,

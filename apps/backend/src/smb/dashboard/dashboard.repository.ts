@@ -26,7 +26,7 @@ export class DashboardRepository {
     // Active funding amount (LISTED or FULLY_FUNDED status)
     const activeFundingResult = await this.db
       .selectFrom('invoice.invoice')
-      .select(({ fn }) => [fn.sum<string>('amountCents').as('sum')])
+      .select(({ fn }) => [fn.sum<string>('amount').as('sum')])
       .where('organizationId', '=', organizationId)
       .where('lifecycleStatus', 'in', ['LISTED', 'FULLY_FUNDED'])
       .where('deletedAt', 'is', null)
@@ -37,7 +37,7 @@ export class DashboardRepository {
     // Total funded to date (all invoices that have been funded)
     const totalFundedResult = await this.db
       .selectFrom('invoice.invoice')
-      .select(({ fn }) => [fn.sum<string>('amountCents').as('sum')])
+      .select(({ fn }) => [fn.sum<string>('amount').as('sum')])
       .where('organizationId', '=', organizationId)
       .where('lifecycleStatus', 'in', [
         'FULLY_FUNDED',
@@ -55,7 +55,7 @@ export class DashboardRepository {
     // Pending repayments (PENDING_REPAYMENT or PARTIALLY_REPAID status)
     const pendingRepaymentsResult = await this.db
       .selectFrom('invoice.invoice')
-      .select(({ fn }) => [fn.sum<string>('amountCents').as('sum')])
+      .select(({ fn }) => [fn.sum<string>('amount').as('sum')])
       .where('organizationId', '=', organizationId)
       .where('lifecycleStatus', 'in', ['PENDING_REPAYMENT', 'PARTIALLY_REPAID'])
       .where('deletedAt', 'is', null)

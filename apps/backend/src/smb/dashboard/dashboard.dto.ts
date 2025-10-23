@@ -11,20 +11,20 @@ export class DashboardMetricsDto {
   totalInvoicesSubmitted: number;
 
   @ApiProperty({
-    description: 'Total amount currently in active funding process (in cents)',
-    example: 5000000,
+    description: 'Total amount currently in active funding process (6-decimal format)',
+    example: 50000000000,
   })
   activeFundingAmount: number;
 
   @ApiProperty({
-    description: 'Total amount funded to date (in cents)',
-    example: 25000000,
+    description: 'Total amount funded to date (6-decimal format)',
+    example: 250000000000,
   })
   totalFundedToDate: number;
 
   @ApiProperty({
-    description: 'Total pending repayment amount (in cents)',
-    example: 3500000,
+    description: 'Total pending repayment amount (6-decimal format)',
+    example: 35000000000,
   })
   pendingRepayments: number;
 }

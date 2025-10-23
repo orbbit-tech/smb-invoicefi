@@ -13,12 +13,6 @@ export default interface RepaymentDistributionTable {
 
   investorAddress: ColumnType<string, string, string>;
 
-  principalReturnedCents: ColumnType<string, string, string>;
-
-  yieldReceivedCents: ColumnType<string, string, string>;
-
-  totalAmountCents: ColumnType<string, string, string>;
-
   distributedAt: ColumnType<string, string, string>;
 
   distributionTxHash: ColumnType<string | null, string | null, string | null>;
@@ -26,6 +20,12 @@ export default interface RepaymentDistributionTable {
   createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  principalReturned: ColumnType<string, string, string>;
+
+  yieldReceived: ColumnType<string, string, string>;
+
+  totalAmount: ColumnType<string, string, string>;
 }
 
 export type RepaymentDistributionDb = Selectable<RepaymentDistributionTable>;

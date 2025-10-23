@@ -61,6 +61,23 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
     /// @notice Platform fee rate in basis points (e.g., 2500 = 25%)
     uint256 public platformFeeRate;
 
+    /// @notice APR decimal precision: 1_000_000 = 100% (6 decimals)
+    uint256 public constant APR_DECIMALS = 1_000_000;
+
+    /// @notice Minimum APR with 6 decimals (0 allows zero-interest promotional invoices)
+    uint256 public constant MIN_APR = 0;
+
+    /// @notice Maximum invoice amount in payment token base units
+    /// @dev Sanity check to prevent input errors, backend enforces business-specific limits
+    /// @dev Can be updated by admin as platform scales
+    uint256 public maxInvoiceAmount;
+
+    /// @notice Basis points precision: 10000 = 100% (used for platformFeeRate)
+    uint256 public constant BASIS_POINTS = 10000;
+
+    /// @notice Days in a year for yield calculations
+    uint256 public constant DAYS_IN_YEAR = 365;
+
     // ============ CONSTRUCTOR ============
 
     /**
@@ -71,6 +88,7 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
      * @param whitelist_ Address of the Whitelist contract for KYC/KYB compliance
      * @param platformTreasury_ Address of the platform treasury receiving protocol fees
      * @param platformFeeRate_ Platform fee rate in basis points (e.g., 2500 = 25%, max 10000 = 100%)
+     * @param maxInvoiceAmount_ Maximum invoice amount in payment token base units (e.g., 10_000_000 * 1e6 = 10M USDC)
      */
     constructor(
         address paymentToken_,
@@ -78,14 +96,16 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
         uint256 gracePeriodDays_,
         address whitelist_,
         address platformTreasury_,
-        uint256 platformFeeRate_
+        uint256 platformFeeRate_,
+        uint256 maxInvoiceAmount_
     ) {
         if (paymentToken_ == address(0)) revert IInvoiceFundingPool.InvalidPaymentTokenAddress(paymentToken_);
         if (invoice_ == address(0)) revert IInvoiceFundingPool.InvalidInvoiceAddress(invoice_);
         if (gracePeriodDays_ == 0) revert IInvoiceFundingPool.InvalidGracePeriod(gracePeriodDays_);
         if (whitelist_ == address(0)) revert IInvoiceFundingPool.WhitelistContractNotSet(whitelist_);
         if (platformTreasury_ == address(0)) revert IInvoiceFundingPool.InvalidPlatformTreasury(platformTreasury_);
-        if (platformFeeRate_ > 10000) revert IInvoiceFundingPool.InvalidPlatformFeeRate(platformFeeRate_);
+        if (platformFeeRate_ > BASIS_POINTS) revert IInvoiceFundingPool.InvalidPlatformFeeRate(platformFeeRate_);
+        if (maxInvoiceAmount_ == 0) revert IInvoiceFundingPool.InvalidAmount(maxInvoiceAmount_);
 
         paymentToken = IERC20(paymentToken_);
         invoice = Invoice(invoice_);
@@ -93,6 +113,7 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
         GRACE_PERIOD_DAYS = gracePeriodDays_;
         platformTreasury = platformTreasury_;
         platformFeeRate = platformFeeRate_;
+        maxInvoiceAmount = maxInvoiceAmount_;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, msg.sender);
@@ -104,9 +125,9 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
     /**
      * @notice Lists an invoice by minting NFT to contract (Step 1 of two-step custody)
      * @dev Implements {IInvoiceFundingPool-listInvoice}
-     * @param amount Invoice principal amount in payment token base units
+     * @param amount Invoice principal amount in payment token base units (e.g., for USDC with 6 decimals: 1_000_000 = $1)
      * @param dueAt Unix timestamp when payment is due
-     * @param apr Annual percentage rate in basis points (e.g., 1200 = 12%)
+     * @param apr Annual percentage rate with 6 decimals (e.g., 120_000 = 12%, 365_000 = 36.5%, no upper limit)
      * @param issuer Address of the entity that issued the invoice and receives funding
      * @param uri URI for invoice metadata (IPFS/S3, contains payer info and other details)
      * @return tokenId The newly minted invoice token ID
@@ -114,6 +135,8 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
      * @dev NFT minted to contract address with LISTED status
      * @dev Invoice becomes visible on-chain for investor verification
      * @dev Platform pays gas for listing (~$3-5)
+     * @dev APR precision: 1_000_000 = 100% allows precise fee splitting (e.g., 30% platform, 70% investor)
+     * @dev APR must be >= 0, no maximum limit (allows high-risk invoice financing rates >100%)
      */
     function listInvoice(
         uint256 amount,
@@ -128,8 +151,9 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
         whenNotPaused
         returns (uint256)
     {
-        if (amount == 0) revert IInvoiceFundingPool.InvalidAmount(amount);
+        if (amount == 0 || amount > maxInvoiceAmount) revert IInvoiceFundingPool.InvalidAmount(amount);
         if (dueAt <= block.timestamp) revert IInvoiceFundingPool.InvalidDueAt(dueAt, block.timestamp);
+        if (apr < MIN_APR) revert IInvoiceFundingPool.InvalidAmount(apr); // Reusing InvalidAmount error for APR
         if (issuer == address(0)) revert IInvoiceFundingPool.InvalidIssuer(issuer);
 
         // Check KYC/KYB compliance for issuer
@@ -408,15 +432,16 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
     /**
      * @notice Calculates yield split between investor and platform
      * @dev Implements {IInvoiceFundingPool-calculateYield}
-     * @param principal The principal amount funded
-     * @param apr Annual percentage rate in basis points (total fee SMB pays)
+     * @param principal The principal amount funded in payment token base units
+     * @param apr Annual percentage rate with 6 decimals (e.g., 120_000 = 12%, 365_000 = 36.5%)
      * @param dueAt The due date of the invoice
      * @param fundingTimestamp The timestamp when the invoice was funded
-     * @return totalYield Total yield amount (principal * apr * duration)
-     * @return investorYield Yield amount going to investor
-     * @return platformFee Fee amount going to platform treasury
-     * @dev Uses simple interest: yield = principal * apr * days / (10000 * 365)
-     * @dev Platform fee = totalYield * platformFeeRate / 10000
+     * @return totalYield Total yield amount in payment token base units (principal * apr * duration)
+     * @return investorYield Yield amount going to investor in payment token base units
+     * @return platformFee Fee amount going to platform treasury in payment token base units
+     * @dev Uses simple interest: yield = principal * apr * days / (APR_DECIMALS * DAYS_IN_YEAR)
+     * @dev APR uses 6 decimals where APR_DECIMALS (1_000_000) = 100%
+     * @dev Platform fee = totalYield * platformFeeRate / BASIS_POINTS (platformFeeRate in basis points)
      * @dev Investor yield = totalYield - platformFee
      */
     function calculateYield(
@@ -428,12 +453,13 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
         // Calculate duration in days from funding to due date
         uint256 durationDays = (dueAt - fundingTimestamp) / 1 days;
 
-        // Calculate total yield: principal * apr * days / (10000 * 365)
-        // APR is in basis points (e.g., 1200 = 12%)
-        totalYield = (principal * apr * durationDays) / (10000 * 365);
+        // Calculate total yield: principal * apr * days / (APR_DECIMALS * DAYS_IN_YEAR)
+        // APR uses 6 decimals where APR_DECIMALS (1_000_000) = 100% (e.g., 120_000 = 12%)
+        totalYield = (principal * apr * durationDays) / (APR_DECIMALS * DAYS_IN_YEAR);
 
         // Split: platform gets platformFeeRate% of total yield
-        platformFee = (totalYield * platformFeeRate) / 10000;
+        // platformFeeRate is in basis points (e.g., 3000 = 30%)
+        platformFee = (totalYield * platformFeeRate) / BASIS_POINTS;
         investorYield = totalYield - platformFee;
 
         return (totalYield, investorYield, platformFee);
@@ -533,7 +559,7 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        if (newRate > 10000) {
+        if (newRate > BASIS_POINTS) {
             revert IInvoiceFundingPool.InvalidPlatformFeeRate(newRate);
         }
 
@@ -541,6 +567,27 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
         platformFeeRate = newRate;
 
         emit IInvoiceFundingPool.PlatformFeeRateUpdated(oldRate, newRate);
+    }
+
+    /**
+     * @notice Updates the maximum invoice amount
+     * @dev Implements {IInvoiceFundingPool-setMaxInvoiceAmount}
+     * @param newMax New maximum invoice amount in payment token base units
+     * @dev Only callable by DEFAULT_ADMIN_ROLE
+     * @dev Must be greater than 0 to prevent operational issues
+     */
+    function setMaxInvoiceAmount(uint256 newMax)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        if (newMax == 0) {
+            revert IInvoiceFundingPool.InvalidAmount(newMax);
+        }
+
+        uint256 oldMax = maxInvoiceAmount;
+        maxInvoiceAmount = newMax;
+
+        emit IInvoiceFundingPool.MaxInvoiceAmountUpdated(oldMax, newMax);
     }
 
     // ============ ERC721 RECEIVER ============

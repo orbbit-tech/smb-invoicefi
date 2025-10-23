@@ -4,7 +4,7 @@ import { ProfileService } from './profile.service';
 import { UserProfileDto } from './profile.dto';
 
 @ApiTags('Investor - Profile')
-@Controller('api/investor/profile')
+@Controller('investor/profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 

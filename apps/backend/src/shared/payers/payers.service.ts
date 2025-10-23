@@ -56,7 +56,7 @@ export class PayersService {
 
     for (const rel of relationships) {
       totalInvoicesCount += Number(rel.totalInvoicesCount || 0);
-      totalInvoicesValue += Number(rel.totalInvoicesValueCents || 0);
+      totalInvoicesValue += Number(rel.totalInvoicesValue || 0);
       paidOnTimeCount += Number(rel.paidOnTimeCount || 0);
       latePaymentCount += Number(rel.latePaymentCount || 0);
       defaultCount += Number(rel.defaultCount || 0);
@@ -86,6 +86,17 @@ export class PayersService {
       reliabilityScore: averageReliabilityScore,
     };
 
+    // Format address as a single string
+    const addressParts = [
+      payer.addressLine1,
+      payer.addressLine2,
+      payer.city,
+      payer.state,
+      payer.postalCode,
+      payer.country,
+    ].filter(Boolean);
+    const address = addressParts.length > 0 ? addressParts.join(', ') : undefined;
+
     return {
       id: payer.id,
       name: payer.name,
@@ -94,7 +105,7 @@ export class PayersService {
       creditScore: payer.creditScore || undefined,
       paymentTermsDays: payer.paymentTermsDays || undefined,
       website: payer.website || undefined,
-      address: payer.address || undefined,
+      address,
       performanceMetrics,
       createdAt: new Date(payer.createdAt).toISOString(),
     };

@@ -15,11 +15,12 @@ export {
   GanttSidebarItem,
   GanttSidebarHeader,
   GanttHeader,
+  GanttToolbar,
   GanttContext,
   type GanttFeature,
   type GanttStatus,
   type GanttMarkerProps,
-  type GanttSidebarHeaderProps,
   type GanttContextProps,
+  type GanttToolbarProps,
   type Range,
 } from './gantt';
