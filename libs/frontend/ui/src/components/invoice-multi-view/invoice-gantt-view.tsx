@@ -16,7 +16,6 @@ import {
   type GanttStatus,
   type GanttContextProps,
   type Range,
-  cn,
 } from '../kibo';
 import { useMemo, useState, useContext, useEffect, useRef } from 'react';
 import { InvoiceStatusBadge } from './invoice-status-badge';
@@ -182,8 +181,12 @@ export function InvoiceGanttView({ invoices, config }: InvoiceGanttViewProps) {
   const MIN_HEIGHT = 300;
   const MAX_HEIGHT = 600;
 
-  const calculatedHeight = (invoices.length * ROW_HEIGHT) + HEADER_HEIGHT + TOOLBAR_HEIGHT;
-  const dynamicHeight = Math.min(Math.max(calculatedHeight, MIN_HEIGHT), MAX_HEIGHT);
+  const calculatedHeight =
+    invoices.length * ROW_HEIGHT + HEADER_HEIGHT + TOOLBAR_HEIGHT;
+  const dynamicHeight = Math.min(
+    Math.max(calculatedHeight, MIN_HEIGHT),
+    MAX_HEIGHT
+  );
 
   return (
     <div>
@@ -196,15 +199,15 @@ export function InvoiceGanttView({ invoices, config }: InvoiceGanttViewProps) {
         }
       `}</style>
 
-      <GanttProvider
-        zoom={viewRange === 'daily' ? 200 : viewRange === 'monthly' ? 150 : 100}
-        range={viewRange}
-        rowHeight={64}
-        className="shadow-md rounded-lg"
-        style={{ height: `${dynamicHeight}px` }}
-        showToolbar={true}
-        onRangeChange={handleRangeChange}
-      >
+      <div style={{ height: `${dynamicHeight}px` }}>
+        <GanttProvider
+          zoom={viewRange === 'daily' ? 200 : viewRange === 'monthly' ? 150 : 100}
+          range={viewRange}
+          rowHeight={64}
+          className="shadow-md rounded-lg"
+          showToolbar={true}
+          onRangeChange={handleRangeChange}
+        >
         {/* Auto-scroll to today when view range changes */}
         <ScrollToTodayEffect viewRange={viewRange} />
         <GanttSidebar showHeader={false} className="!overflow-visible">
@@ -259,6 +262,7 @@ export function InvoiceGanttView({ invoices, config }: InvoiceGanttViewProps) {
           <GanttToday className="bg-slate-300 shadow-sm" />
         </GanttTimeline>
       </GanttProvider>
+      </div>
     </div>
   );
 }

@@ -97,7 +97,9 @@ function InvoiceCard({
           )}
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <span>{formatDate(invoice.dueDate)}</span>
-            <span className="ml-1">({invoice.daysUntilDue}d)</span>
+            {invoice.daysUntilDue > 0 && (
+              <span className="ml-1">({invoice.daysUntilDue}d)</span>
+            )}
           </div>
         </CardContent>
       </Card>

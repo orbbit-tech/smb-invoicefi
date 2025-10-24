@@ -14,11 +14,15 @@ import {
   FinancialBreakdown,
   DocumentsSection,
 } from '@ui';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { type InvoiceData } from '@/components/invoices';
 import { usePortfolioPosition } from '@/hooks/api';
 import { mapPortfolioPosition } from '@/lib/mappers/invoice-mapper';
 import { NFTOwnership, InvestmentTimeline } from '@/components/portfolio';
+import {
+  InvoiceDetailHeaderSkeleton,
+  CardSectionSkeleton,
+} from '@/components/skeletons';
 
 /**
  * Portfolio Detail Page
@@ -81,12 +85,24 @@ export default function PortfolioDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to Portfolio
         </Button>
-        <Card className="p-12">
-          <div className="flex flex-col items-center justify-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading investment details...</p>
+
+        {/* Header Skeleton */}
+        <InvoiceDetailHeaderSkeleton />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            <CardSectionSkeleton rows={5} />
+            <CardSectionSkeleton rows={4} />
+            <CardSectionSkeleton rows={4} />
           </div>
-        </Card>
+
+          {/* Right Column - Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            <CardSectionSkeleton rows={3} />
+            <CardSectionSkeleton rows={4} />
+          </div>
+        </div>
       </div>
     );
   }

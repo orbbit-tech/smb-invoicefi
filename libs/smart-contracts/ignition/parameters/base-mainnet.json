@@ -6,7 +6,8 @@
     "metadataBaseUri": "https://api.orbbit.com/metadata/",
     "metadataExtension": ".json",
     "gracePeriodDays": 30,
-    "platformFeeRate": 3000,
-    "maxBatchSize": 50
+    "platformFeeRate": 300000,
+    "maxBatchSize": 50,
+    "maxInvoiceAmount": "10000000000000"
   }
 }

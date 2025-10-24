@@ -15,8 +15,8 @@ import "./Invoice.sol";
 /**
  * @title InvoiceFundingPool
  * @notice Manages payment token deposits, investor tracking, and yield distribution for invoice financing
- * @dev Implements single-investor model for MVP - each invoice is fully funded by one investor
- * @dev V1: Currently USDC-only on Base (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
+ * @dev Implements full-funding model where each invoice is fully funded by one investor
+ * @dev V1: Currently USDC-only on Base network
  */
 contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGuard, Pausable, IERC721Receiver {
     using SafeERC20 for IERC20;
@@ -72,8 +72,8 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
     /// @dev Can be updated by admin as platform scales
     uint256 public maxInvoiceAmount;
 
-    /// @notice Basis points precision: 10000 = 100% (used for platformFeeRate)
-    uint256 public constant BASIS_POINTS = 10000;
+    /// @notice Basis points precision: 1_000_000 = 100% (used for platformFeeRate, aligned with APR decimals)
+    uint256 public constant BASIS_POINTS = 1_000_000;
 
     /// @notice Days in a year for yield calculations
     uint256 public constant DAYS_IN_YEAR = 365;
@@ -87,7 +87,7 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
      * @param gracePeriodDays_ Number of days after due date before marking as defaulted
      * @param whitelist_ Address of the Whitelist contract for KYC/KYB compliance
      * @param platformTreasury_ Address of the platform treasury receiving protocol fees
-     * @param platformFeeRate_ Platform fee rate in basis points (e.g., 2500 = 25%, max 10000 = 100%)
+     * @param platformFeeRate_ Platform fee rate in basis points (e.g., 250_000 = 25%, max 1_000_000 = 100%)
      * @param maxInvoiceAmount_ Maximum invoice amount in payment token base units (e.g., 10_000_000 * 1e6 = 10M USDC)
      */
     constructor(
@@ -134,8 +134,7 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
      * @dev Only callable by OPERATOR_ROLE (platform admins)
      * @dev NFT minted to contract address with LISTED status
      * @dev Invoice becomes visible on-chain for investor verification
-     * @dev Platform pays gas for listing (~$3-5)
-     * @dev APR precision: 1_000_000 = 100% allows precise fee splitting (e.g., 30% platform, 70% investor)
+     * @dev APR precision: 1_000_000 = 100% allows precise fee splitting between platform and investor
      * @dev APR must be >= 0, no maximum limit (allows high-risk invoice financing rates >100%)
      */
     function listInvoice(
@@ -189,9 +188,8 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
      * @dev Transfers NFT from contract to investor atomically with USDC transfer
      * @dev Investor only needs to provide tokenId - all params already on-chain
      * @dev Transfers payment token directly from investor to issuer wallet
-     * @dev Single-investor model: each invoice fully funded by one investor
+     * @dev Full-funding model: each invoice fully funded by one investor
      * @dev Updates status from LISTED to FUNDED
-     * @dev Investor pays gas for funding (~$10-15)
      */
     function fundInvoice(uint256 tokenId)
         external
@@ -284,13 +282,13 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
     }
 
     /**
-     * @notice Deposits repayment on behalf of another address (for ACH flow)
-     * @dev Implements the ACH autopay flow: SMB → Moov → Coinbase → Hot Wallet → Contract
+     * @notice Deposits repayment on behalf of another address (for third-party payment flow)
+     * @dev Enables off-chain payment processing with on-chain settlement
      * @param tokenId The ID of the invoice NFT being repaid
-     * @param onBehalfOf The SMB address this repayment is for (must match invoice issuer)
-     * @dev Only callable by OPERATOR_ROLE (hot wallet or admin)
-     * @dev Used when admin converts fiat to stablecoin and deposits for SMB
-     * @dev Caller (admin) must have approved this contract to spend payment token
+     * @param onBehalfOf The issuer address this repayment is for (must match invoice issuer)
+     * @dev Only callable by OPERATOR_ROLE (authorized payment processor)
+     * @dev Used when operator converts fiat to stablecoin and deposits for issuer
+     * @dev Caller must have approved this contract to spend payment token
      * @dev Updates invoice status to FULLY_PAID
      */
     function depositRepaymentOnBehalf(
@@ -458,7 +456,7 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
         totalYield = (principal * apr * durationDays) / (APR_DECIMALS * DAYS_IN_YEAR);
 
         // Split: platform gets platformFeeRate% of total yield
-        // platformFeeRate is in basis points (e.g., 3000 = 30%)
+        // platformFeeRate is in basis points with 6 decimals (e.g., 300_000 = 30%)
         platformFee = (totalYield * platformFeeRate) / BASIS_POINTS;
         investorYield = totalYield - platformFee;
 
@@ -552,7 +550,7 @@ contract InvoiceFundingPool is IInvoiceFundingPool, AccessControl, ReentrancyGua
     /**
      * @notice Updates the platform fee rate
      * @dev Implements {IInvoiceFundingPool-setPlatformFeeRate}
-     * @param newRate New fee rate in basis points (max 10000 = 100%)
+     * @param newRate New fee rate in basis points (max 1_000_000 = 100%)
      * @dev Only callable by DEFAULT_ADMIN_ROLE
      */
     function setPlatformFeeRate(uint256 newRate)

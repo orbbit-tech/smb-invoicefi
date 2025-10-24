@@ -19,9 +19,10 @@ export function usdcToDollars(usdc: number): number {
 
 /**
  * Convert 6-decimal format to percentage (e.g., 365,000 → 36.5%)
+ * 6-decimal format: 1,000,000 = 100%
  */
 export function decimalToPercentage(decimal: number): number {
-  return decimal / 10_000;
+  return decimal / 1_000_000;
 }
 
 /**

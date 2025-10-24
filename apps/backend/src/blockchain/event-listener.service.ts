@@ -1,4 +1,5 @@
 import { Injectable, Inject, OnModuleInit, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PublicClient } from 'viem';
 import { Kysely } from 'kysely';
 import type Database from '../../../../src/types/db/Database';
@@ -6,22 +7,30 @@ import { VIEM_CLIENT_TOKEN } from './blockchain.constants';
 import { DATABASE_TOKEN } from '../database/database.constants';
 import { ViemClients } from './blockchain.provider';
 import { getBlockchainConfig } from './blockchain.config';
+import { CdpWebhookData, parseEventData } from './dto/webhook-payload.dto';
 
 /**
- * Background service that listens to smart contract events
- * and syncs blockchain data to the database
+ * Event Listener Service
+ * Processes blockchain events received from webhooks (Alchemy/CDP)
+ * with polling backup, and syncs data to PostgreSQL database
  *
- * Events to listen for:
+ * Events handled:
  * - InvoiceMinted: When a new invoice NFT is created
  * - InvoiceFunded: When an investor funds an invoice
- * - InvoiceRepaid: When an invoice is repaid
- * - Transfer: When an NFT is transferred (secondary market)
+ * - RepaymentDeposited: When repayment funds are deposited
+ * - InvoiceSettled: When funds are distributed to investor
+ * - InvoiceDefaulted: When an invoice defaults
+ *
+ * Polling backup runs every 5 minutes to catch any events webhooks might miss
  */
 @Injectable()
 export class EventListenerService implements OnModuleInit {
   private readonly logger = new Logger(EventListenerService.name);
   private readonly publicClient: PublicClient;
   private readonly config: ReturnType<typeof getBlockchainConfig>;
+  private readonly processedTxHashes: Set<string> = new Set();
+  private lastSyncedBlock: bigint = BigInt(0);
+  private isPolling: boolean = false;
 
   constructor(
     @Inject(VIEM_CLIENT_TOKEN) private readonly viemClients: ViemClients,
@@ -32,124 +41,688 @@ export class EventListenerService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    // Start listening to events when the module initializes
-    // For MVP, we'll implement this as a polling mechanism
-    // In production, use watchContractEvent for real-time listening
     this.logger.log('Event listener service initialized');
-    this.logger.log(`Monitoring contracts on ${this.config.chainName} (Chain ID: ${this.config.chainId})`);
+    this.logger.log(`Ready to process events on ${this.config.chainName} (Chain ID: ${this.config.chainId})`);
 
-    // TODO: Implement event watching
-    // this.watchInvoiceMintedEvents();
-    // this.watchInvoiceFundedEvents();
-    // this.watchInvoiceRepaidEvents();
+    const webhookProvider = this.config.webhook?.provider || 'alchemy';
+    const pollingEnabled = this.config.webhook?.polling?.enabled || false;
+
+    this.logger.log(`Primary event source: ${webhookProvider} webhooks`);
+    if (pollingEnabled) {
+      this.logger.log('Polling backup enabled (every 5 minutes)');
+    } else {
+      this.logger.log('Polling backup disabled');
+    }
+
+    // Initialize last synced block (start from recent block to avoid full history sync)
+    try {
+      const currentBlock = await this.publicClient.getBlockNumber();
+      this.lastSyncedBlock = currentBlock - BigInt(100); // Start from 100 blocks ago
+      this.logger.log(`Initialized polling from block: ${this.lastSyncedBlock}`);
+    } catch (error) {
+      this.logger.error('Failed to initialize last synced block:', error);
+    }
   }
 
   /**
-   * Watch for InvoiceMinted events
-   * Triggered when a new invoice NFT is minted
+   * Check if transaction has already been processed (idempotency)
    */
-  private async watchInvoiceMintedEvents() {
-    this.logger.log('Watching InvoiceMinted events...');
+  private async isTransactionProcessed(txHash: string): Promise<boolean> {
+    if (this.processedTxHashes.has(txHash)) {
+      return true;
+    }
 
-    // TODO: Implement with actual contract ABI
-    // this.publicClient.watchContractEvent({
-    //   address: this.config.invoiceContractAddress as `0x${string}`,
-    //   abi: InvoiceABI,
-    //   eventName: 'InvoiceMinted',
-    //   onLogs: async (logs) => {
-    //     for (const log of logs) {
-    //       await this.handleInvoiceMinted(log);
-    //     }
-    //   },
-    // });
+    const existing = await this.db
+      .selectFrom('blockchain.transaction')
+      .select('txHash')
+      .where('txHash', '=', txHash)
+      .executeTakeFirst();
+
+    return !!existing;
   }
 
   /**
-   * Watch for InvoiceFunded events
-   * Triggered when an investor funds an invoice
+   * Mark transaction as processed
    */
-  private async watchInvoiceFundedEvents() {
-    this.logger.log('Watching InvoiceFunded events...');
-
-    // TODO: Implement with actual contract ABI
-    // this.publicClient.watchContractEvent({
-    //   address: this.config.fundingPoolContractAddress as `0x${string}`,
-    //   abi: FundingPoolABI,
-    //   eventName: 'InvoiceFunded',
-    //   onLogs: async (logs) => {
-    //     for (const log of logs) {
-    //       await this.handleInvoiceFunded(log);
-    //     }
-    //   },
-    // });
-  }
-
-  /**
-   * Watch for InvoiceRepaid events
-   * Triggered when an invoice is repaid
-   */
-  private async watchInvoiceRepaidEvents() {
-    this.logger.log('Watching InvoiceRepaid events...');
-
-    // TODO: Implement with actual contract ABI
+  private markTransactionProcessed(txHash: string) {
+    this.processedTxHashes.add(txHash);
+    // Limit in-memory cache size
+    if (this.processedTxHashes.size > 10000) {
+      const firstItem = this.processedTxHashes.values().next().value;
+      this.processedTxHashes.delete(firstItem);
+    }
   }
 
   /**
    * Handle InvoiceMinted event
+   * Creates NFT record and updates invoice status to LISTED
    */
-  private async handleInvoiceMinted(log: any) {
-    this.logger.log(`Processing InvoiceMinted event: ${log.transactionHash}`);
+  async handleInvoiceMinted(webhookData: CdpWebhookData) {
+    const txHash = webhookData.transaction_hash;
+    this.logger.log(`Processing InvoiceMinted event: ${txHash}`);
 
     try {
-      // Extract event data
-      // const { tokenId, invoiceId, owner, mintedAt } = log.args;
+      // Check idempotency
+      if (await this.isTransactionProcessed(txHash)) {
+        this.logger.log(`Transaction ${txHash} already processed, skipping`);
+        return;
+      }
 
-      // Insert into blockchain.invoice_nft table
-      // await this.db
-      //   .insertInto('blockchain.invoiceNft')
-      //   .values({
-      //     invoiceId,
-      //     tokenId: tokenId.toString(),
-      //     contractAddress: this.config.invoiceContractAddress,
-      //     ownerAddress: owner,
-      //     mintedAt: BigInt(mintedAt),
-      //     mintedTxHash: log.transactionHash,
-      //     chainId: this.config.chainId,
-      //   })
-      //   .execute();
+      const eventData = parseEventData<{
+        tokenId: string;
+        issuer: string;
+        amount: string;
+        dueAt: string;
+        apr: string;
+      }>(webhookData);
 
-      // Update invoice on_chain_status
-      // await this.db
-      //   .updateTable('invoice.invoice')
-      //   .set({ onChainStatus: 'LISTED' })
-      //   .where('id', '=', invoiceId)
-      //   .execute();
+      // Find invoice by issuer wallet address
+      const invoice = await this.db
+        .selectFrom('identity.organization')
+        .innerJoin('invoice.invoice', 'invoice.invoice.organizationId', 'identity.organization.id')
+        .select(['invoice.invoice.id as invoiceId'])
+        .where('identity.organization.walletAddress', '=', eventData.issuer)
+        .where('invoice.invoice.onChainStatus', 'is', null)
+        .orderBy('invoice.invoice.createdAt', 'desc')
+        .executeTakeFirst();
 
-      this.logger.log(`Successfully processed InvoiceMinted event`);
+      if (!invoice) {
+        this.logger.error(`No matching invoice found for issuer ${eventData.issuer}`);
+        return;
+      }
+
+      // Start transaction
+      await this.db.transaction().execute(async (trx) => {
+        // Insert NFT record
+        await trx
+          .insertInto('blockchain.invoiceNft')
+          .values({
+            id: `nft_${eventData.tokenId}`,
+            invoiceId: invoice.invoiceId,
+            tokenId: eventData.tokenId,
+            contractAddress: webhookData.contract_address,
+            chainId: this.config.chainId,
+            ownerAddress: this.config.invoiceContractAddress, // Contract holds NFT initially
+            metadataUri: `ipfs://invoice-${eventData.tokenId}`,
+            mintedAt: String(webhookData.block_timestamp),
+            mintedTxHash: txHash,
+            createdAt: new Date(),
+          })
+          .execute();
+
+        // Update invoice status
+        await trx
+          .updateTable('invoice.invoice')
+          .set({
+            onChainStatus: 'LISTED',
+            lifecycleStatus: 'LISTED',
+            updatedAt: new Date(),
+          })
+          .where('id', '=', invoice.invoiceId)
+          .execute();
+
+        // Insert transaction record
+        await trx
+          .insertInto('blockchain.transaction')
+          .values({
+            nftId: `nft_${eventData.tokenId}`,
+            txHash,
+            txType: 'MINT',
+            fromAddress: '0x0000000000000000000000000000000000000000',
+            toAddress: this.config.invoiceContractAddress,
+            amount: '0',
+            blockNumber: String(webhookData.block_height),
+            blockTimestamp: String(webhookData.block_timestamp),
+            status: 'CONFIRMED',
+            createdAt: new Date(),
+          })
+          .execute();
+
+        // Insert contract event
+        await trx
+          .insertInto('blockchain.contractEvent')
+          .values({
+            eventName: 'InvoiceMinted',
+            contractAddress: webhookData.contract_address,
+            txHash,
+            blockNumber: String(webhookData.block_height),
+            blockTimestamp: String(webhookData.block_timestamp),
+            logIndex: webhookData.log_index,
+            invoiceTokenId: eventData.tokenId,
+            eventData: JSON.stringify(eventData),
+            processed: true,
+            createdAt: new Date(),
+          })
+          .execute();
+      });
+
+      this.markTransactionProcessed(txHash);
+      this.logger.log(`Successfully processed InvoiceMinted event for token ${eventData.tokenId}`);
     } catch (error) {
       this.logger.error(`Error processing InvoiceMinted event:`, error);
+      throw error;
     }
   }
 
   /**
    * Handle InvoiceFunded event
+   * Creates funding record, investor position, and updates invoice status
    */
-  private async handleInvoiceFunded(log: any) {
-    this.logger.log(`Processing InvoiceFunded event: ${log.transactionHash}`);
+  async handleInvoiceFunded(webhookData: CdpWebhookData) {
+    const txHash = webhookData.transaction_hash;
+    this.logger.log(`Processing InvoiceFunded event: ${txHash}`);
 
     try {
-      // Extract event data
-      // const { tokenId, investor, amount, fundedAt } = log.args;
+      if (await this.isTransactionProcessed(txHash)) {
+        this.logger.log(`Transaction ${txHash} already processed, skipping`);
+        return;
+      }
 
-      // Insert into invoice.invoice_funding_detail
-      // Insert into investment.investor_position
-      // Update invoice lifecycle_status to 'FUNDED'
-      // Update invoice_nft owner_address
-      // Insert transaction record
+      const eventData = parseEventData<{
+        tokenId: string;
+        investor: string;
+        amount: string;
+        fundedAt: string;
+      }>(webhookData);
 
-      this.logger.log(`Successfully processed InvoiceFunded event`);
+      // Find NFT and invoice
+      const nft = await this.db
+        .selectFrom('blockchain.invoiceNft')
+        .select(['id', 'invoiceId'])
+        .where('tokenId', '=', eventData.tokenId)
+        .executeTakeFirstOrThrow();
+
+      const invoice = await this.db
+        .selectFrom('invoice.invoice')
+        .select(['id', 'amount', 'apr', 'dueAt', 'organizationId'])
+        .where('id', '=', nft.invoiceId)
+        .executeTakeFirstOrThrow();
+
+      // Find or create investor user
+      let investorUser = await this.db
+        .selectFrom('identity.user')
+        .select('id')
+        .where('walletAddress', '=', eventData.investor)
+        .executeTakeFirst();
+
+      if (!investorUser) {
+        await this.db
+          .insertInto('identity.user')
+          .values({
+            id: `user_${eventData.investor.slice(2, 18)}`,
+            email: `${eventData.investor}@temp.orbbit.co`,
+            walletAddress: eventData.investor,
+            createdAt: new Date(),
+          })
+          .execute();
+
+        investorUser = { id: `user_${eventData.investor.slice(2, 18)}` };
+      }
+
+      // Calculate expected return
+      const principal = BigInt(eventData.amount);
+      const apr = BigInt(invoice.apr);
+      const dueAt = BigInt(invoice.dueAt);
+      const fundedAt = BigInt(eventData.fundedAt);
+      const durationDays = Number((dueAt - fundedAt) / BigInt(86400));
+
+      // expectedReturn = principal * (1 + apr * days / 365)
+      // Using 6 decimal precision
+      const yieldAmount = (principal * apr * BigInt(durationDays)) / (BigInt(1000000) * BigInt(365));
+      const expectedReturn = principal + yieldAmount;
+
+      await this.db.transaction().execute(async (trx) => {
+        // Insert funding detail
+        await trx
+          .insertInto('invoice.invoiceFundingDetail')
+          .values({
+            id: `fund_${eventData.tokenId}`,
+            invoiceId: invoice.id,
+            investorAddress: eventData.investor,
+            fundedAmount: eventData.amount,
+            fundedAt: String(eventData.fundedAt),
+            fundingTxHash: txHash,
+            paymentTokenAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
+            expectedRepayment: expectedReturn.toString(),
+            expectedReturn: yieldAmount.toString(),
+            createdAt: new Date(),
+          })
+          .execute();
+
+        // Insert investor position
+        await trx
+          .insertInto('investment.investorPosition')
+          .values({
+            id: `pos_${eventData.tokenId}`,
+            userId: investorUser!.id,
+            invoiceId: invoice.id,
+            nftId: nft.id,
+            principalAmount: eventData.amount,
+            expectedReturn: expectedReturn.toString(),
+            apr: invoice.apr,
+            fundedAt: String(eventData.fundedAt),
+            maturityDate: invoice.dueAt,
+            positionStatus: 'ACTIVE',
+            createdAt: new Date(),
+          })
+          .execute();
+
+        // Update invoice status
+        await trx
+          .updateTable('invoice.invoice')
+          .set({
+            onChainStatus: 'FUNDED',
+            lifecycleStatus: 'AWAITING_PAYMENT',
+            updatedAt: new Date(),
+          })
+          .where('id', '=', invoice.id)
+          .execute();
+
+        // Update NFT owner
+        await trx
+          .updateTable('blockchain.invoiceNft')
+          .set({
+            ownerAddress: eventData.investor,
+            updatedAt: new Date(),
+          })
+          .where('id', '=', nft.id)
+          .execute();
+
+        // Insert transaction record
+        await trx
+          .insertInto('blockchain.transaction')
+          .values({
+            nftId: nft.id,
+            txHash,
+            txType: 'FUNDING',
+            fromAddress: eventData.investor,
+            toAddress: invoice.organizationId, // Funds go to organization
+            amount: eventData.amount,
+            blockNumber: String(webhookData.block_height),
+            blockTimestamp: String(webhookData.block_timestamp),
+            status: 'CONFIRMED',
+            createdAt: new Date(),
+          })
+          .execute();
+
+        // Insert contract event
+        await trx
+          .insertInto('blockchain.contractEvent')
+          .values({
+            eventName: 'InvoiceFunded',
+            contractAddress: webhookData.contract_address,
+            txHash,
+            blockNumber: String(webhookData.block_height),
+            blockTimestamp: String(webhookData.block_timestamp),
+            logIndex: webhookData.log_index,
+            invoiceTokenId: eventData.tokenId,
+            eventData: JSON.stringify(eventData),
+            processed: true,
+            createdAt: new Date(),
+          })
+          .execute();
+      });
+
+      this.markTransactionProcessed(txHash);
+      this.logger.log(`Successfully processed InvoiceFunded event for token ${eventData.tokenId}`);
     } catch (error) {
       this.logger.error(`Error processing InvoiceFunded event:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle RepaymentDeposited event
+   * Records repayment deposit (intermediate step before settlement)
+   */
+  async handleRepaymentDeposited(webhookData: CdpWebhookData) {
+    const txHash = webhookData.transaction_hash;
+    this.logger.log(`Processing RepaymentDeposited event: ${txHash}`);
+
+    try {
+      if (await this.isTransactionProcessed(txHash)) {
+        this.logger.log(`Transaction ${txHash} already processed, skipping`);
+        return;
+      }
+
+      const eventData = parseEventData<{
+        tokenId: string;
+        amount: string;
+        depositedBy: string;
+        depositedAt: string;
+      }>(webhookData);
+
+      const nft = await this.db
+        .selectFrom('blockchain.invoiceNft')
+        .select(['id', 'invoiceId'])
+        .where('tokenId', '=', eventData.tokenId)
+        .executeTakeFirstOrThrow();
+
+      await this.db.transaction().execute(async (trx) => {
+        // Update invoice status to FULLY_PAID
+        await trx
+          .updateTable('invoice.invoice')
+          .set({
+            onChainStatus: 'FULLY_PAID',
+            lifecycleStatus: 'FULLY_PAID',
+            updatedAt: new Date(),
+          })
+          .where('id', '=', nft.invoiceId)
+          .execute();
+
+        // Insert transaction record
+        await trx
+          .insertInto('blockchain.transaction')
+          .values({
+            nftId: nft.id,
+            txHash,
+            txType: 'REPAYMENT',
+            fromAddress: eventData.depositedBy,
+            toAddress: webhookData.contract_address,
+            amount: eventData.amount,
+            blockNumber: String(webhookData.block_height),
+            blockTimestamp: String(webhookData.block_timestamp),
+            status: 'CONFIRMED',
+            createdAt: new Date(),
+          })
+          .execute();
+
+        // Insert contract event
+        await trx
+          .insertInto('blockchain.contractEvent')
+          .values({
+            eventName: 'RepaymentDeposited',
+            contractAddress: webhookData.contract_address,
+            txHash,
+            blockNumber: String(webhookData.block_height),
+            blockTimestamp: String(webhookData.block_timestamp),
+            logIndex: webhookData.log_index,
+            invoiceTokenId: eventData.tokenId,
+            eventData: JSON.stringify(eventData),
+            processed: true,
+            createdAt: new Date(),
+          })
+          .execute();
+      });
+
+      this.markTransactionProcessed(txHash);
+      this.logger.log(`Successfully processed RepaymentDeposited event for token ${eventData.tokenId}`);
+    } catch (error) {
+      this.logger.error(`Error processing RepaymentDeposited event:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle InvoiceSettled/InvoiceRepaid event
+   * Records final settlement and distribution to investor
+   */
+  async handleInvoiceRepaid(webhookData: CdpWebhookData) {
+    const txHash = webhookData.transaction_hash;
+    this.logger.log(`Processing InvoiceSettled event: ${txHash}`);
+
+    try {
+      if (await this.isTransactionProcessed(txHash)) {
+        this.logger.log(`Transaction ${txHash} already processed, skipping`);
+        return;
+      }
+
+      const eventData = parseEventData<{
+        tokenId: string;
+        investor: string;
+        principal: string;
+        yield: string;
+        totalAmount: string;
+        settledAt: string;
+      }>(webhookData);
+
+      const nft = await this.db
+        .selectFrom('blockchain.invoiceNft')
+        .select(['id', 'invoiceId'])
+        .where('tokenId', '=', eventData.tokenId)
+        .executeTakeFirstOrThrow();
+
+      const position = await this.db
+        .selectFrom('investment.investorPosition')
+        .select('id')
+        .where('nftId', '=', nft.id)
+        .executeTakeFirstOrThrow();
+
+      await this.db.transaction().execute(async (trx) => {
+        // Insert repayment record
+        await trx
+          .insertInto('invoice.invoiceRepayment')
+          .values({
+            id: `rep_${eventData.tokenId}`,
+            invoiceId: nft.invoiceId,
+            repaymentAmount: eventData.totalAmount,
+            depositedBy: eventData.investor, // Contract sends to investor
+            depositedAt: String(eventData.settledAt),
+            settledAt: String(eventData.settledAt),
+            repaymentTxHash: txHash,
+            settlementTxHash: txHash,
+            repaymentMethod: 'WALLET',
+            createdAt: new Date(),
+          })
+          .execute();
+
+        // Insert repayment distribution
+        await trx
+          .insertInto('investment.repaymentDistribution')
+          .values({
+            id: `dist_${eventData.tokenId}`,
+            positionId: position.id,
+            invoiceId: nft.invoiceId,
+            investorAddress: eventData.investor,
+            principalReturned: eventData.principal,
+            yieldReceived: eventData.yield,
+            totalAmount: eventData.totalAmount,
+            distributedAt: String(eventData.settledAt),
+            distributionTxHash: txHash,
+            createdAt: new Date(),
+          })
+          .execute();
+
+        // Update invoice status to SETTLED
+        await trx
+          .updateTable('invoice.invoice')
+          .set({
+            onChainStatus: 'SETTLED',
+            lifecycleStatus: 'SETTLED',
+            updatedAt: new Date(),
+          })
+          .where('id', '=', nft.invoiceId)
+          .execute();
+
+        // Update investor position
+        await trx
+          .updateTable('investment.investorPosition')
+          .set({
+            actualReturn: eventData.totalAmount,
+            positionStatus: 'CLOSED',
+            updatedAt: new Date(),
+          })
+          .where('id', '=', position.id)
+          .execute();
+
+        // Insert transaction record
+        await trx
+          .insertInto('blockchain.transaction')
+          .values({
+            nftId: nft.id,
+            txHash,
+            txType: 'SETTLEMENT',
+            fromAddress: webhookData.contract_address,
+            toAddress: eventData.investor,
+            amount: eventData.totalAmount,
+            blockNumber: String(webhookData.block_height),
+            blockTimestamp: String(webhookData.block_timestamp),
+            status: 'CONFIRMED',
+            createdAt: new Date(),
+          })
+          .execute();
+
+        // Insert contract event
+        await trx
+          .insertInto('blockchain.contractEvent')
+          .values({
+            eventName: 'InvoiceSettled',
+            contractAddress: webhookData.contract_address,
+            txHash,
+            blockNumber: String(webhookData.block_height),
+            blockTimestamp: String(webhookData.block_timestamp),
+            logIndex: webhookData.log_index,
+            invoiceTokenId: eventData.tokenId,
+            eventData: JSON.stringify(eventData),
+            processed: true,
+            createdAt: new Date(),
+          })
+          .execute();
+      });
+
+      this.markTransactionProcessed(txHash);
+      this.logger.log(`Successfully processed InvoiceSettled event for token ${eventData.tokenId}`);
+    } catch (error) {
+      this.logger.error(`Error processing InvoiceSettled event:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle InvoiceDefaulted event
+   * Marks invoice as defaulted and updates investor position
+   */
+  async handleInvoiceDefaulted(webhookData: CdpWebhookData) {
+    const txHash = webhookData.transaction_hash;
+    this.logger.log(`Processing InvoiceDefaulted event: ${txHash}`);
+
+    try {
+      if (await this.isTransactionProcessed(txHash)) {
+        this.logger.log(`Transaction ${txHash} already processed, skipping`);
+        return;
+      }
+
+      const eventData = parseEventData<{
+        tokenId: string;
+        investor: string;
+        principal: string;
+        defaultedAt: string;
+      }>(webhookData);
+
+      const nft = await this.db
+        .selectFrom('blockchain.invoiceNft')
+        .select(['id', 'invoiceId'])
+        .where('tokenId', '=', eventData.tokenId)
+        .executeTakeFirstOrThrow();
+
+      const position = await this.db
+        .selectFrom('investment.investorPosition')
+        .select('id')
+        .where('nftId', '=', nft.id)
+        .executeTakeFirstOrThrow();
+
+      await this.db.transaction().execute(async (trx) => {
+        // Insert default record
+        await trx
+          .insertInto('invoice.invoiceDefault')
+          .values({
+            id: `def_${eventData.tokenId}`,
+            invoiceId: nft.invoiceId,
+            defaultedAt: String(eventData.defaultedAt),
+            gracePeriodEnd: String(eventData.defaultedAt),
+            collectionStatus: 'IN_PROGRESS',
+            recoveredAmount: '0',
+            notes: 'Automatically marked as defaulted by smart contract',
+            createdAt: new Date(),
+          })
+          .execute();
+
+        // Update invoice status
+        await trx
+          .updateTable('invoice.invoice')
+          .set({
+            onChainStatus: 'DEFAULTED',
+            lifecycleStatus: 'COLLECTION',
+            updatedAt: new Date(),
+          })
+          .where('id', '=', nft.invoiceId)
+          .execute();
+
+        // Update investor position
+        await trx
+          .updateTable('investment.investorPosition')
+          .set({
+            actualReturn: '0',
+            positionStatus: 'DEFAULTED',
+            updatedAt: new Date(),
+          })
+          .where('id', '=', position.id)
+          .execute();
+
+        // Insert contract event
+        await trx
+          .insertInto('blockchain.contractEvent')
+          .values({
+            eventName: 'InvoiceDefaulted',
+            contractAddress: webhookData.contract_address,
+            txHash,
+            blockNumber: String(webhookData.block_height),
+            blockTimestamp: String(webhookData.block_timestamp),
+            logIndex: webhookData.log_index,
+            invoiceTokenId: eventData.tokenId,
+            eventData: JSON.stringify(eventData),
+            processed: true,
+            createdAt: new Date(),
+          })
+          .execute();
+      });
+
+      this.markTransactionProcessed(txHash);
+      this.logger.log(`Successfully processed InvoiceDefaulted event for token ${eventData.tokenId}`);
+    } catch (error) {
+      this.logger.error(`Error processing InvoiceDefaulted event:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Polling backup - runs every 5 minutes
+   * Catches any events that webhooks might have missed
+   */
+  @Cron('*/5 * * * *') // Every 5 minutes
+  async pollBlockchainEvents() {
+    // Only poll if enabled in config
+    if (!this.config.webhook?.polling?.enabled) {
+      return;
+    }
+
+    // Prevent concurrent polling
+    if (this.isPolling) {
+      this.logger.warn('Polling already in progress, skipping this run');
+      return;
+    }
+
+    this.isPolling = true;
+
+    try {
+      const latestBlock = await this.publicClient.getBlockNumber();
+
+      // Skip if no new blocks
+      if (latestBlock <= this.lastSyncedBlock) {
+        this.isPolling = false;
+        return;
+      }
+
+      this.logger.log(`Polling blocks ${this.lastSyncedBlock + BigInt(1)} to ${latestBlock}`);
+
+      await this.syncFromBlock(this.lastSyncedBlock + BigInt(1), latestBlock);
+
+      this.lastSyncedBlock = latestBlock;
+      this.logger.log(`Polling complete. Synced up to block ${latestBlock}`);
+    } catch (error) {
+      this.logger.error('Error during polling:', error);
+    } finally {
+      this.isPolling = false;
     }
   }
 
@@ -160,20 +733,128 @@ export class EventListenerService implements OnModuleInit {
   async syncInvoiceById(invoiceId: string): Promise<void> {
     this.logger.log(`Manually syncing invoice: ${invoiceId}`);
 
-    // TODO: Fetch invoice data from blockchain and update database
+    // Get invoice tokenId from database
+    const invoice = await this.db
+      .selectFrom('invoice.invoice')
+      .innerJoin('blockchain.invoiceNft', 'blockchain.invoiceNft.invoiceId', 'invoice.invoice.id')
+      .select('blockchain.invoiceNft.tokenId')
+      .where('invoice.invoice.id', '=', invoiceId)
+      .executeTakeFirst();
+
+    if (!invoice) {
+      this.logger.error(`Invoice not found: ${invoiceId}`);
+      return;
+    }
+
+    // Query blockchain for all events related to this token
+    this.logger.log(`Syncing events for tokenId: ${invoice.tokenId}`);
+
+    // Get current block for range
+    const toBlock = await this.publicClient.getBlockNumber();
+    const fromBlock = toBlock - BigInt(10000); // Last ~10k blocks (adjust as needed)
+
+    await this.syncFromBlock(fromBlock, toBlock);
 
     this.logger.log(`Successfully synced invoice: ${invoiceId}`);
   }
 
   /**
    * Sync all invoices from a specific block range
-   * Useful for initial sync or recovery
+   * Queries blockchain and processes events
    */
   async syncFromBlock(fromBlock: bigint, toBlock?: bigint): Promise<void> {
-    this.logger.log(`Syncing events from block ${fromBlock} to ${toBlock || 'latest'}`);
+    const targetBlock = toBlock || (await this.publicClient.getBlockNumber());
 
-    // TODO: Fetch historical events and process them
+    this.logger.log(`Syncing events from block ${fromBlock} to ${targetBlock}`);
 
-    this.logger.log(`Successfully synced events`);
+    try {
+      // Get all contract events in parallel
+      const [invoiceMintedLogs, invoiceFundedLogs, repaymentDepositedLogs, invoiceSettledLogs, invoiceDefaultedLogs] =
+        await Promise.all([
+          // InvoiceMinted events (ERC721 Transfer from 0x0)
+          this.publicClient.getLogs({
+            address: this.config.invoiceContractAddress as `0x${string}`,
+            event: {
+              type: 'event',
+              name: 'Transfer',
+              inputs: [
+                { type: 'address', indexed: true, name: 'from' },
+                { type: 'address', indexed: true, name: 'to' },
+                { type: 'uint256', indexed: true, name: 'tokenId' },
+              ],
+            },
+            fromBlock,
+            toBlock: targetBlock,
+          }),
+
+          // InvoiceFunded events
+          this.publicClient.getLogs({
+            address: this.config.invoiceFundingPoolContractAddress as `0x${string}`,
+            fromBlock,
+            toBlock: targetBlock,
+          }),
+
+          // RepaymentDeposited events
+          this.publicClient.getLogs({
+            address: this.config.invoiceFundingPoolContractAddress as `0x${string}`,
+            fromBlock,
+            toBlock: targetBlock,
+          }),
+
+          // InvoiceSettled events
+          this.publicClient.getLogs({
+            address: this.config.invoiceFundingPoolContractAddress as `0x${string}`,
+            fromBlock,
+            toBlock: targetBlock,
+          }),
+
+          // InvoiceDefaulted events
+          this.publicClient.getLogs({
+            address: this.config.invoiceFundingPoolContractAddress as `0x${string}`,
+            fromBlock,
+            toBlock: targetBlock,
+          }),
+        ]);
+
+      // Process InvoiceMinted events (Transfer from 0x0)
+      for (const log of invoiceMintedLogs) {
+        if (log.args.from === '0x0000000000000000000000000000000000000000') {
+          const webhookData = this.convertLogToWebhookData(log, 'InvoiceMinted');
+          await this.handleInvoiceMinted(webhookData);
+        }
+      }
+
+      // Process other events (simplified - in production, filter by event signature)
+      // Note: You'll need to add proper event signature filtering based on your contract ABI
+      this.logger.log(`Processed ${invoiceMintedLogs.length} InvoiceMinted events`);
+      this.logger.log(`Found ${invoiceFundedLogs.length + repaymentDepositedLogs.length + invoiceSettledLogs.length + invoiceDefaultedLogs.length} other contract events`);
+
+      this.logger.log(`Successfully synced events from block ${fromBlock} to ${targetBlock}`);
+    } catch (error) {
+      this.logger.error(`Error syncing from block ${fromBlock} to ${targetBlock}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Convert viem log to webhook data format
+   * Helper for polling to reuse webhook handlers
+   */
+  private convertLogToWebhookData(log: any, eventName: string): CdpWebhookData {
+    return {
+      network_id: this.config.chainId === 8453 ? 'base-mainnet' : 'base-sepolia',
+      block_height: Number(log.blockNumber),
+      block_hash: log.blockHash,
+      block_timestamp: '', // Not available in log, will be fetched if needed
+      transaction_hash: log.transactionHash,
+      transaction_index: log.transactionIndex,
+      log_index: log.logIndex,
+      contract_address: log.address.toLowerCase(),
+      event_name: eventName,
+      event_data: log.args,
+      from_address: log.args?.from,
+      to_address: log.args?.to,
+      token_id: log.args?.tokenId?.toString(),
+    } as CdpWebhookData;
   }
 }

@@ -27,9 +27,9 @@ export function InvoiceDetailHeader({
   return (
     <div>
       <div className="flex items-center gap-3">
-        <Avatar className="h-12 w-12 bg-neutral-200/80 shadow-sm">
+        <Avatar className="h-10 w-10 bg-neutral-200/80 shadow-sm">
           <AvatarImage src={invoice.companyLogoUrl} />
-          <AvatarFallback className="bg-neutral-200/80 font-semibold">
+          <AvatarFallback className="bg-neutral-100/90font-semibold">
             {invoice.companyName[0].toUpperCase()}
           </AvatarFallback>
         </Avatar>

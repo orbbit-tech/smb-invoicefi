@@ -166,7 +166,8 @@ export function InvoiceTableView({
                       invoice.status
                     ) && (
                       <div className="text-xs text-muted-foreground">
-                        {invoice.daysUntilDue} days
+                        {invoice.daysUntilDue > 0 &&
+                          `${invoice.daysUntilDue} days`}
                       </div>
                     )}
                   </div>

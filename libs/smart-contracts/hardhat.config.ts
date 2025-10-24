@@ -71,7 +71,14 @@ const config: HardhatUserConfig = {
     },
   },
 
-  // Contract verification
+  // Contract verification (new hardhat-verify plugin)
+  verify: {
+    etherscan: {
+      apiKey: configVariable('ETHERSCAN_API_KEY'),
+    },
+  },
+
+  // Etherscan configuration for custom chains
   etherscan: {
     apiKey: {
       baseSepolia: configVariable('ETHERSCAN_API_KEY'),

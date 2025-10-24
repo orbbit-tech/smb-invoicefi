@@ -37,7 +37,8 @@ export function InvoiceGalleryView({
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
+      month: 'numeric',
+      year: 'numeric',
       day: 'numeric',
     }).format(date);
   };
@@ -106,7 +107,9 @@ export function InvoiceGalleryView({
               {/* Due Date */}
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <span> {formatDate(invoice.dueDate)}</span>
-                <span className="ml-1">({invoice.daysUntilDue}d)</span>
+                {invoice.daysUntilDue > 0 && (
+                  <span className="ml-1">({invoice.daysUntilDue}d)</span>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -43,6 +43,12 @@ export interface PayerDto {
      * @memberof PayerDto
      */
     industry?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PayerDto
+     */
+    logoUrl?: string;
 }
 
 /**
@@ -68,6 +74,7 @@ export function PayerDtoFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
         'name': json['name'],
         'creditScore': json['creditScore'] == null ? undefined : json['creditScore'],
         'industry': json['industry'] == null ? undefined : json['industry'],
+        'logoUrl': json['logoUrl'] == null ? undefined : json['logoUrl'],
     };
 }
 
@@ -86,6 +93,7 @@ export function PayerDtoToJSONTyped(value?: PayerDto | null, ignoreDiscriminator
         'name': value['name'],
         'creditScore': value['creditScore'],
         'industry': value['industry'],
+        'logoUrl': value['logoUrl'],
     };
 }
 

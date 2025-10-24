@@ -42,8 +42,8 @@ contract Invoice is IInvoice, ERC721, AccessControl, Pausable {
 
     /**
      * @notice Initializes the Invoice contract
-     * @param name_ Token name (e.g., "Orbbit Invoice")
-     * @param symbol_ Token symbol (e.g., "ORBINV")
+     * @param name_ Token name (e.g., "Invoice Token")
+     * @param symbol_ Token symbol (e.g., "INV")
      * @param baseTokenURI_ Base URI for token metadata
      * @param metadataExtension_ File extension for metadata (e.g., ".json", "" for no extension)
      * @param whitelist_ Address of the Whitelist contract for KYC/KYB compliance

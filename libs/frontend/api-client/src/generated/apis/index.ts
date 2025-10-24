@@ -1,6 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './AppApi';
+export * from './BlockchainWebhooksApi';
 export * from './InvestorAuthenticationApi';
 export * from './InvestorMarketplaceApi';
 export * from './InvestorPortfolioApi';

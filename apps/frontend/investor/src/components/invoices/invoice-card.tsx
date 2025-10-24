@@ -108,7 +108,11 @@ export function InvoiceCard({
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Funding Amount</span>
           <span className="text-xs truncate">
-            ${(invoice.amount * (1 - invoice.discountRate / 100)).toLocaleString()}
+            $
+            {(
+              invoice.amount *
+              (1 - invoice.discountRate / 100)
+            ).toLocaleString()}
           </span>
         </div>
 
@@ -120,7 +124,7 @@ export function InvoiceCard({
         <Separator className="my-1" />
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Expected Return</span>
-          <span className="font-bold text-xs truncate text-emerald-700">
+          <span className="font-bold text-xs truncate text-primary">
             ${(invoice.amount * (invoice.discountRate / 100)).toLocaleString()}
           </span>
         </div>

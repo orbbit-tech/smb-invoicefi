@@ -4,9 +4,10 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { Card, InvoiceMultiView, Invoice, InvoiceStatus } from '@ui';
-import { TrendingUp, Wallet, Clock, CheckCircle, Loader2 } from 'lucide-react';
+import { TrendingUp, Wallet, Clock, CheckCircle } from 'lucide-react';
 import { usePortfolioSummary, usePortfolioPositions } from '@/hooks/api';
 import { mapPortfolioPosition, usdcToDollars } from '@/lib/mappers/invoice-mapper';
+import { SummaryCardSkeleton, InvoiceTableSkeleton } from '@/components/skeletons';
 
 /**
  * Portfolio Page
@@ -114,12 +115,15 @@ export default function PortfolioPage() {
           </p>
         </div>
 
-        <Card className="p-12">
-          <div className="flex flex-col items-center justify-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading portfolio...</p>
-          </div>
-        </Card>
+        {/* Portfolio Summary Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SummaryCardSkeleton key={i} />
+          ))}
+        </div>
+
+        {/* Invoice Table Skeleton */}
+        <InvoiceTableSkeleton rows={5} />
       </div>
     );
   }

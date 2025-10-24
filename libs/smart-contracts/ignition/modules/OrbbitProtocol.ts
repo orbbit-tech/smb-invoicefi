@@ -56,6 +56,8 @@ const OrbbitProtocolModule = buildModule('OrbbitProtocol', (m) => {
   const platformTreasury = m.getParameter('platformTreasury', m.getAccount(0)); // Default to deployer
   const platformFeeRate = m.getParameter('platformFeeRate', 3000); // 30%
   const maxBatchSize = m.getParameter('maxBatchSize', 50); // Default: 50
+  // Maximum invoice amount (10M USDC = 10,000,000 * 1e6)
+  const maxInvoiceAmount = m.getParameter('maxInvoiceAmount', 10_000_000_000000); // 10M USDC
 
   // ============================================
   // 1. DEPLOY WHITELIST
@@ -86,6 +88,7 @@ const OrbbitProtocolModule = buildModule('OrbbitProtocol', (m) => {
     whitelist,
     platformTreasury,
     platformFeeRate,
+    maxInvoiceAmount,
   ]);
 
   // ============================================

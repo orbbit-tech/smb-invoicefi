@@ -13,9 +13,10 @@ import {
   Card,
   Button,
 } from '@ui';
-import { Search, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { Search, ArrowUp, ArrowDown } from 'lucide-react';
 import { useMarketplaceInvoices } from '@/hooks/api';
 import { mapMarketplaceInvoice } from '@/lib/mappers/invoice-mapper';
+import { InvoiceCardSkeleton } from '@/components/skeletons';
 
 /**
  * Marketplace Page
@@ -131,12 +132,11 @@ export default function MarketplacePage() {
 
       {/* Loading State */}
       {isLoading && (
-        <Card className="p-12">
-          <div className="flex flex-col items-center justify-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading marketplace invoices...</p>
-          </div>
-        </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <InvoiceCardSkeleton key={i} />
+          ))}
+        </div>
       )}
 
       {/* Error State */}

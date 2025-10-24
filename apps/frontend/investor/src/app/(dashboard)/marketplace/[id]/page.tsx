@@ -1,8 +1,9 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useMemo } from 'react';
-import { useAccount } from 'wagmi';
+import { useState, useMemo, useEffect } from 'react';
+import { useAccount, useChainId } from 'wagmi';
+import { parseUnits, formatUnits } from 'viem';
 import {
   Card,
   Badge,
@@ -21,18 +22,18 @@ import {
   FinancialBreakdown,
   DocumentsSection,
 } from '@ui';
-import {
-  ArrowLeft,
-  Loader2,
-  CheckCircle2,
-  ExternalLink,
-} from 'lucide-react';
+import { ArrowLeft, Loader2, Check, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { type InvoiceData } from '@/components/invoices';
 import { useMarketplaceInvoice } from '@/hooks/api';
-import { useInvoiceData } from '@/hooks/blockchain';
+import { useInvoiceData, useApproveUSDC, useFundInvoice } from '@/hooks/blockchain';
 import { mapMarketplaceDetail } from '@/lib/mappers/invoice-mapper';
 import { NFTOwnership } from '@/components/portfolio';
+import { getContractConfig } from '@/config/contracts';
+import {
+  InvoiceDetailHeaderSkeleton,
+  CardSectionSkeleton,
+} from '@/components/skeletons';
 
 /**
  * Invoice Detail Page
@@ -48,10 +49,18 @@ export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { address } = useAccount();
+  const chainId = useChainId();
   const invoiceId = params.id as string;
 
+  // Get contract configuration for current chain
+  const contractConfig = getContractConfig(chainId);
+
   // Fetch invoice data from API
-  const { data: apiData, isLoading, isError } = useMarketplaceInvoice(invoiceId);
+  const {
+    data: apiData,
+    isLoading,
+    isError,
+  } = useMarketplaceInvoice(invoiceId);
 
   // Map API data to frontend format
   const invoiceDetail = useMemo(() => {
@@ -60,16 +69,51 @@ export default function InvoiceDetailPage() {
   }, [apiData]);
 
   // Fetch blockchain data if NFT token ID exists
-  const contractAddress = process.env.NEXT_PUBLIC_INVOICE_CONTRACT_ADDRESS as `0x${string}` | undefined;
   const { data: blockchainData } = useInvoiceData(
     invoiceDetail?.nftTokenId,
-    contractAddress
+    contractConfig?.contracts.invoice
   );
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [transactionStep, setTransactionStep] = useState<
+    'idle' | 'approving' | 'funding' | 'success'
+  >('idle');
+
+  // Calculate funding amount (USDC has 6 decimals)
+  const fundingAmountInUnits = useMemo(() => {
+    if (!invoiceDetail) return undefined;
+    const fundingAmount = invoiceDetail.amount * (1 - invoiceDetail.discountRate);
+    return parseUnits(fundingAmount.toFixed(6), 6);
+  }, [invoiceDetail]);
+
+  // USDC Approval Hook
+  const {
+    approve,
+    isApproving,
+    isApproveConfirming,
+    isApproveSuccess,
+    approveError,
+    approveHash,
+  } = useApproveUSDC({
+    usdcAddress: contractConfig?.contracts.usdc,
+    spender: contractConfig?.contracts.fundingPool,
+    amount: fundingAmountInUnits,
+  });
+
+  // Fund Invoice Hook
+  const {
+    fundInvoice,
+    isFunding,
+    isFundingConfirming,
+    isFundingSuccess,
+    fundingError,
+    fundingHash,
+  } = useFundInvoice({
+    fundingPoolAddress: contractConfig?.contracts.fundingPool,
+    tokenId: invoiceDetail?.nftTokenId?.toString(),
+  });
 
   // Convert to InvoiceData format for components
   const invoice: InvoiceData | null = useMemo(() => {
@@ -93,6 +137,54 @@ export default function InvoiceDetailPage() {
     };
   }, [invoiceDetail]);
 
+  // Calculate funding values (must be before early returns to maintain hook order)
+  // Since we only support full funding (no partial), the funding amount is the full discounted amount
+  const fundingAmountRequired = invoice?.amount ? invoice.amount * (1 - invoice.discountRate) : 0;
+  const expectedReceiveBack = fundingAmountRequired && invoice?.discountRate ? fundingAmountRequired / (1 - invoice.discountRate) : 0;
+  const expectedProfit = expectedReceiveBack - fundingAmountRequired;
+
+  // Effect: Handle approval success -> trigger funding
+  useEffect(() => {
+    if (isApproveSuccess && transactionStep === 'approving') {
+      toast.success('USDC approved successfully', {
+        description: 'Now funding the invoice...',
+      });
+      setTransactionStep('funding');
+      fundInvoice();
+    }
+  }, [isApproveSuccess, transactionStep, fundInvoice]);
+
+  // Effect: Handle approval errors
+  useEffect(() => {
+    if (approveError) {
+      toast.error('Approval failed', {
+        description: approveError.message || 'Please try again',
+      });
+      setTransactionStep('idle');
+    }
+  }, [approveError]);
+
+  // Effect: Handle funding success
+  useEffect(() => {
+    if (isFundingSuccess && transactionStep === 'funding') {
+      setTransactionStep('success');
+      setShowSuccess(true);
+      toast.success('Invoice funded successfully!', {
+        description: 'Your investment has been recorded on-chain',
+      });
+    }
+  }, [isFundingSuccess, transactionStep]);
+
+  // Effect: Handle funding errors
+  useEffect(() => {
+    if (fundingError) {
+      toast.error('Funding failed', {
+        description: fundingError.message || 'Please try again',
+      });
+      setTransactionStep('idle');
+    }
+  }, [fundingError]);
+
   // Loading state
   if (isLoading) {
     return (
@@ -101,12 +193,25 @@ export default function InvoiceDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to Marketplace
         </Button>
-        <Card className="p-12">
-          <div className="flex flex-col items-center justify-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading invoice details...</p>
+
+        {/* Header Skeleton */}
+        <InvoiceDetailHeaderSkeleton />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            <CardSectionSkeleton rows={6} />
+            <CardSectionSkeleton rows={4} />
+            <CardSectionSkeleton rows={3} />
           </div>
-        </Card>
+
+          {/* Right Column - Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            <CardSectionSkeleton rows={3} />
+            <CardSectionSkeleton rows={4} />
+            <CardSectionSkeleton rows={2} />
+          </div>
+        </div>
       </div>
     );
   }
@@ -133,38 +238,41 @@ export default function InvoiceDetailPage() {
     );
   }
 
-  // Since we only support full funding (no partial), the funding amount is the full discounted amount
-  const fundingAmountRequired = invoice.amount * (1 - invoice.discountRate);
-
-  // Calculate expected returns based on discount rate model
-  const expectedReceiveBack =
-    fundingAmountRequired / (1 - invoice.discountRate);
-  const expectedProfit = expectedReceiveBack - fundingAmountRequired;
-
-  // Handler for funding submission (full amount only)
-  const handleFundInvoice = async () => {
-    setIsProcessing(true);
-
-    try {
-      // TODO: Replace with actual blockchain transaction
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Show success state in modal
-      setShowSuccess(true);
-    } catch (error) {
-      toast.error('Failed to process funding', {
-        description: 'Please try again later',
+  // Handler for funding submission - starts approval process
+  const handleFundInvoice = () => {
+    if (!contractConfig) {
+      toast.error('Network not supported', {
+        description: 'Please switch to Base or Base Sepolia',
       });
-    } finally {
-      setIsProcessing(false);
+      return;
     }
+
+    if (!fundingAmountInUnits) {
+      toast.error('Invalid funding amount');
+      return;
+    }
+
+    setTransactionStep('approving');
+    approve();
   };
 
   // Handler to close modal and reset states
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setShowSuccess(false);
+    setTransactionStep('idle');
   };
+
+  // Combined loading state
+  const isProcessing =
+    isApproving ||
+    isApproveConfirming ||
+    isFunding ||
+    isFundingConfirming ||
+    transactionStep !== 'idle';
+
+  // Get current transaction hash for display
+  const currentTxHash = fundingHash || approveHash;
 
   return (
     <div className="space-y-6">
@@ -199,7 +307,6 @@ export default function InvoiceDetailPage() {
               {
                 label: 'Due Date',
                 value: new Date(invoice.dueDate).toLocaleDateString(),
-                emphasis: true,
               },
               {
                 label: 'Days Until Due',
@@ -247,8 +354,10 @@ export default function InvoiceDetailPage() {
               >
                 Fund Invoice
               </Button>
-              <p className="text-xs text-muted-foreground text-center">
-                {!address ? 'Connect your wallet to invest' : 'Review details and confirm'}
+              <p className="text-sm text-muted-foreground text-center">
+                {!address
+                  ? 'Connect your wallet to invest'
+                  : 'Review details and confirm'}
               </p>
             </div>
           </Card>
@@ -262,114 +371,65 @@ export default function InvoiceDetailPage() {
             <>
               <DialogHeader>
                 <DialogTitle>Confirm Funding</DialogTitle>
-                <DialogDescription>
-                  Review your investment details before confirming.
-                </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-3 py-4 bg-neutral-100 p-4 rounded-lg">
-                {/* Invoice Details */}
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    Invoice Amount
-                  </span>
-                  <span className="text-sm font-semibold">
-                    ${invoice.amount.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    Discount Rate
-                  </span>
-                  <span className="text-sm font-semibold">
-                    {(invoice.discountRate * 100).toFixed(1)}%
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">APR</span>
-                  <span className="text-sm font-semibold">{invoice.apr}%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Term</span>
-                  <span className="text-sm font-semibold">
-                    {invoice.daysUntilDue} days
-                  </span>
+              <div className="space-y-4 py-4">
+                {/* Section 1: Investment Overview */}
+                <div className="bg-neutral-100/80 p-3 space-y-1 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Funding Amount
+                    </span>
+                    <span className="text-sm truncate">
+                      ${fundingAmountRequired.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">APR</span>
+                    <span className="text-sm truncate">{invoice.apr}%</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Term Days
+                    </span>
+                    <span className="text-sm truncate">
+                      {invoice.daysUntilDue}
+                    </span>
+                  </div>
+
+                  <Separator className="my-1" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Expected Return
+                    </span>
+                    <span className="font-bold text-sm truncate text-primary">
+                      ${expectedProfit.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
 
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    Investment Required
-                  </span>
-                  <span className="text-sm font-bold">
-                    ${fundingAmountRequired.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    Expected Payout
-                  </span>
-                  <span className="text-sm font-semibold">
-                    $
-                    {expectedReceiveBack.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    Expected Profit
-                  </span>
-                  <span className="text-sm font-semibold">
-                    $
-                    {expectedProfit.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
-                </div>
+                <DialogFooter>
+                  {/* Confirm Button */}
+                  <Button onClick={handleFundInvoice} disabled={isProcessing}>
+                    {isProcessing && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {transactionStep === 'approving' && 'Approving USDC...'}
+                    {transactionStep === 'funding' && 'Funding Invoice...'}
+                    {transactionStep === 'idle' && 'Confirm'}
+                  </Button>
+                </DialogFooter>
               </div>
-
-              {/* Total Summary */}
-              <div className="bg-neutral-100 p-4 rounded-lg">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold">Total to Fund</span>
-                  <span className="text-lg font-bold">
-                    ${fundingAmountRequired.toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Due: {new Date(invoice.dueDate).toLocaleDateString()} (
-                  {invoice.daysUntilDue} days)
-                </p>
-              </div>
-
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={handleCloseModal}
-                  disabled={isProcessing}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleFundInvoice} disabled={isProcessing}>
-                  {isProcessing && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {isProcessing
-                    ? 'Processing...'
-                    : `Confirm Funding $${fundingAmountRequired.toLocaleString()}`}
-                </Button>
-              </DialogFooter>
             </>
           ) : (
             <>
               {/* Success Screen */}
-              <div className="space-y-6 py-6">
+              <div className="space-y-6 py-6 items-center justify-center text-center">
                 {/* Success Icon */}
-                <div className="flex justify-center rounded-full">
-                  <CheckCircle2 className="h-12 w-12 " />
+                <div className="flex justify-center rounded-full bg-primary/10 w-10 h-10 items-center mx-auto">
+                  <Check className="h-5 w-5 text-primary" />
                 </div>
 
                 {/* Success Message */}
@@ -383,81 +443,82 @@ export default function InvoiceDetailPage() {
                 </div>
 
                 {/* Transaction Summary */}
-                <div className="bg-neutral-100/80 p-6 rounded-lg space-y-4">
-                  <h3 className="font-semibold text-center">
-                    Transaction Summary
-                  </h3>
+                <div className="bg-neutral-100/80 p-6 rounded-lg space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Company
+                    </span>
+                    <span className="text-sm">{invoice.companyName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Investment Amount
+                    </span>
+                    <span className="text-sm">
+                      ${fundingAmountRequired.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Expected Return
+                    </span>
+                    <span className="font-bold text-sm text-primary">
+                      $
+                      {expectedProfit.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
                   <Separator />
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Company</span>
-                      <span className="font-semibold">
-                        {invoice.companyName}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Investment Amount
-                      </span>
-                      <span className="font-semibold">
-                        ${fundingAmountRequired.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Expected Payout
-                      </span>
-                      <span className="font-semibold">
-                        $
-                        {expectedReceiveBack.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Expected Profit
-                      </span>
-                      <span className="font-bold">
-                        $
-                        {expectedProfit.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Due Date</span>
-                      <span className="font-semibold">
-                        {new Date(invoice.dueDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Term</span>
-                      <span className="font-semibold">
-                        {invoice.daysUntilDue} days
-                      </span>
-                    </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Due Date
+                    </span>
+                    <span className="text-sm">
+                      {new Date(invoice.dueDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Term</span>
+                    <span className="text-sm">{invoice.daysUntilDue} days</span>
                   </div>
                 </div>
 
-                {/* Transaction Hash (Placeholder) */}
-                <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        Transaction Hash
-                      </p>
-                      <p className="text-sm font-mono">0x1234...5678</p>
+                {/* Transaction Hash */}
+                {currentTxHash && (
+                  <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Transaction Hash
+                        </p>
+                        <p className="text-sm font-mono">
+                          {currentTxHash.slice(0, 6)}...
+                          {currentTxHash.slice(-4)}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1"
+                        onClick={() => {
+                          const explorerUrl =
+                            chainId === 84532
+                              ? `https://sepolia.basescan.org/tx/${currentTxHash}`
+                              : chainId === 8453
+                              ? `https://basescan.org/tx/${currentTxHash}`
+                              : `http://localhost:8545`; // Hardhat doesn't have explorer
+                          window.open(explorerUrl, '_blank');
+                        }}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="sm" className="gap-1">
-                      <ExternalLink className="h-3 w-3" />
-                      View
-                    </Button>
                   </div>
-                </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3">

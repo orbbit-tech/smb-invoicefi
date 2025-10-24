@@ -43,6 +43,12 @@ export interface IssuerDto {
      * @memberof IssuerDto
      */
     industry?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof IssuerDto
+     */
+    logoUrl?: string;
 }
 
 /**
@@ -68,6 +74,7 @@ export function IssuerDtoFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'name': json['name'],
         'legalName': json['legalName'] == null ? undefined : json['legalName'],
         'industry': json['industry'] == null ? undefined : json['industry'],
+        'logoUrl': json['logoUrl'] == null ? undefined : json['logoUrl'],
     };
 }
 
@@ -86,6 +93,7 @@ export function IssuerDtoToJSONTyped(value?: IssuerDto | null, ignoreDiscriminat
         'name': value['name'],
         'legalName': value['legalName'],
         'industry': value['industry'],
+        'logoUrl': value['logoUrl'],
     };
 }
 

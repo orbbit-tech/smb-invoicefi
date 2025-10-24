@@ -30,10 +30,10 @@ export class ContractService {
   }
 
   /**
-   * Get Funding Pool contract address
+   * Get Invoice Funding Pool contract address
    */
-  getFundingPoolContractAddress(): string {
-    return this.config.fundingPoolContractAddress;
+  getInvoiceFundingPoolContractAddress(): string {
+    return this.config.invoiceFundingPoolContractAddress;
   }
 
   /**

@@ -31,9 +31,9 @@ export function PayerInformation({
       <h2 className="text-base font-semibold">Payer Information</h2>
       <Separator />
       <div className="flex items-center gap-3">
-        <Avatar className="h-12 w-12 bg-neutral-200/80 shadow-sm">
+        <Avatar className="h-10 w-10 bg-neutral-200/80 shadow-sm">
           <AvatarImage src={invoice.payerLogoUrl} />
-          <AvatarFallback className="bg-neutral-200/80 font-semibold">
+          <AvatarFallback className="bg-neutral-100/90font-semibold">
             {invoice.payerName[0].toUpperCase()}
           </AvatarFallback>
         </Avatar>
@@ -48,9 +48,7 @@ export function PayerInformation({
       </div>
       <div className="bg-neutral-100/80 p-4 rounded-md space-y-2">
         <div className="flex justify-between">
-          <span className="text-sm text-muted-foreground">
-            Payment History
-          </span>
+          <span className="text-sm text-muted-foreground">Payment History</span>
           <span className="text-sm font-semibold">
             {payerHistory.paymentHistory}
           </span>

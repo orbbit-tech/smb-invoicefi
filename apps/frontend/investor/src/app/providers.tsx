@@ -20,7 +20,8 @@ import '@rainbow-me/rainbowkit/styles.css';
 import '../styles/onchainkit.css';
 import '../styles/rainbowkit-custom.css';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { base, baseSepolia } from 'wagmi/chains';
+import { base, baseSepolia, hardhat } from 'wagmi/chains';
+import { baseAccount } from 'wagmi/connectors';
 import {
   connectorsForWallets,
   RainbowKitProvider,
@@ -55,14 +56,41 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
     }
   );
 
-  // Create Wagmi config with custom wallet order
+  // Determine if we should include localhost (for development)
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const includeLocalhost =
+    isDevelopment && process.env.NEXT_PUBLIC_ENABLE_LOCALHOST === 'true';
+
+  // Get Alchemy RPC URLs from environment
+  const baseSepoliaRpc =
+    process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org';
+  const baseMainnetRpc =
+    process.env.NEXT_PUBLIC_BASE_MAINNET_RPC_URL || 'https://mainnet.base.org';
+
+  // Create Wagmi config with Base Account connector + custom wallet order
   const config = createConfig({
-    connectors,
-    chains: [baseSepolia, base],
-    transports: {
-      [baseSepolia.id]: http(),
-      [base.id]: http(),
-    },
+    connectors: [
+      // Base Account connector for new wallet creation
+      baseAccount({
+        appName: 'Orbbit',
+        appLogoUrl: 'https://media.cdn.orbbit.co/brand/orbbit-logo-circle.svg',
+      }),
+      // RainbowKit connectors for existing wallets
+      ...connectors,
+    ],
+    chains: includeLocalhost
+      ? [hardhat, baseSepolia, base]
+      : [baseSepolia, base],
+    transports: includeLocalhost
+      ? {
+          [hardhat.id]: http('http://127.0.0.1:8545'),
+          [baseSepolia.id]: http(baseSepoliaRpc),
+          [base.id]: http(baseMainnetRpc),
+        }
+      : {
+          [baseSepolia.id]: http(baseSepoliaRpc),
+          [base.id]: http(baseMainnetRpc),
+        },
     ssr: true,
   });
 

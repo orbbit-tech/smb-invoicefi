@@ -67,9 +67,9 @@ export function NFTOwnership({
     >
       <div className="text-center space-y-4">
         {/* NFT Artwork */}
-        <Avatar className="h-12 w-12 mx-auto shadow-lg">
+        <Avatar className="h-10 w-10 mx-auto shadow-lg">
           <AvatarImage src={companyLogoUrl} alt={companyName} />
-          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 font-bold text-5xl ">
+          <AvatarFallback className="font-bold bg-neutral-100/90">
             {companyName[0].toUpperCase()}
           </AvatarFallback>
         </Avatar>

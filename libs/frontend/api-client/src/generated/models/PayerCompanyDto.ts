@@ -55,6 +55,12 @@ export interface PayerCompanyDto {
      * @memberof PayerCompanyDto
      */
     paymentTermsDays: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PayerCompanyDto
+     */
+    logoUrl?: string;
 }
 
 /**
@@ -84,6 +90,7 @@ export function PayerCompanyDtoFromJSONTyped(json: any, ignoreDiscriminator: boo
         'industry': json['industry'] == null ? undefined : json['industry'],
         'creditScore': json['creditScore'] == null ? undefined : json['creditScore'],
         'paymentTermsDays': json['paymentTermsDays'],
+        'logoUrl': json['logoUrl'] == null ? undefined : json['logoUrl'],
     };
 }
 
@@ -104,6 +111,7 @@ export function PayerCompanyDtoToJSONTyped(value?: PayerCompanyDto | null, ignor
         'industry': value['industry'],
         'creditScore': value['creditScore'],
         'paymentTermsDays': value['paymentTermsDays'],
+        'logoUrl': value['logoUrl'],
     };
 }
 

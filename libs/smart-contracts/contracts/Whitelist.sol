@@ -6,7 +6,7 @@ import './interfaces/IWhitelist.sol';
 
 /**
  * @title Whitelist
- * @notice Manages KYC/KYB compliant address whitelist for the Orbbit protocol
+ * @notice Manages KYC/KYB compliant address whitelist for the protocol
  * @dev Implements role-based whitelist with INVESTOR and SMB roles
  */
 contract Whitelist is IWhitelist, AccessControl {

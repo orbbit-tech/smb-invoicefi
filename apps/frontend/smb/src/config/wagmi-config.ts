@@ -49,7 +49,7 @@ export const wagmiConfig = createConfig({
     // Base Account connector for new wallet creation
     baseAccount({
       appName: 'Orbbit',
-      appLogoUrl: 'https://media.cdn.orbbit.co/brand/orbbit-logo-320-100.png', // Update with your actual logo path
+      appLogoUrl: 'https://media.cdn.orbbit.co/brand/orbbit-logo-circle.svg', // Update with your actual logo path
     }),
     // RainbowKit connectors for existing wallets
     ...rainbowKitConnectors,

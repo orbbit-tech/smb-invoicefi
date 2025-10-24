@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@ui';
 
 // TODO: Replace with actual organizationId from auth context
-const TEMP_ORGANIZATION_ID = 'org_123';
+const TEMP_ORGANIZATION_ID = 'org_01tech';
 
 export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

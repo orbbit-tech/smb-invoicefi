@@ -1,4 +1,5 @@
 apis/AppApi.ts
+apis/BlockchainWebhooksApi.ts
 apis/InvestorAuthenticationApi.ts
 apis/InvestorMarketplaceApi.ts
 apis/InvestorPortfolioApi.ts
