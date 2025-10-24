@@ -15,6 +15,9 @@ export class IssuerDto {
 
   @ApiPropertyOptional()
   industry?: string;
+
+  @ApiPropertyOptional()
+  logoUrl?: string;
 }
 
 /**
@@ -35,6 +38,9 @@ export class PayerCompanyDto {
 
   @ApiPropertyOptional()
   paymentTermsDays?: number;
+
+  @ApiPropertyOptional()
+  logoUrl?: string;
 }
 
 /**

@@ -1,18 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { MetricCard } from '@/components/dashboard/metric-card';
-import { InvoiceMultiView, InvoiceStatus, Skeleton, Card } from '@ui';
+import {
+  InvoiceMultiView,
+  InvoiceStatus,
+  Skeleton,
+  Card,
+  type Invoice,
+} from '@ui';
 import { Button } from '@ui';
-import { DollarSign, FileText, TrendingUp, Clock, Plus } from 'lucide-react';
+import {
+  DollarSign,
+  FileText,
+  TrendingUp,
+  Clock,
+  Plus,
+  AlertCircle,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useDashboardMetrics, useInvoices } from '@/hooks/api';
 import { Alert, AlertDescription } from '@ui';
 import { mapApiInvoicesToFrontend } from '@/lib/invoice-mapper';
+import { RepaymentModal } from '@/components/repayment/repayment-modal';
 
 // TODO: Replace with actual organizationId from auth context
-// Using org_01tech from seed data (TechSupply Co. - has 2 invoices)
-const TEMP_ORGANIZATION_ID = 'org_01tech';
+// Using org_gallivant from seed data (Gallivant Ice Cream - has 3 invoices)
+const TEMP_ORGANIZATION_ID = 'org_gallivant';
 
 // Skeleton component for loading metric cards
 function MetricCardSkeleton() {
@@ -69,13 +83,24 @@ export default function MyInvoicesPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [selectedInvoiceForRepayment, setSelectedInvoiceForRepayment] =
+    useState<Invoice | null>(null);
+  const [isRepaymentModalOpen, setIsRepaymentModalOpen] = useState(false);
   const limit = 20;
 
   // Fetch dashboard metrics from API
-  const { data: metricsData, isLoading: isLoadingMetrics, error: metricsError } = useDashboardMetrics(TEMP_ORGANIZATION_ID);
+  const {
+    data: metricsData,
+    isLoading: isLoadingMetrics,
+    error: metricsError,
+  } = useDashboardMetrics(TEMP_ORGANIZATION_ID);
 
   // Fetch invoices from API
-  const { data: invoicesData, isLoading: isLoadingInvoices, error: invoicesError } = useInvoices({
+  const {
+    data: invoicesData,
+    isLoading: isLoadingInvoices,
+    error: invoicesError,
+  } = useInvoices({
     organizationId: TEMP_ORGANIZATION_ID,
     status: statusFilter === 'all' ? undefined : statusFilter,
     search: searchQuery || undefined,
@@ -102,8 +127,32 @@ export default function MyInvoicesPage() {
   const apiInvoices = invoicesData?.data || [];
   const invoices = mapApiInvoicesToFrontend(apiInvoices);
 
+  // Calculate overdue invoices (only OVERDUE status)
+  const overdueInvoices = useMemo(() => {
+    return invoices.filter(
+      (invoice) => invoice.status === InvoiceStatus.OVERDUE
+    );
+  }, [invoices]);
+
+  const hasOverdueInvoices = overdueInvoices.length > 0;
+
   const isLoading = isLoadingMetrics || isLoadingInvoices;
   const hasError = metricsError || invoicesError;
+
+  const handleRepaymentClick = (invoice: Invoice) => {
+    setSelectedInvoiceForRepayment(invoice);
+    setIsRepaymentModalOpen(true);
+  };
+
+  const handleRepaymentSuccess = () => {
+    // Refetch invoices and metrics
+    // The react-query hooks will automatically refetch
+  };
+
+  const handleMetricCardClick = () => {
+    // Filter to OVERDUE status only (per user requirement)
+    setStatusFilter(InvoiceStatus.OVERDUE);
+  };
 
   return (
     <div className="space-y-6">
@@ -126,6 +175,24 @@ export default function MyInvoicesPage() {
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Overdue Invoices Alert */}
+      {/* {hasOverdueInvoices && !isLoading && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            You have {overdueInvoices.length} overdue invoice
+            {overdueInvoices.length !== 1 ? 's' : ''} requiring immediate
+            payment.{' '}
+            <button
+              onClick={() => handleMetricCardClick()}
+              className="underline font-semibold hover:no-underline"
+            >
+              View overdue invoices
+            </button>
+          </AlertDescription>
+        </Alert>
+      )} */}
 
       {/* Loading State for Metrics */}
       {isLoadingMetrics ? (
@@ -155,12 +222,17 @@ export default function MyInvoicesPage() {
             description="Lifetime funded"
             icon={DollarSign}
           />
-          <MetricCard
-            title="Pending Repayments"
-            value={format6DecimalsToDollars(metricsData.pendingRepayments)}
-            description="Awaiting payment"
-            icon={Clock}
-          />
+          <div
+            className="cursor-pointer transition-transform hover:scale-[1.02]"
+            onClick={() => handleMetricCardClick()}
+          >
+            <MetricCard
+              title="Pending Repayments"
+              value={format6DecimalsToDollars(metricsData.pendingRepayments)}
+              description="Awaiting payment"
+              icon={Clock}
+            />
+          </div>
         </div>
       ) : null}
 
@@ -174,21 +246,30 @@ export default function MyInvoicesPage() {
           onSearchChange={setSearchQuery}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
+          onRepaymentClick={handleRepaymentClick}
           config={{
             showSmbColumn: false,
+            // SMB 7-Status System
             availableStatuses: [
+              InvoiceStatus.SUBMITTED,
               InvoiceStatus.LISTED,
               InvoiceStatus.FULLY_FUNDED,
-              InvoiceStatus.DISBURSED,
-              InvoiceStatus.PENDING_REPAYMENT,
+              InvoiceStatus.OVERDUE,
               InvoiceStatus.FULLY_PAID,
-              InvoiceStatus.REPAID,
-              InvoiceStatus.DEFAULTED,
               InvoiceStatus.SETTLED,
+              InvoiceStatus.DEFAULTED,
             ],
           }}
         />
       )}
+
+      {/* Repayment Modal */}
+      <RepaymentModal
+        invoice={selectedInvoiceForRepayment}
+        isOpen={isRepaymentModalOpen}
+        onClose={() => setIsRepaymentModalOpen(false)}
+        onRepaymentSuccess={handleRepaymentSuccess}
+      />
     </div>
   );
 }

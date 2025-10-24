@@ -46,6 +46,7 @@ export interface CdpConfig {
 export interface PollingConfig {
   enabled: boolean;
   intervalMs: number;
+  maxBlockRangePerQuery: number; // Maximum blocks per eth_getLogs request (10 for Alchemy free tier)
 }
 
 /**
@@ -66,6 +67,7 @@ export function getBlockchainConfig(): BlockchainConfig {
       polling: {
         enabled: process.env.POLLING_ENABLED === 'true',
         intervalMs: parseInt(process.env.POLLING_INTERVAL_MS || '300000', 10),
+        maxBlockRangePerQuery: parseInt(process.env.ALCHEMY_MAX_BLOCK_RANGE || '10', 10), // Default 10 for free tier
       },
     },
     cdp: {

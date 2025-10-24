@@ -59,11 +59,13 @@ export class MarketplaceRepository {
         'org.id as issuerId',
         'org.name as issuerName',
         'org.legalName as issuerLegalName',
+        'org.logoUrl as issuerLogoUrl',
         'pc.id as payerId',
         'pc.name as payerName',
         'pc.creditScore as payerCreditScore',
         'pc.industry as payerIndustry',
         'pc.paymentTermsDays as payerPaymentTermsDays',
+        'pc.logoUrl as payerLogoUrl',
         'nft.tokenId as nftTokenId',
       ])
       .where('i.lifecycleStatus', '=', 'LISTED')
@@ -147,11 +149,13 @@ export class MarketplaceRepository {
         'org.id as issuerId',
         'org.name as issuerName',
         'org.legalName as issuerLegalName',
+        'org.logoUrl as issuerLogoUrl',
         'pc.id as payerId',
         'pc.name as payerName',
         'pc.creditScore as payerCreditScore',
         'pc.industry as payerIndustry',
         'pc.paymentTermsDays as payerPaymentTermsDays',
+        'pc.logoUrl as payerLogoUrl',
         'nft.tokenId as nftTokenId',
       ])
       .where('i.id', '=', id)

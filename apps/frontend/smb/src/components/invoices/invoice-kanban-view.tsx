@@ -1,6 +1,6 @@
 'use client';
 
-import { Invoice, InvoiceStatus } from '@/types/invoice';
+import { Invoice, InvoiceStatus } from '@ui';
 import { Card, CardHeader, CardContent, Badge } from '@ui';
 import { InvoiceStatusBadge } from './invoice-status-badge';
 import { Calendar } from 'lucide-react';
@@ -27,6 +27,7 @@ interface InvoiceKanbanViewProps {
 const statusColumns = [
   { id: InvoiceStatus.LISTED, title: 'Listed' },
   { id: InvoiceStatus.FULLY_FUNDED, title: 'Funded' },
+  { id: InvoiceStatus.OVERDUE, title: 'Overdue' },
   { id: InvoiceStatus.FULLY_PAID, title: 'Paid' },
   { id: InvoiceStatus.DEFAULTED, title: 'Defaulted' },
   { id: InvoiceStatus.SETTLED, title: 'Settled' },
@@ -95,6 +96,7 @@ export function InvoiceKanbanView({ invoices }: InvoiceKanbanViewProps) {
     const groups: Record<InvoiceStatus, Invoice[]> = {
       [InvoiceStatus.LISTED]: [],
       [InvoiceStatus.FULLY_FUNDED]: [],
+      [InvoiceStatus.OVERDUE]: [],
       [InvoiceStatus.FULLY_PAID]: [],
       [InvoiceStatus.DEFAULTED]: [],
       [InvoiceStatus.SETTLED]: [],

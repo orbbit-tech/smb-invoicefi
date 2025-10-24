@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardFooter, CardHeader } from '@ui';
 import { Button } from '@ui';
-import { Invoice } from '@/types/invoice';
+import { Invoice } from '@ui';
 import { InvoiceStatusBadge } from './invoice-status-badge';
 import { Calendar, DollarSign, TrendingUp } from 'lucide-react';
 import Link from 'next/link';

@@ -32,6 +32,9 @@ export default interface YieldCalculationTable {
   platformFee: ColumnType<string, string, string>;
 
   platformFeeRate: ColumnType<string, string, string>;
+
+  /** Unix timestamp when the yield was settled/distributed to the investor (UTC) */
+  settledAt: ColumnType<string | null, string | null, string | null>;
 }
 
 export type YieldCalculationDb = Selectable<YieldCalculationTable>;

@@ -52,13 +52,13 @@ export default function MarketplacePage() {
       return {
         id: mapped.id,
         companyName: mapped.issuer.name,
-        companyLogoUrl: undefined, // TODO: Add logo URL from issuer data
+        companyLogoUrl: mapped.issuer.logoUrl,
         dueDate: mapped.dueDate.toISOString(),
         category: mapped.issuer.industry || 'General',
         amount: mapped.amount,
         funded: 0, // Not applicable for marketplace (not yet funded)
         payerName: mapped.payer.name,
-        payerLogoUrl: undefined, // TODO: Add logo URL from payer data
+        payerLogoUrl: mapped.payer.logoUrl,
         daysUntilDue: mapped.daysUntilDue,
         return: mapped.expectedReturn,
         apr: mapped.apr,

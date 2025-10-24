@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Check, ChevronDown, Plus } from 'lucide-react';
+import { Building2, Check, ChevronDown } from 'lucide-react';
 import {
   Avatar,
   AvatarFallback,
@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@ui';
 import { useAtom } from 'jotai';
-import { discoveredOrganizationsAtom, sessionAtom } from '@/utils/atoms/auth';
+import { sessionAtom } from '@/utils/atoms/auth';
 
 /**
  * OrgSelector - Organization selector dropdown for the header
@@ -23,58 +23,18 @@ import { discoveredOrganizationsAtom, sessionAtom } from '@/utils/atoms/auth';
  * organizations the user is a member of
  */
 export function OrgSelector() {
-  const [session, setSession] = useAtom(sessionAtom);
-  const [discoveredOrgs] = useAtom(discoveredOrganizationsAtom);
-
+  const [session] = useAtom(sessionAtom);
   const currentOrg = session.org;
 
-  const handleOrgSwitch = (orgId: string) => {
-    // Find the selected organization
-    const selectedOrg = discoveredOrgs.find(
-      (org) => org.organization_id === orgId
-    );
-
-    if (selectedOrg) {
-      // Update session with new organization
-      setSession((prev) => ({
-        ...prev,
-        org: {
-          id: selectedOrg.organization_id,
-          name: selectedOrg.organization_name || null,
-          slug: selectedOrg.organization_slug || null,
-          type: prev.org.type, // Keep the type for now
-          logoUrl: prev.org.logoUrl, // Keep the logo for now
-        },
-      }));
-    }
-  };
-
-  const handleCreateOrg = () => {
-    // TODO: Navigate to create organization flow
-    console.log('Create new organization');
-  };
-
-  // If no orgs are discovered yet, show mock data or loading state
-  const organizations =
-    discoveredOrgs.length > 0
-      ? discoveredOrgs
-      : [
-          {
-            organization_id: currentOrg.id || '1',
-            organization_name: currentOrg.name || 'Acme LLC',
-            organization_slug: currentOrg.slug || 'acme-llc',
-          },
-          {
-            organization_id: '2',
-            organization_name: 'Tech Startup Inc',
-            organization_slug: 'tech-startup',
-          },
-          {
-            organization_id: '3',
-            organization_name: 'Consulting Group',
-            organization_slug: 'consulting-group',
-          },
-        ];
+  // For demo purposes, only show the current organization
+  const organizations = [
+    {
+      id: currentOrg.id || '123',
+      name: currentOrg.name || 'Gallivant Ice Cream',
+      slug: currentOrg.slug || 'gallivant-ice-cream',
+      logoUrl: currentOrg.logoUrl || 'https://media.cdn.orbbit.co/demo/logos/gallivant-ice-cream-logo.png',
+    },
+  ];
 
   return (
     <DropdownMenu>
@@ -83,7 +43,7 @@ export function OrgSelector() {
           variant="ghost"
           className="flex items-center gap-3 h-10 px-0 hover:bg-accent/50 transition-colors border-0"
         >
-          <Avatar className="h-8 w-8">
+          <Avatar className="h-8 w-8 bg-neutral-100/90 shadow-sm">
             <AvatarImage
               src={currentOrg.logoUrl || undefined}
               alt={currentOrg.name || ''}
@@ -104,20 +64,19 @@ export function OrgSelector() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {organizations.map((org) => {
-          const isActive = org.organization_id === currentOrg.id;
+          const isActive = org.id === currentOrg.id;
           return (
             <DropdownMenuItem
-              key={org.organization_id}
-              onClick={() => handleOrgSwitch(org.organization_id)}
+              key={org.id}
               className={`cursor-pointer flex items-center justify-between ${
                 isActive ? 'bg-accent' : ''
               }`}
             >
               <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-8 w-8 bg-neutral-100/90 shadow-sm">
                   <AvatarImage
-                    src={isActive ? currentOrg.logoUrl || undefined : undefined}
-                    alt={org.organization_name || ''}
+                    src={org.logoUrl || undefined}
+                    alt={org.name || ''}
                   />
                   <AvatarFallback className="bg-primary/10 text-primary">
                     <Building2 className="h-4 w-4" />
@@ -125,11 +84,11 @@ export function OrgSelector() {
                 </Avatar>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">
-                    {org.organization_name}
+                    {org.name}
                   </span>
-                  {org.organization_slug && (
+                  {org.slug && (
                     <span className="text-xs text-muted-foreground">
-                      @{org.organization_slug}
+                      @{org.slug}
                     </span>
                   )}
                 </div>
@@ -138,11 +97,6 @@ export function OrgSelector() {
             </DropdownMenuItem>
           );
         })}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleCreateOrg} className="cursor-pointer">
-          <Plus className="mr-2 h-4 w-4" />
-          <span>Create new organization</span>
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

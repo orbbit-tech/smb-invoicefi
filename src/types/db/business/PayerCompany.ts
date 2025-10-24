@@ -42,6 +42,9 @@ export default interface PayerCompanyTable {
   updatedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
 
   deletedAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  /** URL to the payer company logo image (e.g., https://media.cdn.orbbit.co/demo/logos/walmart-logo.png) */
+  logoUrl: ColumnType<string | null, string | null, string | null>;
 }
 
 export type PayerCompanyDb = Selectable<PayerCompanyTable>;

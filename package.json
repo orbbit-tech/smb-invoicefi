@@ -113,7 +113,7 @@
     "@radix-ui/react-toggle": "^1.0.3",
     "@radix-ui/react-toggle-group": "^1.0.4",
     "@radix-ui/react-tooltip": "^1.0.7",
-    "@rainbow-me/rainbowkit": "^2.2.8",
+    "@rainbow-me/rainbowkit": "^2.2.9",
     "@stytch/nextjs": "^17.0.0",
     "@stytch/vanilla-js": "^5.0.0",
     "@supabase/supabase-js": "^2.75.0",

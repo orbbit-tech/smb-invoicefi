@@ -116,6 +116,7 @@ export class MarketplaceService {
           id: inv.issuerId,
           name: inv.issuerName,
           legalName: inv.issuerLegalName || undefined,
+          logoUrl: inv.issuerLogoUrl || undefined,
         },
         payer: {
           id: inv.payerId,
@@ -123,6 +124,7 @@ export class MarketplaceService {
           creditScore: inv.payerCreditScore || undefined,
           industry: inv.payerIndustry || undefined,
           paymentTermsDays: inv.payerPaymentTermsDays || undefined,
+          logoUrl: inv.payerLogoUrl || undefined,
         },
         createdAt: new Date(inv.createdAt).toISOString(),
       };
@@ -180,6 +182,7 @@ export class MarketplaceService {
         id: inv.issuerId,
         name: inv.issuerName,
         legalName: inv.issuerLegalName || undefined,
+        logoUrl: inv.issuerLogoUrl || undefined,
       },
       payer: {
         id: inv.payerId,
@@ -187,6 +190,7 @@ export class MarketplaceService {
         creditScore: inv.payerCreditScore || undefined,
         industry: inv.payerIndustry || undefined,
         paymentTermsDays: inv.payerPaymentTermsDays || undefined,
+        logoUrl: inv.payerLogoUrl || undefined,
       },
       underwriting: underwriting
         ? {

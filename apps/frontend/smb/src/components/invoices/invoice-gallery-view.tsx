@@ -9,7 +9,7 @@ import {
   AvatarImage,
   AvatarFallback,
 } from '@ui';
-import { Invoice } from '@/types/invoice';
+import { Invoice } from '@ui';
 import { InvoiceStatusBadge } from './invoice-status-badge';
 import { Calendar } from 'lucide-react';
 import Link from 'next/link';

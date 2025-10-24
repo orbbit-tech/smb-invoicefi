@@ -49,7 +49,7 @@ export default function SubmitInvoicePage() {
   >({});
 
   // Use create invoice mutation
-  const createInvoice = useCreateInvoice();
+  const { mutateAsync: createInvoice, isPending: isSubmitting } = useCreateInvoice();
 
   const handleChange = (
     field: keyof InvoiceFormData,
@@ -138,7 +138,7 @@ export default function SubmitInvoicePage() {
         : Math.floor(Date.now() / 1000);
       const invoiceDateTimestamp = Math.floor(Date.now() / 1000);
 
-      await createInvoice.mutateAsync({
+      await createInvoice({
         organizationId: TEMP_ORGANIZATION_ID,
         data: {
           payerCompanyId: TEMP_PAYER_ID, // TODO: Get from payer selection

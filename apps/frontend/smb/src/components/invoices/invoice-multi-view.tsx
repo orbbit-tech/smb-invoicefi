@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Invoice, InvoiceStatus } from '@/types/invoice';
+import { Invoice, InvoiceStatus } from '@ui';
 import { InvoiceViewSwitcher, ViewType } from './invoice-view-switcher';
 import { InvoiceTableView } from './invoice-table-view';
 import { InvoiceKanbanView } from './invoice-kanban-view';

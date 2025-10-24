@@ -761,12 +761,65 @@ export class EventListenerService implements OnModuleInit {
   /**
    * Sync all invoices from a specific block range
    * Queries blockchain and processes events
+   * Uses chunked processing to respect Alchemy free tier limits (10 blocks per request)
    */
   async syncFromBlock(fromBlock: bigint, toBlock?: bigint): Promise<void> {
     const targetBlock = toBlock || (await this.publicClient.getBlockNumber());
 
     this.logger.log(`Syncing events from block ${fromBlock} to ${targetBlock}`);
 
+    // Get max block range from config (default 10 for Alchemy free tier)
+    const maxBlockRange = BigInt(this.config.webhook?.polling?.maxBlockRangePerQuery || 10);
+    const totalBlocks = targetBlock - fromBlock + BigInt(1);
+
+    // If range is within limit, process directly
+    if (totalBlocks <= maxBlockRange) {
+      await this.syncBlockChunk(fromBlock, targetBlock);
+      return;
+    }
+
+    // Otherwise, split into chunks
+    this.logger.log(`Splitting ${totalBlocks} blocks into chunks of ${maxBlockRange} blocks`);
+
+    let currentFromBlock = fromBlock;
+    let chunkCount = 0;
+
+    while (currentFromBlock <= targetBlock) {
+      const currentToBlock = currentFromBlock + maxBlockRange - BigInt(1);
+      const chunkEndBlock = currentToBlock > targetBlock ? targetBlock : currentToBlock;
+
+      chunkCount++;
+      this.logger.log(`Processing chunk ${chunkCount}: blocks ${currentFromBlock} to ${chunkEndBlock}`);
+
+      try {
+        await this.syncBlockChunk(currentFromBlock, chunkEndBlock);
+      } catch (error) {
+        this.logger.error(`Error processing chunk ${chunkCount} (blocks ${currentFromBlock}-${chunkEndBlock}):`, error);
+
+        // If we still get a block range error, try with even smaller chunks
+        if (error.message?.includes('block range') && maxBlockRange > BigInt(1)) {
+          this.logger.warn(`Retrying chunk ${chunkCount} with smaller range...`);
+          await this.syncBlockChunkWithRetry(currentFromBlock, chunkEndBlock, maxBlockRange / BigInt(2));
+        } else {
+          throw error;
+        }
+      }
+
+      currentFromBlock = chunkEndBlock + BigInt(1);
+
+      // Small delay between chunks to avoid rate limiting
+      if (currentFromBlock <= targetBlock) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    this.logger.log(`Successfully synced all ${chunkCount} chunks from block ${fromBlock} to ${targetBlock}`);
+  }
+
+  /**
+   * Sync a single chunk of blocks
+   */
+  private async syncBlockChunk(fromBlock: bigint, toBlock: bigint): Promise<void> {
     try {
       // Get all contract events in parallel
       const [invoiceMintedLogs, invoiceFundedLogs, repaymentDepositedLogs, invoiceSettledLogs, invoiceDefaultedLogs] =
@@ -784,35 +837,35 @@ export class EventListenerService implements OnModuleInit {
               ],
             },
             fromBlock,
-            toBlock: targetBlock,
+            toBlock,
           }),
 
           // InvoiceFunded events
           this.publicClient.getLogs({
             address: this.config.invoiceFundingPoolContractAddress as `0x${string}`,
             fromBlock,
-            toBlock: targetBlock,
+            toBlock,
           }),
 
           // RepaymentDeposited events
           this.publicClient.getLogs({
             address: this.config.invoiceFundingPoolContractAddress as `0x${string}`,
             fromBlock,
-            toBlock: targetBlock,
+            toBlock,
           }),
 
           // InvoiceSettled events
           this.publicClient.getLogs({
             address: this.config.invoiceFundingPoolContractAddress as `0x${string}`,
             fromBlock,
-            toBlock: targetBlock,
+            toBlock,
           }),
 
           // InvoiceDefaulted events
           this.publicClient.getLogs({
             address: this.config.invoiceFundingPoolContractAddress as `0x${string}`,
             fromBlock,
-            toBlock: targetBlock,
+            toBlock,
           }),
         ]);
 
@@ -828,11 +881,31 @@ export class EventListenerService implements OnModuleInit {
       // Note: You'll need to add proper event signature filtering based on your contract ABI
       this.logger.log(`Processed ${invoiceMintedLogs.length} InvoiceMinted events`);
       this.logger.log(`Found ${invoiceFundedLogs.length + repaymentDepositedLogs.length + invoiceSettledLogs.length + invoiceDefaultedLogs.length} other contract events`);
-
-      this.logger.log(`Successfully synced events from block ${fromBlock} to ${targetBlock}`);
     } catch (error) {
-      this.logger.error(`Error syncing from block ${fromBlock} to ${targetBlock}:`, error);
+      this.logger.error(`Error syncing chunk from block ${fromBlock} to ${toBlock}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Retry syncing a chunk with a smaller block range
+   */
+  private async syncBlockChunkWithRetry(fromBlock: bigint, toBlock: bigint, retryMaxRange: bigint): Promise<void> {
+    this.logger.log(`Retrying with smaller range of ${retryMaxRange} blocks`);
+
+    let currentFromBlock = fromBlock;
+
+    while (currentFromBlock <= toBlock) {
+      const currentToBlock = currentFromBlock + retryMaxRange - BigInt(1);
+      const chunkEndBlock = currentToBlock > toBlock ? toBlock : currentToBlock;
+
+      await this.syncBlockChunk(currentFromBlock, chunkEndBlock);
+      currentFromBlock = chunkEndBlock + BigInt(1);
+
+      // Small delay between retries
+      if (currentFromBlock <= toBlock) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
   }
 

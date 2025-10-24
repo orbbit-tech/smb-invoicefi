@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Invoice, InvoiceStatus } from '@/types/invoice';
+import { Invoice, InvoiceStatus } from '@ui';
 import {
   GanttProvider,
   GanttTimeline,
@@ -307,6 +307,12 @@ function getGanttStatus(status: InvoiceStatus): GanttStatus {
         id: 'funded',
         name: 'Funded',
         color: 'hsl(271, 91%, 65%)', // purple
+      };
+    case InvoiceStatus.OVERDUE:
+      return {
+        id: 'overdue',
+        name: 'Overdue',
+        color: 'hsl(0, 84%, 60%)', // red/orange for urgency
       };
     case InvoiceStatus.FULLY_PAID:
       return {

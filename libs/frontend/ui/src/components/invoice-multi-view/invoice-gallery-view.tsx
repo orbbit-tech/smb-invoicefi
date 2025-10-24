@@ -19,6 +19,7 @@ interface InvoiceGalleryViewProps {
   invoices: Invoice[];
   baseRoute?: string;
   config?: InvoiceMultiViewConfig;
+  onRepaymentClick?: (invoice: Invoice) => void;
 }
 
 export function InvoiceGalleryView({

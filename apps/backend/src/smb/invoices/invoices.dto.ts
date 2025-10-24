@@ -32,6 +32,9 @@ export class PayerDto {
 
   @ApiPropertyOptional()
   industry?: string;
+
+  @ApiPropertyOptional()
+  logoUrl?: string;
 }
 
 /**

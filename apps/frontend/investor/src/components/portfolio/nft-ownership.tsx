@@ -77,9 +77,6 @@ export function NFTOwnership({
         {/* Company Name */}
         <div>
           <p className="font-semibold mb-2">{companyName}</p>
-          <Badge variant="secondary" className="text-xs gap-1">
-            NFT #{tokenId}
-          </Badge>
         </div>
       </div>
     </div>

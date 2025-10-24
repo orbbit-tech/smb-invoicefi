@@ -1,7 +1,7 @@
 'use client';
 
 import { Badge, cn } from '@ui';
-import { InvoiceStatus } from '@/types/invoice';
+import { InvoiceStatus } from '@ui';
 
 interface InvoiceStatusBadgeProps {
   status: InvoiceStatus;
@@ -51,6 +51,12 @@ function getStatusConfig(status: InvoiceStatus): {
         displayName: 'Paid',
         colorClasses:
           'bg-green-100 text-gray-700 dark:bg-green-900/30 dark:text-gray-300 border-transparent',
+      };
+    case InvoiceStatus.OVERDUE:
+      return {
+        displayName: 'Overdue',
+        colorClasses:
+          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-900 hover:bg-red-200 hover:text-red-800 dark:hover:bg-red-900/40 dark:hover:text-red-300',
       };
     case InvoiceStatus.DEFAULTED:
       return {

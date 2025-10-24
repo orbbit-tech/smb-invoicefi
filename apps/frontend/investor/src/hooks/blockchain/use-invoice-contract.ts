@@ -38,6 +38,7 @@ const INVOICE_ABI = [
 
 /**
  * Status enum matching the smart contract
+ * Note: OVERDUE is calculated off-chain based on dueAt timestamp
  */
 export enum InvoiceStatus {
   LISTED = 0,
@@ -45,6 +46,7 @@ export enum InvoiceStatus {
   FULLY_PAID = 2,
   SETTLED = 3,
   DEFAULTED = 4,
+  OVERDUE = 5, // Calculated off-chain, not stored on-chain
 }
 
 export interface InvoiceContractData {
@@ -63,13 +65,16 @@ export interface InvoiceContractData {
 export function useInvoiceData(tokenId: string | undefined, contractAddress: Address | undefined) {
   const isValidAddress = contractAddress && isAddress(contractAddress);
 
+  // Validate tokenId is a valid numeric string
+  const isValidTokenId = tokenId && /^\d+$/.test(tokenId);
+
   return useReadContract({
     address: isValidAddress ? contractAddress : undefined,
     abi: INVOICE_ABI,
     functionName: 'getInvoiceData',
-    args: tokenId ? [BigInt(tokenId)] : undefined,
+    args: isValidTokenId ? [BigInt(tokenId)] : undefined,
     query: {
-      enabled: !!tokenId && !!isValidAddress,
+      enabled: !!isValidTokenId && !!isValidAddress,
       staleTime: 60 * 1000, // 1 minute
       refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
     },

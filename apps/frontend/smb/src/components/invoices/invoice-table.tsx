@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@ui';
 import { Button } from '@ui';
-import { Invoice } from '@/types/invoice';
+import { Invoice } from '@ui';
 import { InvoiceStatusBadge } from './invoice-status-badge';
 import { ArrowUpDown, Eye } from 'lucide-react';
 import Link from 'next/link';

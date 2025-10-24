@@ -35,10 +35,10 @@ export default async function DashboardLayout({
     },
     org: {
       id: '123',
-      slug: 'test',
-      name: 'Acme LLC', // Will be populated in layout
+      slug: 'gallivant-ice-cream',
+      name: 'Gallivant Ice Cream', // Will be populated in layout
       type: 'BUSINESS_SMB', // Will be populated in layout
-      logoUrl: null, // Will be populated in layout
+      logoUrl: 'https://media.cdn.orbbit.co/demo/logos/gallivant-ice-cream-logo.png',
     },
     business: {
       id: '123',

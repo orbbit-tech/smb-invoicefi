@@ -25,17 +25,18 @@ export class PortfolioRepository {
     // Get all positions for the investor
     const positions = await this.db
       .selectFrom('investment.investorPosition as ip')
+      .innerJoin('identity.user as u', 'ip.userId', 'u.id')
       .innerJoin('invoice.invoice as i', 'ip.invoiceId', 'i.id')
       .innerJoin('invoice.invoiceFundingDetail as fd', 'i.id', 'fd.invoiceId')
       .leftJoin('investment.yieldCalculation as yc', 'ip.id', 'yc.positionId')
       .select([
         'ip.positionStatus',
-        'fd.fundedAmountCents',
-        'fd.expectedRepaymentCents',
-        'yc.actualYieldCents',
+        'fd.fundedAmount',
+        'fd.expectedRepayment',
+        'yc.investorYield',
         'yc.settledAt',
       ] as any)
-      .where('ip.investorAddress' as any, '=', investorAddress)
+      .where('u.walletAddress' as any, '=', investorAddress)
       .where('ip.deletedAt', 'is', null)
       .execute() as any;
 
@@ -55,8 +56,28 @@ export class PortfolioRepository {
       sortOrder = 'desc',
     } = params;
 
+    // Build base query with WHERE conditions
+    let baseQuery = this.db
+      .selectFrom('investment.investorPosition as ip')
+      .innerJoin('identity.user as u', 'ip.userId', 'u.id')
+      .where('u.walletAddress' as any, '=', investorAddress)
+      .where('ip.deletedAt', 'is', null);
+
+    // Apply status filter to base query
+    if (status) {
+      baseQuery = baseQuery.where('ip.positionStatus', '=', status);
+    }
+
+    // Get total count using base query
+    const countResult = await baseQuery
+      .select(({ fn }) => [fn.countAll<number>().as('count')])
+      .executeTakeFirst();
+    const total = Number(countResult?.count || 0);
+
+    // Build full query with all joins and selects
     let query = this.db
       .selectFrom('investment.investorPosition as ip')
+      .innerJoin('identity.user as u', 'ip.userId', 'u.id')
       .innerJoin('invoice.invoice as i', 'ip.invoiceId', 'i.id')
       .innerJoin('blockchain.invoiceNft as nft', 'i.id', 'nft.invoiceId')
       .innerJoin('invoice.invoiceFundingDetail as fd', 'i.id', 'fd.invoiceId')
@@ -69,7 +90,7 @@ export class PortfolioRepository {
         'ip.createdAt',
         'i.id as invoiceId',
         'i.invoiceNumber',
-        'i.amountCents',
+        'i.amount',
         'i.dueAt',
         'i.lifecycleStatus',
         'i.riskScore',
@@ -77,10 +98,10 @@ export class PortfolioRepository {
         'nft.contractAddress',
         'nft.ownerAddress',
         'nft.metadataUri',
-        'fd.fundedAmountCents',
+        'fd.fundedAmount',
         'fd.fundedAt',
         'fd.fundingTxHash',
-        'fd.expectedRepaymentCents',
+        'fd.expectedRepayment',
         'fd.expectedReturn',
         'pc.id as payerId',
         'pc.name as payerName',
@@ -88,21 +109,16 @@ export class PortfolioRepository {
         'pc.industry as payerIndustry',
         'org.id as issuerId',
         'org.name as issuerName',
-        'yc.actualYieldCents',
+        'yc.investorYield',
         'yc.settledAt',
       ] as any)
-      .where('ip.investorAddress' as any, '=', investorAddress)
+      .where('u.walletAddress' as any, '=', investorAddress)
       .where('ip.deletedAt', 'is', null);
 
-    // Apply status filter
+    // Apply status filter to main query
     if (status) {
       query = query.where('ip.positionStatus', '=', status);
     }
-
-    // Get total count
-    const countQuery = query.select(({ fn }) => [fn.countAll<number>().as('count')]);
-    const countResult = await countQuery.executeTakeFirst();
-    const total = Number(countResult?.count || 0);
 
     // Apply sorting and pagination
     const orderByColumn = sortBy === 'createdAt' ? 'ip.createdAt' : `ip.${sortBy}`;
@@ -125,6 +141,7 @@ export class PortfolioRepository {
   async getPositionById(positionId: string, investorAddress: string) {
     return await this.db
       .selectFrom('investment.investorPosition as ip')
+      .innerJoin('identity.user as u', 'ip.userId', 'u.id')
       .innerJoin('invoice.invoice as i', 'ip.invoiceId', 'i.id')
       .innerJoin('blockchain.invoiceNft as nft', 'i.id', 'nft.invoiceId')
       .innerJoin('invoice.invoiceFundingDetail as fd', 'i.id', 'fd.invoiceId')
@@ -137,7 +154,7 @@ export class PortfolioRepository {
         'ip.createdAt',
         'i.id as invoiceId',
         'i.invoiceNumber',
-        'i.amountCents',
+        'i.amount',
         'i.dueAt',
         'i.lifecycleStatus',
         'i.riskScore',
@@ -145,10 +162,10 @@ export class PortfolioRepository {
         'nft.contractAddress',
         'nft.ownerAddress',
         'nft.metadataUri',
-        'fd.fundedAmountCents',
+        'fd.fundedAmount',
         'fd.fundedAt',
         'fd.fundingTxHash',
-        'fd.expectedRepaymentCents',
+        'fd.expectedRepayment',
         'fd.expectedReturn',
         'pc.id as payerId',
         'pc.name as payerName',
@@ -156,11 +173,11 @@ export class PortfolioRepository {
         'pc.industry as payerIndustry',
         'org.id as issuerId',
         'org.name as issuerName',
-        'yc.actualYieldCents',
+        'yc.investorYield',
         'yc.settledAt',
       ] as any)
       .where('ip.id', '=', positionId)
-      .where('ip.investorAddress' as any, '=', investorAddress)
+      .where('u.walletAddress' as any, '=', investorAddress)
       .where('ip.deletedAt', 'is', null)
       .executeTakeFirst() as any;
   }

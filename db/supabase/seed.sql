@@ -1,267 +1,362 @@
 -- ============================================================================
--- Orbbit Web3 Invoice Financing - Seed Data
+-- Orbbit Web3 Invoice Financing - Realistic Demo Seed Data V2
 -- ============================================================================
--- Comprehensive test data covering full invoice lifecycle with 3-5 invoices
+-- Production-ready seed data for investor marketplace demo
 --
--- UPDATED: Uses 6-decimal precision matching smart contract conventions
--- - Amounts: 6 decimals for USDC (e.g., 1,000,000 = $1, $50,000 = 50,000,000,000)
--- - APR/Rates: 6 decimals (e.g., 36.5% = 365,000 where 1,000,000 = 100%)
+-- KEY FEATURES:
+-- - 3 SMBs with actual logos: Gallivant Ice Cream, Medi Supply, Organic Harvest
+-- - 8 invoices (4+2+2) with diverse statuses: LISTED, FUNDED, OVERDUE, FULLY_PAID, SETTLED
+-- - Amounts: $1-$5 (USDC testnet faucet compatible)
+-- - APR: 36.5% standard across all invoices
+-- - Fee structure: 30d=3%, 60d=6%, 90d=9% (matches business logic doc)
+-- - Real investor wallet address for immediate testing
+-- - Payers: Walmart, Target, Amazon, Costco (all have logos)
 --
--- Data includes:
--- - 3 SMB organizations (issuers)
--- - 3 investors (users)
--- - 4 payer companies (invoice debtors)
--- - 5 invoices covering all lifecycle states
--- - Related NFTs, transactions, positions, and distributions
+-- PRECISION:
+-- - Amounts: 6 decimals for USDC (1,000,000 = $1)
+-- - APR: 6 decimals (365,000 = 36.5% where 1,000,000 = 100%)
+-- - Discount rates: 6 decimals (30,000 = 3%, 60,000 = 6%, 90,000 = 9%)
 -- ============================================================================
+
+-- Clear existing data (optional - comment out if you want to preserve existing data)
+TRUNCATE TABLE
+  investment.repayment_distribution,
+  investment.yield_calculation,
+  investment.investor_position,
+  invoice.invoice_status_history,
+  invoice.invoice_default,
+  invoice.invoice_repayment,
+  invoice.invoice_funding_detail,
+  invoice.invoice_underwriting,
+  blockchain.transaction,
+  blockchain.invoice_nft,
+  blockchain.contract_event,
+  blockchain.wallet_autopay_config,
+  invoice.invoice,
+  business.payer_relationship,
+  business.payer_company,
+  identity.organization_member,
+  identity.member,
+  identity.user,
+  identity.organization
+CASCADE;
 
 -- ============================================================================
 -- IDENTITY DATA
 -- ============================================================================
 
 -- Organizations (SMBs that issue invoices)
-INSERT INTO identity.organization (id, name, legal_name, wallet_address, timezone, email, kyb_status, is_whitelisted, created_at) VALUES
-('org_01tech', 'TechSupply Co.', 'TechSupply Company LLC', '0x1111111111111111111111111111111111111111', 'America/New_York', 'admin@techsupply.example', 'APPROVED', true, NOW() - INTERVAL '90 days'),
-('org_02food', 'FoodDistrib Inc.', 'Food Distribution Inc.', '0x2222222222222222222222222222222222222222', 'America/Chicago', 'admin@fooddistrib.example', 'APPROVED', true, NOW() - INTERVAL '60 days'),
-('org_03retail', 'RetailWholesale LLC', 'Retail Wholesale Limited Liability Company', '0x3333333333333333333333333333333333333333', 'America/Los_Angeles', 'admin@retailwholesale.example', 'APPROVED', true, NOW() - INTERVAL '30 days');
+INSERT INTO identity.organization (id, name, legal_name, wallet_address, timezone, email, kyb_status, is_whitelisted, logo_url, created_at) VALUES
+('org_gallivant', 'Gallivant Ice Cream', 'Gallivant Ice Cream LLC', '0x1111111111111111111111111111111111111111', 'America/New_York', 'admin@gallivant-icecream.com', 'APPROVED', true, 'https://media.cdn.orbbit.co/demo/logos/gallivant-ice-cream-logo.png', NOW() - INTERVAL '90 days'),
+('org_medisupply', 'Medi Supply', 'Medi Supply Inc.', '0x2222222222222222222222222222222222222222', 'America/Chicago', 'admin@medisupply.com', 'APPROVED', true, 'https://media.cdn.orbbit.co/demo/logos/medi-supply-logo.png', NOW() - INTERVAL '60 days'),
+('org_organicharvest', 'Organic Harvest', 'Organic Harvest Distributors LLC', '0x3333333333333333333333333333333333333333', 'America/Los_Angeles', 'admin@organicharvest.com', 'APPROVED', true, 'https://media.cdn.orbbit.co/demo/logos/organic-harvest-logo.png', NOW() - INTERVAL '30 days');
 
 -- Users (Individual Investors)
+-- Using your real Coinbase Wallet address for immediate testing
 INSERT INTO identity.user (id, email, wallet_address, first_name, last_name, kyc_status, is_whitelisted, is_accredited_investor, created_at) VALUES
-('user_01alice', 'alice.investor@example.com', '0xaaaa111111111111111111111111111111111111', 'Alice', 'Johnson', 'APPROVED', true, true, NOW() - INTERVAL '80 days'),
-('user_02bob', 'bob.crypto@example.com', '0xbbbb222222222222222222222222222222222222', 'Bob', 'Smith', 'APPROVED', true, true, NOW() - INTERVAL '70 days'),
-('user_03charlie', 'charlie.fund@example.com', '0xcccc333333333333333333333333333333333333', 'Charlie', 'Davis', 'APPROVED', true, true, NOW() - INTERVAL '50 days');
+('user_investor1', 'investor@orbbit.demo', '0x891a9EC416ED2c8DAE3D7DB6D8cEa1a3b273937C', 'Demo', 'Investor', 'APPROVED', true, true, NOW() - INTERVAL '80 days');
 
 -- Members (Organization team members)
 INSERT INTO identity.member (id, email, wallet_address, first_name, last_name, created_at) VALUES
-('member_01tech', 'john.cfo@techsupply.example', '0x1111111111111111111111111111111111111112', 'John', 'CFO', NOW() - INTERVAL '85 days'),
-('member_02food', 'jane.ops@fooddistrib.example', '0x2222222222222222222222222222222222222223', 'Jane', 'Operations', NOW() - INTERVAL '55 days'),
-('member_03retail', 'mike.owner@retailwholesale.example', '0x3333333333333333333333333333333333333334', 'Mike', 'Owner', NOW() - INTERVAL '25 days');
+('member_gallivant', 'sarah@gallivant-icecream.com', '0x1111111111111111111111111111111111111112', 'Sarah', 'Chen', NOW() - INTERVAL '85 days'),
+('member_medisupply', 'michael@medisupply.com', '0x2222222222222222222222222222222222222223', 'Michael', 'Rodriguez', NOW() - INTERVAL '55 days'),
+('member_organicharvest', 'emma@organicharvest.com', '0x3333333333333333333333333333333333333334', 'Emma', 'Thompson', NOW() - INTERVAL '25 days');
 
 -- Organization-Member relationships
 INSERT INTO identity.organization_member (organization_id, member_id, role, joined_at, created_at) VALUES
-('org_01tech', 'member_01tech', 'ADMIN', NOW() - INTERVAL '85 days', NOW() - INTERVAL '85 days'),
-('org_02food', 'member_02food', 'ADMIN', NOW() - INTERVAL '55 days', NOW() - INTERVAL '55 days'),
-('org_03retail', 'member_03retail', 'OWNER', NOW() - INTERVAL '25 days', NOW() - INTERVAL '25 days');
+('org_gallivant', 'member_gallivant', 'OWNER', NOW() - INTERVAL '85 days', NOW() - INTERVAL '85 days'),
+('org_medisupply', 'member_medisupply', 'ADMIN', NOW() - INTERVAL '55 days', NOW() - INTERVAL '55 days'),
+('org_organicharvest', 'member_organicharvest', 'ADMIN', NOW() - INTERVAL '25 days', NOW() - INTERVAL '25 days');
 
 -- ============================================================================
 -- BUSINESS DATA
 -- ============================================================================
 
--- Payer Companies (Invoice debtors - major retailers)
-INSERT INTO business.payer_company (id, name, legal_name, industry, credit_score, payment_terms_days, created_at) VALUES
-('payer_01walmart', 'Walmart', 'Walmart Inc.', 'Retail', 'AAA', 60, NOW() - INTERVAL '365 days'),
-('payer_02target', 'Target', 'Target Corporation', 'Retail', 'AA', 90, NOW() - INTERVAL '365 days'),
-('payer_03amazon', 'Amazon', 'Amazon.com, Inc.', 'E-commerce', 'AAA', 30, NOW() - INTERVAL '365 days'),
-('payer_04costco', 'Costco', 'Costco Wholesale Corporation', 'Retail', 'AA', 60, NOW() - INTERVAL '365 days');
+-- Payer Companies (Invoice debtors - major retailers with logos)
+INSERT INTO business.payer_company (id, name, legal_name, industry, credit_score, payment_terms_days, logo_url, created_at) VALUES
+('payer_walmart', 'Walmart', 'Walmart Inc.', 'Retail', 'AAA', 60, 'https://media.cdn.orbbit.co/demo/logos/walmart-logo.png', NOW() - INTERVAL '365 days'),
+('payer_target', 'Target', 'Target Corporation', 'Retail', 'AA', 90, 'https://media.cdn.orbbit.co/demo/logos/target-logo.png', NOW() - INTERVAL '365 days'),
+('payer_amazon', 'Amazon', 'Amazon.com, Inc.', 'E-commerce', 'AAA', 30, 'https://media.cdn.orbbit.co/demo/logos/amazon-logo.png', NOW() - INTERVAL '365 days'),
+('payer_costco', 'Costco', 'Costco Wholesale Corporation', 'Retail', 'AA', 60, NULL, NOW() - INTERVAL '365 days');
 
 -- Payer Relationships (SMB-to-Payer payment history)
 INSERT INTO business.payer_relationship (id, organization_id, payer_company_id, total_invoices_count, total_invoices_value, paid_on_time_count, late_payment_count, default_count, reliability_score, created_at) VALUES
-('rel_tech_walmart', 'org_01tech', 'payer_01walmart', 12, 24000000, 11, 1, 0, 91.67, NOW() - INTERVAL '365 days'),
-('rel_tech_costco', 'org_01tech', 'payer_04costco', 5, 6000000, 3, 1, 1, 60.00, NOW() - INTERVAL '200 days'),
-('rel_food_target', 'org_02food', 'payer_02target', 8, 12000000, 8, 0, 0, 100.00, NOW() - INTERVAL '180 days'),
-('rel_retail_amazon', 'org_03retail', 'payer_03amazon', 3, 5400000, 3, 0, 0, 100.00, NOW() - INTERVAL '60 days');
+-- Gallivant Ice Cream relationships
+('rel_gallivant_walmart', 'org_gallivant', 'payer_walmart', 15, 45000000, 14, 1, 0, 93.33, NOW() - INTERVAL '365 days'),
+('rel_gallivant_target', 'org_gallivant', 'payer_target', 12, 54000000, 12, 0, 0, 100.00, NOW() - INTERVAL '300 days'),
+('rel_gallivant_costco', 'org_gallivant', 'payer_costco', 8, 20000000, 7, 1, 0, 87.50, NOW() - INTERVAL '200 days'),
+-- Medi Supply relationships
+('rel_medisupply_amazon', 'org_medisupply', 'payer_amazon', 20, 36000000, 19, 1, 0, 95.00, NOW() - INTERVAL '300 days'),
+('rel_medisupply_walmart', 'org_medisupply', 'payer_walmart', 10, 36000000, 10, 0, 0, 100.00, NOW() - INTERVAL '250 days'),
+-- Organic Harvest relationships
+('rel_organicharvest_target', 'org_organicharvest', 'payer_target', 18, 48600000, 17, 1, 0, 94.44, NOW() - INTERVAL '280 days'),
+('rel_organicharvest_amazon', 'org_organicharvest', 'payer_amazon', 14, 56000000, 14, 0, 0, 100.00, NOW() - INTERVAL '220 days');
 
 -- ============================================================================
--- INVOICE DATA
+-- INVOICE DATA (Mix of statuses for realistic demo)
 -- ============================================================================
+-- 3 LISTED (marketplace): inv_gallivant_01, inv_medisupply_01, inv_organicharvest_01
+-- 2 FULLY_FUNDED (active): inv_gallivant_02, inv_organicharvest_02
+-- 1 OVERDUE (past due): inv_gallivant_04
+-- 1 FULLY_PAID (paid): inv_gallivant_03
+-- 1 SETTLED (completed): inv_medisupply_02
 
--- Invoice 1: SETTLED (Happy path - completed successfully)
--- TechSupply → Walmart, $2, 60 days, funded by Alice, repaid on time
+-- =========================
+-- GALLIVANT ICE CREAM (4 invoices)
+-- =========================
+
+-- Invoice 1: Gallivant → Walmart, $3.00, 30 days [LISTED - Available in marketplace]
 INSERT INTO invoice.invoice (id, organization_id, payer_company_id, amount, apr, discount_rate, invoice_date, due_at, lifecycle_status, on_chain_status, invoice_number, risk_score, created_at) VALUES
-('inv_01settled', 'org_01tech', 'payer_01walmart', 2000000, 365000, 60000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '80 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '20 days'))::BIGINT, 'SETTLED', 'SETTLED', 'INV-2024-001', 'LOW', NOW() - INTERVAL '80 days');
+('inv_gallivant_01', 'org_gallivant', 'payer_walmart', 3000000, 365000, 30000,
+  EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT,
+  EXTRACT(EPOCH FROM (NOW() + INTERVAL '25 days'))::BIGINT,
+  'LISTED', 'LISTED', 'GIC-2024-001', 'LOW', NOW() - INTERVAL '7 days');
 
--- Invoice 2: FUNDED (Currently active, awaiting payment)
--- FoodDistrib → Target, $1.50, 90 days, funded by Bob, due in 60 days
+-- Invoice 2: Gallivant → Target, $4.50, 60 days [FUNDED - Active investment]
 INSERT INTO invoice.invoice (id, organization_id, payer_company_id, amount, apr, discount_rate, invoice_date, due_at, lifecycle_status, on_chain_status, invoice_number, risk_score, created_at) VALUES
-('inv_02funded', 'org_02food', 'payer_02target', 1500000, 365000, 90000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '30 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() + INTERVAL '60 days'))::BIGINT, 'AWAITING_PAYMENT', 'FUNDED', 'INV-2024-002', 'LOW', NOW() - INTERVAL '35 days');
+('inv_gallivant_02', 'org_gallivant', 'payer_target', 4500000, 365000, 60000,
+  EXTRACT(EPOCH FROM (NOW() - INTERVAL '50 days'))::BIGINT,
+  EXTRACT(EPOCH FROM (NOW() + INTERVAL '10 days'))::BIGINT,
+  'FUNDED', 'FUNDED', 'GIC-2024-002', 'LOW', NOW() - INTERVAL '52 days');
 
--- Invoice 3: LISTED (Available for funding on marketplace)
--- RetailWholesale → Amazon, $1.80, 30 days, awaiting investor
+-- Invoice 3: Gallivant → Costco, $2.50, 90 days [FULLY_PAID - Payer has paid]
 INSERT INTO invoice.invoice (id, organization_id, payer_company_id, amount, apr, discount_rate, invoice_date, due_at, lifecycle_status, on_chain_status, invoice_number, risk_score, created_at) VALUES
-('inv_03listed', 'org_03retail', 'payer_03amazon', 1800000, 365000, 30000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() + INTERVAL '25 days'))::BIGINT, 'LISTED', 'LISTED', 'INV-2024-003', 'LOW', NOW() - INTERVAL '7 days');
+('inv_gallivant_03', 'org_gallivant', 'payer_costco', 2500000, 365000, 90000,
+  EXTRACT(EPOCH FROM (NOW() - INTERVAL '85 days'))::BIGINT,
+  EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT,
+  'FULLY_PAID', 'FULLY_PAID', 'GIC-2024-003', 'LOW', NOW() - INTERVAL '87 days');
 
--- Invoice 4: DEFAULTED (In collections workflow)
--- TechSupply → Costco, $1.20, 60 days, funded by Charlie, defaulted after grace period
+-- Invoice 4: Gallivant → Walmart, $3.50, 30 days [OVERDUE - Past due, needs payment]
 INSERT INTO invoice.invoice (id, organization_id, payer_company_id, amount, apr, discount_rate, invoice_date, due_at, lifecycle_status, on_chain_status, invoice_number, risk_score, created_at) VALUES
-('inv_04defaulted', 'org_01tech', 'payer_04costco', 1200000, 365000, 60000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '100 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '40 days'))::BIGINT, 'COLLECTION', 'DEFAULTED', 'INV-2024-004', 'MEDIUM', NOW() - INTERVAL '105 days');
+('inv_gallivant_04', 'org_gallivant', 'payer_walmart', 3500000, 365000, 30000,
+  EXTRACT(EPOCH FROM (NOW() - INTERVAL '40 days'))::BIGINT,
+  EXTRACT(EPOCH FROM (NOW() - INTERVAL '7 days'))::BIGINT,
+  'OVERDUE', 'FUNDED', 'GIC-2024-004', 'LOW', NOW() - INTERVAL '42 days');
 
--- Invoice 5: DECLINED (Rejected during underwriting)
--- FoodDistrib → Unknown Payer, $5, failed risk assessment
-INSERT INTO invoice.invoice (id, organization_id, payer_company_id, amount, apr, invoice_date, due_at, lifecycle_status, invoice_number, risk_score, created_at) VALUES
-('inv_05declined', 'org_02food', 'payer_02target', 5000000, 365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '15 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() + INTERVAL '75 days'))::BIGINT, 'DECLINED', 'INV-2024-005', 'HIGH', NOW() - INTERVAL '18 days');
+-- =========================
+-- MEDI SUPPLY (2 invoices)
+-- =========================
+
+-- Invoice 4: Medi Supply → Amazon, $1.80, 30 days [LISTED - Available in marketplace]
+INSERT INTO invoice.invoice (id, organization_id, payer_company_id, amount, apr, discount_rate, invoice_date, due_at, lifecycle_status, on_chain_status, invoice_number, risk_score, created_at) VALUES
+('inv_medisupply_01', 'org_medisupply', 'payer_amazon', 1800000, 365000, 30000,
+  EXTRACT(EPOCH FROM (NOW() - INTERVAL '4 days'))::BIGINT,
+  EXTRACT(EPOCH FROM (NOW() + INTERVAL '26 days'))::BIGINT,
+  'LISTED', 'LISTED', 'MED-2024-001', 'LOW', NOW() - INTERVAL '6 days');
+
+-- Invoice 5: Medi Supply → Walmart, $3.60, 60 days [SETTLED - Completed, yield distributed]
+INSERT INTO invoice.invoice (id, organization_id, payer_company_id, amount, apr, discount_rate, invoice_date, due_at, lifecycle_status, on_chain_status, invoice_number, risk_score, created_at) VALUES
+('inv_medisupply_02', 'org_medisupply', 'payer_walmart', 3600000, 365000, 60000,
+  EXTRACT(EPOCH FROM (NOW() - INTERVAL '65 days'))::BIGINT,
+  EXTRACT(EPOCH FROM (NOW() - INTERVAL '10 days'))::BIGINT,
+  'SETTLED', 'SETTLED', 'MED-2024-002', 'LOW', NOW() - INTERVAL '67 days');
+
+-- =========================
+-- ORGANIC HARVEST (2 invoices)
+-- =========================
+
+-- Invoice 6: Organic Harvest → Target, $2.70, 90 days [LISTED - Available in marketplace]
+INSERT INTO invoice.invoice (id, organization_id, payer_company_id, amount, apr, discount_rate, invoice_date, due_at, lifecycle_status, on_chain_status, invoice_number, risk_score, created_at) VALUES
+('inv_organicharvest_01', 'org_organicharvest', 'payer_target', 2700000, 365000, 90000,
+  EXTRACT(EPOCH FROM (NOW() - INTERVAL '2 days'))::BIGINT,
+  EXTRACT(EPOCH FROM (NOW() + INTERVAL '88 days'))::BIGINT,
+  'LISTED', 'LISTED', 'ORG-2024-001', 'LOW', NOW() - INTERVAL '4 days');
+
+-- Invoice 7: Organic Harvest → Amazon, $4.00, 30 days [FUNDED - Active investment]
+INSERT INTO invoice.invoice (id, organization_id, payer_company_id, amount, apr, discount_rate, invoice_date, due_at, lifecycle_status, on_chain_status, invoice_number, risk_score, created_at) VALUES
+('inv_organicharvest_02', 'org_organicharvest', 'payer_amazon', 4000000, 365000, 30000,
+  EXTRACT(EPOCH FROM (NOW() - INTERVAL '20 days'))::BIGINT,
+  EXTRACT(EPOCH FROM (NOW() + INTERVAL '10 days'))::BIGINT,
+  'FUNDED', 'FUNDED', 'ORG-2024-002', 'LOW', NOW() - INTERVAL '22 days');
 
 -- ============================================================================
 -- INVOICE UNDERWRITING DATA
 -- ============================================================================
 
 INSERT INTO invoice.invoice_underwriting (id, invoice_id, decision, decision_reason, approved_amount, approved_apr, assessed_risk_score, fraud_check_status, payer_verification_status, completed_at, created_at) VALUES
-('uw_01', 'inv_01settled', 'APPROVED', 'Strong payer credit (AAA), good payment history', 2000000, 365000, 'LOW', 'PASSED', 'VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '78 days'))::BIGINT, NOW() - INTERVAL '78 days'),
-('uw_02', 'inv_02funded', 'APPROVED', 'Excellent payer reliability, verified relationship', 1500000, 365000, 'LOW', 'PASSED', 'VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '33 days'))::BIGINT, NOW() - INTERVAL '33 days'),
-('uw_03', 'inv_03listed', 'APPROVED', 'AAA payer, strong SMB credentials', 1800000, 365000, 'LOW', 'PASSED', 'VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '6 days'))::BIGINT, NOW() - INTERVAL '6 days'),
-('uw_04', 'inv_04defaulted', 'APPROVED', 'Borderline approval, elevated risk', 1200000, 365000, 'MEDIUM', 'PASSED', 'VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '103 days'))::BIGINT, NOW() - INTERVAL '103 days'),
-('uw_05', 'inv_05declined', 'DECLINED', 'Excessive amount for SMB size, high-risk payer relationship', NULL, NULL, 'HIGH', 'PASSED', 'NOT_VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '17 days'))::BIGINT, NOW() - INTERVAL '17 days');
-
--- ============================================================================
--- INVOICE FUNDING DATA
--- ============================================================================
-
--- Invoice 1: Funded by Alice (discount_rate = 6%, so funding = $2 * 0.94 = $1.88, repayment = $2)
-INSERT INTO invoice.invoice_funding_detail (id, invoice_id, investor_address, funded_amount, funded_at, funding_tx_hash, payment_token_address, expected_repayment, expected_return, created_at) VALUES
-('fund_01', 'inv_01settled', '0xaaaa111111111111111111111111111111111111', 1880000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '75 days'))::BIGINT, '0xfund111111111111111111111111111111111111111111111111111111111111', '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 2000000, 60000, NOW() - INTERVAL '75 days');
-
--- Invoice 2: Funded by Bob (discount_rate = 9%, so funding = $1.50 * 0.91 = $1.365, repayment = $1.50)
-INSERT INTO invoice.invoice_funding_detail (id, invoice_id, investor_address, funded_amount, funded_at, funding_tx_hash, payment_token_address, expected_repayment, expected_return, created_at) VALUES
-('fund_02', 'inv_02funded', '0xbbbb222222222222222222222222222222222222', 1365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '30 days'))::BIGINT, '0xfund222222222222222222222222222222222222222222222222222222222222', '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 1500000, 90000, NOW() - INTERVAL '30 days');
-
--- Invoice 4: Funded by Charlie (defaulted) (discount_rate = 6%, so funding = $1.20 * 0.94 = $1.128, repayment = $1.20)
-INSERT INTO invoice.invoice_funding_detail (id, invoice_id, investor_address, funded_amount, funded_at, funding_tx_hash, payment_token_address, expected_repayment, expected_return, created_at) VALUES
-('fund_04', 'inv_04defaulted', '0xcccc333333333333333333333333333333333333', 1128000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '95 days'))::BIGINT, '0xfund444444444444444444444444444444444444444444444444444444444444', '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 1200000, 60000, NOW() - INTERVAL '95 days');
-
--- ============================================================================
--- INVOICE REPAYMENT DATA
--- ============================================================================
-
--- Invoice 1: Fully repaid and settled
-INSERT INTO invoice.invoice_repayment (id, invoice_id, repayment_amount, deposited_by, deposited_at, settled_at, repayment_tx_hash, settlement_tx_hash, repayment_method, created_at) VALUES
-('rep_01', 'inv_01settled', 2000000, '0x1111111111111111111111111111111111111111', EXTRACT(EPOCH FROM (NOW() - INTERVAL '20 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '18 days'))::BIGINT, '0xrepay11111111111111111111111111111111111111111111111111111111111', '0xsettle1111111111111111111111111111111111111111111111111111111111', 'WALLET', NOW() - INTERVAL '20 days');
-
--- ============================================================================
--- INVOICE DEFAULT DATA
--- ============================================================================
-
--- Invoice 4: Defaulted, in collections
-INSERT INTO invoice.invoice_default (id, invoice_id, defaulted_at, grace_period_end, collection_initiated_at, collection_status, recovered_amount, notes, created_at) VALUES
-('def_04', 'inv_04defaulted', EXTRACT(EPOCH FROM (NOW() - INTERVAL '25 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '25 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '20 days'))::BIGINT, 'IN_PROGRESS', 0, 'Payer experiencing financial difficulties, collection agency engaged', NOW() - INTERVAL '25 days');
+('uw_gallivant_01', 'inv_gallivant_01', 'APPROVED', 'AAA payer (Walmart), excellent payment history', 3000000, 365000, 'LOW', 'PASSED', 'VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '6 days'))::BIGINT, NOW() - INTERVAL '6 days'),
+('uw_gallivant_02', 'inv_gallivant_02', 'APPROVED', 'AA payer (Target), 100% on-time payment record', 4500000, 365000, 'LOW', 'PASSED', 'VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, NOW() - INTERVAL '5 days'),
+('uw_gallivant_03', 'inv_gallivant_03', 'APPROVED', 'AA payer (Costco), strong relationship', 2500000, 365000, 'LOW', 'PASSED', 'VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '4 days'))::BIGINT, NOW() - INTERVAL '4 days'),
+('uw_gallivant_04', 'inv_gallivant_04', 'APPROVED', 'AAA payer (Walmart), strong payment history', 3500000, 365000, 'LOW', 'PASSED', 'VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '41 days'))::BIGINT, NOW() - INTERVAL '41 days'),
+('uw_medisupply_01', 'inv_medisupply_01', 'APPROVED', 'AAA payer (Amazon), verified medical supplier', 1800000, 365000, 'LOW', 'PASSED', 'VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, NOW() - INTERVAL '5 days'),
+('uw_medisupply_02', 'inv_medisupply_02', 'APPROVED', 'AAA payer (Walmart), 100% on-time payment', 3600000, 365000, 'LOW', 'PASSED', 'VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '4 days'))::BIGINT, NOW() - INTERVAL '4 days'),
+('uw_organicharvest_01', 'inv_organicharvest_01', 'APPROVED', 'AA payer (Target), excellent track record', 2700000, 365000, 'LOW', 'PASSED', 'VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '3 days'))::BIGINT, NOW() - INTERVAL '3 days'),
+('uw_organicharvest_02', 'inv_organicharvest_02', 'APPROVED', 'AAA payer (Amazon), strong relationship', 4000000, 365000, 'LOW', 'PASSED', 'VERIFIED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '2 days'))::BIGINT, NOW() - INTERVAL '2 days');
 
 -- ============================================================================
 -- INVOICE STATUS HISTORY
 -- ============================================================================
 
--- Invoice 1 history (SETTLED)
+-- Gallivant Invoice 1 [LISTED]
 INSERT INTO invoice.invoice_status_history (invoice_id, from_status, to_status, changed_at, created_at) VALUES
-('inv_01settled', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '80 days'))::BIGINT, NOW() - INTERVAL '80 days'),
-('inv_01settled', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '79 days'))::BIGINT, NOW() - INTERVAL '79 days'),
-('inv_01settled', 'UNDERWRITING', 'APPROVED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '78 days'))::BIGINT, NOW() - INTERVAL '78 days'),
-('inv_01settled', 'APPROVED', 'LISTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '77 days'))::BIGINT, NOW() - INTERVAL '77 days'),
-('inv_01settled', 'LISTED', 'FUNDED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '75 days'))::BIGINT, NOW() - INTERVAL '75 days'),
-('inv_01settled', 'FUNDED', 'AWAITING_PAYMENT', EXTRACT(EPOCH FROM (NOW() - INTERVAL '75 days'))::BIGINT, NOW() - INTERVAL '75 days'),
-('inv_01settled', 'AWAITING_PAYMENT', 'FULLY_PAID', EXTRACT(EPOCH FROM (NOW() - INTERVAL '20 days'))::BIGINT, NOW() - INTERVAL '20 days'),
-('inv_01settled', 'FULLY_PAID', 'SETTLED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '18 days'))::BIGINT, NOW() - INTERVAL '18 days');
+('inv_gallivant_01', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '7 days'))::BIGINT, NOW() - INTERVAL '7 days'),
+('inv_gallivant_01', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '6 days'))::BIGINT, NOW() - INTERVAL '6 days'),
+('inv_gallivant_01', 'UNDERWRITING', 'APPROVED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '6 days'))::BIGINT, NOW() - INTERVAL '6 days'),
+('inv_gallivant_01', 'APPROVED', 'LISTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, NOW() - INTERVAL '5 days');
 
--- Invoice 2 history (FUNDED - active)
+-- Gallivant Invoice 2 [FULLY_FUNDED]
 INSERT INTO invoice.invoice_status_history (invoice_id, from_status, to_status, changed_at, created_at) VALUES
-('inv_02funded', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '35 days'))::BIGINT, NOW() - INTERVAL '35 days'),
-('inv_02funded', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '34 days'))::BIGINT, NOW() - INTERVAL '34 days'),
-('inv_02funded', 'UNDERWRITING', 'APPROVED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '33 days'))::BIGINT, NOW() - INTERVAL '33 days'),
-('inv_02funded', 'APPROVED', 'LISTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '32 days'))::BIGINT, NOW() - INTERVAL '32 days'),
-('inv_02funded', 'LISTED', 'FUNDED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '30 days'))::BIGINT, NOW() - INTERVAL '30 days'),
-('inv_02funded', 'FUNDED', 'AWAITING_PAYMENT', EXTRACT(EPOCH FROM (NOW() - INTERVAL '30 days'))::BIGINT, NOW() - INTERVAL '30 days');
+('inv_gallivant_02', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '52 days'))::BIGINT, NOW() - INTERVAL '52 days'),
+('inv_gallivant_02', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '51 days'))::BIGINT, NOW() - INTERVAL '51 days'),
+('inv_gallivant_02', 'UNDERWRITING', 'APPROVED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '51 days'))::BIGINT, NOW() - INTERVAL '51 days'),
+('inv_gallivant_02', 'APPROVED', 'LISTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '50 days'))::BIGINT, NOW() - INTERVAL '50 days'),
+('inv_gallivant_02', 'LISTED', 'FULLY_FUNDED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '48 days'))::BIGINT, NOW() - INTERVAL '48 days');
 
--- Invoice 3 history (LISTED)
+-- Gallivant Invoice 3 [FULLY_PAID]
 INSERT INTO invoice.invoice_status_history (invoice_id, from_status, to_status, changed_at, created_at) VALUES
-('inv_03listed', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '7 days'))::BIGINT, NOW() - INTERVAL '7 days'),
-('inv_03listed', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '6 days'))::BIGINT, NOW() - INTERVAL '6 days'),
-('inv_03listed', 'UNDERWRITING', 'APPROVED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '6 days'))::BIGINT, NOW() - INTERVAL '6 days'),
-('inv_03listed', 'APPROVED', 'LISTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, NOW() - INTERVAL '5 days');
+('inv_gallivant_03', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '87 days'))::BIGINT, NOW() - INTERVAL '87 days'),
+('inv_gallivant_03', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '86 days'))::BIGINT, NOW() - INTERVAL '86 days'),
+('inv_gallivant_03', 'UNDERWRITING', 'APPROVED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '86 days'))::BIGINT, NOW() - INTERVAL '86 days'),
+('inv_gallivant_03', 'APPROVED', 'LISTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '85 days'))::BIGINT, NOW() - INTERVAL '85 days'),
+('inv_gallivant_03', 'LISTED', 'FULLY_FUNDED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '83 days'))::BIGINT, NOW() - INTERVAL '83 days'),
+('inv_gallivant_03', 'FULLY_FUNDED', 'FULLY_PAID', EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, NOW() - INTERVAL '5 days');
 
--- Invoice 4 history (DEFAULTED)
+-- Gallivant Invoice 4 [OVERDUE]
 INSERT INTO invoice.invoice_status_history (invoice_id, from_status, to_status, changed_at, created_at) VALUES
-('inv_04defaulted', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '105 days'))::BIGINT, NOW() - INTERVAL '105 days'),
-('inv_04defaulted', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '104 days'))::BIGINT, NOW() - INTERVAL '104 days'),
-('inv_04defaulted', 'UNDERWRITING', 'APPROVED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '103 days'))::BIGINT, NOW() - INTERVAL '103 days'),
-('inv_04defaulted', 'APPROVED', 'LISTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '100 days'))::BIGINT, NOW() - INTERVAL '100 days'),
-('inv_04defaulted', 'LISTED', 'FUNDED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '95 days'))::BIGINT, NOW() - INTERVAL '95 days'),
-('inv_04defaulted', 'FUNDED', 'AWAITING_PAYMENT', EXTRACT(EPOCH FROM (NOW() - INTERVAL '95 days'))::BIGINT, NOW() - INTERVAL '95 days'),
-('inv_04defaulted', 'AWAITING_PAYMENT', 'GRACE_PERIOD', EXTRACT(EPOCH FROM (NOW() - INTERVAL '40 days'))::BIGINT, NOW() - INTERVAL '40 days'),
-('inv_04defaulted', 'GRACE_PERIOD', 'DEFAULTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '25 days'))::BIGINT, NOW() - INTERVAL '25 days'),
-('inv_04defaulted', 'DEFAULTED', 'COLLECTION', EXTRACT(EPOCH FROM (NOW() - INTERVAL '20 days'))::BIGINT, NOW() - INTERVAL '20 days');
+('inv_gallivant_04', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '42 days'))::BIGINT, NOW() - INTERVAL '42 days'),
+('inv_gallivant_04', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '41 days'))::BIGINT, NOW() - INTERVAL '41 days'),
+('inv_gallivant_04', 'UNDERWRITING', 'APPROVED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '41 days'))::BIGINT, NOW() - INTERVAL '41 days'),
+('inv_gallivant_04', 'APPROVED', 'LISTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '40 days'))::BIGINT, NOW() - INTERVAL '40 days'),
+('inv_gallivant_04', 'LISTED', 'FULLY_FUNDED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '38 days'))::BIGINT, NOW() - INTERVAL '38 days'),
+('inv_gallivant_04', 'FULLY_FUNDED', 'OVERDUE', EXTRACT(EPOCH FROM (NOW() - INTERVAL '7 days'))::BIGINT, NOW() - INTERVAL '7 days');
 
--- Invoice 5 history (DECLINED)
+-- Medi Supply Invoice 1 [LISTED]
 INSERT INTO invoice.invoice_status_history (invoice_id, from_status, to_status, changed_at, created_at) VALUES
-('inv_05declined', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '18 days'))::BIGINT, NOW() - INTERVAL '18 days'),
-('inv_05declined', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '17 days'))::BIGINT, NOW() - INTERVAL '17 days'),
-('inv_05declined', 'UNDERWRITING', 'DECLINED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '17 days'))::BIGINT, NOW() - INTERVAL '17 days');
+('inv_medisupply_01', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '6 days'))::BIGINT, NOW() - INTERVAL '6 days'),
+('inv_medisupply_01', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, NOW() - INTERVAL '5 days'),
+('inv_medisupply_01', 'UNDERWRITING', 'APPROVED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, NOW() - INTERVAL '5 days'),
+('inv_medisupply_01', 'APPROVED', 'LISTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '4 days'))::BIGINT, NOW() - INTERVAL '4 days');
+
+-- Medi Supply Invoice 2 [SETTLED]
+INSERT INTO invoice.invoice_status_history (invoice_id, from_status, to_status, changed_at, created_at) VALUES
+('inv_medisupply_02', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '67 days'))::BIGINT, NOW() - INTERVAL '67 days'),
+('inv_medisupply_02', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '66 days'))::BIGINT, NOW() - INTERVAL '66 days'),
+('inv_medisupply_02', 'UNDERWRITING', 'APPROVED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '66 days'))::BIGINT, NOW() - INTERVAL '66 days'),
+('inv_medisupply_02', 'APPROVED', 'LISTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '65 days'))::BIGINT, NOW() - INTERVAL '65 days'),
+('inv_medisupply_02', 'LISTED', 'FULLY_FUNDED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '63 days'))::BIGINT, NOW() - INTERVAL '63 days'),
+('inv_medisupply_02', 'FULLY_FUNDED', 'FULLY_PAID', EXTRACT(EPOCH FROM (NOW() - INTERVAL '10 days'))::BIGINT, NOW() - INTERVAL '10 days'),
+('inv_medisupply_02', 'FULLY_PAID', 'SETTLED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '8 days'))::BIGINT, NOW() - INTERVAL '8 days');
+
+-- Organic Harvest Invoice 1 [LISTED]
+INSERT INTO invoice.invoice_status_history (invoice_id, from_status, to_status, changed_at, created_at) VALUES
+('inv_organicharvest_01', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '4 days'))::BIGINT, NOW() - INTERVAL '4 days'),
+('inv_organicharvest_01', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '3 days'))::BIGINT, NOW() - INTERVAL '3 days'),
+('inv_organicharvest_01', 'UNDERWRITING', 'APPROVED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '3 days'))::BIGINT, NOW() - INTERVAL '3 days'),
+('inv_organicharvest_01', 'APPROVED', 'LISTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '2 days'))::BIGINT, NOW() - INTERVAL '2 days');
+
+-- Organic Harvest Invoice 2 [FULLY_FUNDED]
+INSERT INTO invoice.invoice_status_history (invoice_id, from_status, to_status, changed_at, created_at) VALUES
+('inv_organicharvest_02', 'DRAFT', 'SUBMITTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '22 days'))::BIGINT, NOW() - INTERVAL '22 days'),
+('inv_organicharvest_02', 'SUBMITTED', 'UNDERWRITING', EXTRACT(EPOCH FROM (NOW() - INTERVAL '21 days'))::BIGINT, NOW() - INTERVAL '21 days'),
+('inv_organicharvest_02', 'UNDERWRITING', 'APPROVED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '21 days'))::BIGINT, NOW() - INTERVAL '21 days'),
+('inv_organicharvest_02', 'APPROVED', 'LISTED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '20 days'))::BIGINT, NOW() - INTERVAL '20 days'),
+('inv_organicharvest_02', 'LISTED', 'FULLY_FUNDED', EXTRACT(EPOCH FROM (NOW() - INTERVAL '18 days'))::BIGINT, NOW() - INTERVAL '18 days');
 
 -- ============================================================================
--- BLOCKCHAIN DATA
+-- BLOCKCHAIN DATA (Placeholder - will be updated after on-chain deployment)
 -- ============================================================================
 
--- NFTs (only for invoices that reached LISTED status)
+-- NFTs (Token IDs will be updated after Base Sepolia deployment)
+-- NOTE: Run the deployment script first, then update these with real values
 INSERT INTO blockchain.invoice_nft (id, invoice_id, token_id, contract_address, chain_id, owner_address, metadata_uri, minted_at, minted_tx_hash, created_at) VALUES
-('nft_01', 'inv_01settled', '1', '0x5555555555555555555555555555555555555555', 8453, '0xaaaa111111111111111111111111111111111111', 'ipfs://QmInvoice001', EXTRACT(EPOCH FROM (NOW() - INTERVAL '77 days'))::BIGINT, '0xmint111111111111111111111111111111111111111111111111111111111111', NOW() - INTERVAL '77 days'),
-('nft_02', 'inv_02funded', '2', '0x5555555555555555555555555555555555555555', 8453, '0xbbbb222222222222222222222222222222222222', 'ipfs://QmInvoice002', EXTRACT(EPOCH FROM (NOW() - INTERVAL '32 days'))::BIGINT, '0xmint222222222222222222222222222222222222222222222222222222222222', NOW() - INTERVAL '32 days'),
-('nft_03', 'inv_03listed', '3', '0x5555555555555555555555555555555555555555', 8453, '0x5555555555555555555555555555555555555555', 'ipfs://QmInvoice003', EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, '0xmint333333333333333333333333333333333333333333333333333333333333', NOW() - INTERVAL '5 days'),
-('nft_04', 'inv_04defaulted', '4', '0x5555555555555555555555555555555555555555', 8453, '0xcccc333333333333333333333333333333333333', 'ipfs://QmInvoice004', EXTRACT(EPOCH FROM (NOW() - INTERVAL '100 days'))::BIGINT, '0xmint444444444444444444444444444444444444444444444444444444444444', NOW() - INTERVAL '100 days');
-
--- Transactions
-INSERT INTO blockchain.transaction (nft_id, tx_hash, tx_type, from_address, to_address, amount, block_number, block_timestamp, gas_used, gas_price_wei, status, created_at) VALUES
--- Invoice 1 transactions
-('nft_01', '0xmint111111111111111111111111111111111111111111111111111111111111', 'MINT', '0x0000000000000000000000000000000000000000', '0x5555555555555555555555555555555555555555', 0, 12345001, EXTRACT(EPOCH FROM (NOW() - INTERVAL '77 days'))::BIGINT, 150000, 1000000000, 'CONFIRMED', NOW() - INTERVAL '77 days'),
-('nft_01', '0xfund111111111111111111111111111111111111111111111111111111111111', 'FUNDING', '0xaaaa111111111111111111111111111111111111', '0x1111111111111111111111111111111111111111', 1880000, 12345100, EXTRACT(EPOCH FROM (NOW() - INTERVAL '75 days'))::BIGINT, 200000, 1000000000, 'CONFIRMED', NOW() - INTERVAL '75 days'),
-('nft_01', '0xrepay11111111111111111111111111111111111111111111111111111111111', 'REPAYMENT', '0x1111111111111111111111111111111111111111', '0x5555555555555555555555555555555555555555', 2000000, 12456789, EXTRACT(EPOCH FROM (NOW() - INTERVAL '20 days'))::BIGINT, 180000, 1000000000, 'CONFIRMED', NOW() - INTERVAL '20 days'),
-('nft_01', '0xsettle1111111111111111111111111111111111111111111111111111111111', 'SETTLEMENT', '0x5555555555555555555555555555555555555555', '0xaaaa111111111111111111111111111111111111', 1964000, 12457890, EXTRACT(EPOCH FROM (NOW() - INTERVAL '18 days'))::BIGINT, 170000, 1000000000, 'CONFIRMED', NOW() - INTERVAL '18 days'),
--- Invoice 2 transactions
-('nft_02', '0xmint222222222222222222222222222222222222222222222222222222222222', 'MINT', '0x0000000000000000000000000000000000000000', '0x5555555555555555555555555555555555555555', 0, 12350001, EXTRACT(EPOCH FROM (NOW() - INTERVAL '32 days'))::BIGINT, 150000, 1000000000, 'CONFIRMED', NOW() - INTERVAL '32 days'),
-('nft_02', '0xfund222222222222222222222222222222222222222222222222222222222222', 'FUNDING', '0xbbbb222222222222222222222222222222222222', '0x2222222222222222222222222222222222222222', 1365000, 12350100, EXTRACT(EPOCH FROM (NOW() - INTERVAL '30 days'))::BIGINT, 200000, 1000000000, 'CONFIRMED', NOW() - INTERVAL '30 days'),
--- Invoice 3 transactions (only mint, awaiting funding)
-('nft_03', '0xmint333333333333333333333333333333333333333333333333333333333333', 'MINT', '0x0000000000000000000000000000000000000000', '0x5555555555555555555555555555555555555555', 0, 12460001, EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, 150000, 1000000000, 'CONFIRMED', NOW() - INTERVAL '5 days'),
--- Invoice 4 transactions (funded but defaulted)
-('nft_04', '0xmint444444444444444444444444444444444444444444444444444444444444', 'MINT', '0x0000000000000000000000000000000000000000', '0x5555555555555555555555555555555555555555', 0, 12340001, EXTRACT(EPOCH FROM (NOW() - INTERVAL '100 days'))::BIGINT, 150000, 1000000000, 'CONFIRMED', NOW() - INTERVAL '100 days'),
-('nft_04', '0xfund444444444444444444444444444444444444444444444444444444444444', 'FUNDING', '0xcccc333333333333333333333333333333333333', '0x1111111111111111111111111111111111111111', 1128000, 12340100, EXTRACT(EPOCH FROM (NOW() - INTERVAL '95 days'))::BIGINT, 200000, 1000000000, 'CONFIRMED', NOW() - INTERVAL '95 days');
-
--- Autopay Configurations
-INSERT INTO blockchain.wallet_autopay_config (id, invoice_id, organization_id, method, enabled, wallet_address, approved_amount, approved_at, created_at) VALUES
-('autopay_01', 'inv_01settled', 'org_01tech', 'WALLET', true, '0x1111111111111111111111111111111111111111', 2000000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '75 days'))::BIGINT, NOW() - INTERVAL '75 days'),
-('autopay_02', 'inv_02funded', 'org_02food', 'WALLET', true, '0x2222222222222222222222222222222222222222', 1500000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '30 days'))::BIGINT, NOW() - INTERVAL '30 days'),
-('autopay_04', 'inv_04defaulted', 'org_01tech', 'WALLET', true, '0x1111111111111111111111111111111111111111', 1200000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '95 days'))::BIGINT, NOW() - INTERVAL '95 days');
-
--- Contract Events
-INSERT INTO blockchain.contract_event (event_name, contract_address, tx_hash, block_number, block_timestamp, log_index, invoice_token_id, event_data, processed, created_at) VALUES
-('InvoiceMinted', '0x5555555555555555555555555555555555555555', '0xmint111111111111111111111111111111111111111111111111111111111111', 12345001, EXTRACT(EPOCH FROM (NOW() - INTERVAL '77 days'))::BIGINT, 0, '1', '{"tokenId": "1", "issuer": "0x1111111111111111111111111111111111111111", "amount": "2000000"}', true, NOW() - INTERVAL '77 days'),
-('InvoiceFunded', '0x5555555555555555555555555555555555555555', '0xfund111111111111111111111111111111111111111111111111111111111111', 12345100, EXTRACT(EPOCH FROM (NOW() - INTERVAL '75 days'))::BIGINT, 1, '1', '{"tokenId": "1", "investor": "0xaaaa111111111111111111111111111111111111", "amount": "1880000"}', true, NOW() - INTERVAL '75 days'),
-('RepaymentDeposited', '0x5555555555555555555555555555555555555555', '0xrepay11111111111111111111111111111111111111111111111111111111111', 12456789, EXTRACT(EPOCH FROM (NOW() - INTERVAL '20 days'))::BIGINT, 2, '1', '{"tokenId": "1", "amount": "2000000"}', true, NOW() - INTERVAL '20 days'),
-('InvoiceRepaid', '0x5555555555555555555555555555555555555555', '0xsettle1111111111111111111111111111111111111111111111111111111111', 12457890, EXTRACT(EPOCH FROM (NOW() - INTERVAL '18 days'))::BIGINT, 3, '1', '{"tokenId": "1", "investor": "0xaaaa111111111111111111111111111111111111", "totalAmount": "1964000"}', true, NOW() - INTERVAL '18 days'),
-('InvoiceMinted', '0x5555555555555555555555555555555555555555', '0xmint222222222222222222222222222222222222222222222222222222222222', 12350001, EXTRACT(EPOCH FROM (NOW() - INTERVAL '32 days'))::BIGINT, 0, '2', '{"tokenId": "2", "issuer": "0x2222222222222222222222222222222222222222", "amount": "1500000"}', true, NOW() - INTERVAL '32 days'),
-('InvoiceFunded', '0x5555555555555555555555555555555555555555', '0xfund222222222222222222222222222222222222222222222222222222222222', 12350100, EXTRACT(EPOCH FROM (NOW() - INTERVAL '30 days'))::BIGINT, 1, '2', '{"tokenId": "2", "investor": "0xbbbb222222222222222222222222222222222222", "amount": "1365000"}', true, NOW() - INTERVAL '30 days'),
-('InvoiceMinted', '0x5555555555555555555555555555555555555555', '0xmint333333333333333333333333333333333333333333333333333333333333', 12460001, EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, 0, '3', '{"tokenId": "3", "issuer": "0x3333333333333333333333333333333333333333", "amount": "1800000"}', true, NOW() - INTERVAL '5 days'),
-('InvoiceDefaulted', '0x5555555555555555555555555555555555555555', '0xdefault444444444444444444444444444444444444444444444444444444444', 12440000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '25 days'))::BIGINT, 0, '4', '{"tokenId": "4", "investor": "0xcccc333333333333333333333333333333333333", "principal": "1128000"}', true, NOW() - INTERVAL '25 days');
+('nft_gallivant_01', 'inv_gallivant_01', 'PLACEHOLDER_1', '0x0000000000000000000000000000000000000000', 84532, '0x0000000000000000000000000000000000000000', 'ipfs://QmGallivant001', EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, '0x0000000000000000000000000000000000000000000000000000000000000000', NOW() - INTERVAL '5 days'),
+('nft_gallivant_02', 'inv_gallivant_02', 'PLACEHOLDER_2', '0x0000000000000000000000000000000000000000', 84532, '0x0000000000000000000000000000000000000000', 'ipfs://QmGallivant002', EXTRACT(EPOCH FROM (NOW() - INTERVAL '4 days'))::BIGINT, '0x0000000000000000000000000000000000000000000000000000000000000000', NOW() - INTERVAL '4 days'),
+('nft_gallivant_03', 'inv_gallivant_03', 'PLACEHOLDER_3', '0x0000000000000000000000000000000000000000', 84532, '0x0000000000000000000000000000000000000000', 'ipfs://QmGallivant003', EXTRACT(EPOCH FROM (NOW() - INTERVAL '3 days'))::BIGINT, '0x0000000000000000000000000000000000000000000000000000000000000000', NOW() - INTERVAL '3 days'),
+('nft_gallivant_04', 'inv_gallivant_04', 'PLACEHOLDER_8', '0x0000000000000000000000000000000000000000', 84532, '0x0000000000000000000000000000000000000000', 'ipfs://QmGallivant004', EXTRACT(EPOCH FROM (NOW() - INTERVAL '38 days'))::BIGINT, '0x0000000000000000000000000000000000000000000000000000000000000000', NOW() - INTERVAL '38 days'),
+('nft_medisupply_01', 'inv_medisupply_01', 'PLACEHOLDER_4', '0x0000000000000000000000000000000000000000', 84532, '0x0000000000000000000000000000000000000000', 'ipfs://QmMediSupply001', EXTRACT(EPOCH FROM (NOW() - INTERVAL '4 days'))::BIGINT, '0x0000000000000000000000000000000000000000000000000000000000000000', NOW() - INTERVAL '4 days'),
+('nft_medisupply_02', 'inv_medisupply_02', 'PLACEHOLDER_5', '0x0000000000000000000000000000000000000000', 84532, '0x0000000000000000000000000000000000000000', 'ipfs://QmMediSupply002', EXTRACT(EPOCH FROM (NOW() - INTERVAL '3 days'))::BIGINT, '0x0000000000000000000000000000000000000000000000000000000000000000', NOW() - INTERVAL '3 days'),
+('nft_organicharvest_01', 'inv_organicharvest_01', 'PLACEHOLDER_6', '0x0000000000000000000000000000000000000000', 84532, '0x0000000000000000000000000000000000000000', 'ipfs://QmOrganicHarvest001', EXTRACT(EPOCH FROM (NOW() - INTERVAL '2 days'))::BIGINT, '0x0000000000000000000000000000000000000000000000000000000000000000', NOW() - INTERVAL '2 days'),
+('nft_organicharvest_02', 'inv_organicharvest_02', 'PLACEHOLDER_7', '0x0000000000000000000000000000000000000000', 84532, '0x0000000000000000000000000000000000000000', 'ipfs://QmOrganicHarvest002', EXTRACT(EPOCH FROM (NOW() - INTERVAL '1 day'))::BIGINT, '0x0000000000000000000000000000000000000000000000000000000000000000', NOW() - INTERVAL '1 day');
 
 -- ============================================================================
--- INVESTMENT DATA
+-- INVOICE FUNDING DETAILS (For FULLY_FUNDED and SETTLED invoices)
 -- ============================================================================
 
--- Investor Positions
+-- Invoice 2: Gallivant → Target (FULLY_FUNDED)
+INSERT INTO invoice.invoice_funding_detail (id, invoice_id, funded_amount, funded_at, investor_address, funding_tx_hash, created_at) VALUES
+('funding_gallivant_02', 'inv_gallivant_02', 4230000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '48 days'))::BIGINT, '0x891a9EC416ED2c8DAE3D7DB6D8cEa1a3b273937C', '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef', NOW() - INTERVAL '48 days');
+
+-- Invoice 3: Gallivant → Costco (FULLY_PAID)
+INSERT INTO invoice.invoice_funding_detail (id, invoice_id, funded_amount, funded_at, investor_address, funding_tx_hash, created_at) VALUES
+('funding_gallivant_03', 'inv_gallivant_03', 2275000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '83 days'))::BIGINT, '0x891a9EC416ED2c8DAE3D7DB6D8cEa1a3b273937C', '0x2345678901bcdef2345678901bcdef2345678901bcdef2345678901bcdef12', NOW() - INTERVAL '83 days');
+
+-- Invoice 4: Gallivant → Walmart (OVERDUE)
+INSERT INTO invoice.invoice_funding_detail (id, invoice_id, funded_amount, funded_at, investor_address, funding_tx_hash, created_at) VALUES
+('funding_gallivant_04', 'inv_gallivant_04', 3395000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '38 days'))::BIGINT, '0x891a9EC416ED2c8DAE3D7DB6D8cEa1a3b273937C', '0x5678901234def5678901234def5678901234def5678901234def5678901234', NOW() - INTERVAL '38 days');
+
+-- Invoice 5: Medi Supply → Walmart (SETTLED)
+INSERT INTO invoice.invoice_funding_detail (id, invoice_id, funded_amount, funded_at, investor_address, funding_tx_hash, created_at) VALUES
+('funding_medisupply_02', 'inv_medisupply_02', 3384000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '63 days'))::BIGINT, '0x891a9EC416ED2c8DAE3D7DB6D8cEa1a3b273937C', '0x3456789012cdef3456789012cdef3456789012cdef3456789012cdef3456', NOW() - INTERVAL '63 days');
+
+-- Invoice 7: Organic Harvest → Amazon (FULLY_FUNDED)
+INSERT INTO invoice.invoice_funding_detail (id, invoice_id, funded_amount, funded_at, investor_address, funding_tx_hash, created_at) VALUES
+('funding_organicharvest_02', 'inv_organicharvest_02', 3880000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '18 days'))::BIGINT, '0x891a9EC416ED2c8DAE3D7DB6D8cEa1a3b273937C', '0x4567890123def4567890123def4567890123def4567890123def4567890123', NOW() - INTERVAL '18 days');
+
+-- ============================================================================
+-- INVOICE REPAYMENTS (For FULLY_PAID and SETTLED invoices)
+-- ============================================================================
+-- Note: Schema uses deposited_at (not repayment_date), repayment_method (not repayment_source)
+
+-- Invoice 3: Gallivant → Costco (FULLY_PAID)
+INSERT INTO invoice.invoice_repayment (id, invoice_id, repayment_amount, deposited_at, repayment_tx_hash, repayment_method, created_at) VALUES
+('repayment_gallivant_03', 'inv_gallivant_03', 2500000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, '0x567890124ef567890124ef567890124ef567890124ef567890124ef5678901', 'WALLET', NOW() - INTERVAL '5 days');
+
+-- Invoice 5: Medi Supply → Walmart (SETTLED)
+INSERT INTO invoice.invoice_repayment (id, invoice_id, repayment_amount, deposited_at, settled_at, repayment_tx_hash, settlement_tx_hash, repayment_method, created_at) VALUES
+('repayment_medisupply_02', 'inv_medisupply_02', 3600000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '10 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '8 days'))::BIGINT, '0x67890125f67890125f67890125f67890125f67890125f67890125f67890125', '0x78901236f89012347f89012347f89012347f89012347f89012347f89012347', 'WALLET', NOW() - INTERVAL '10 days');
+
+-- ============================================================================
+-- INVESTOR POSITIONS (For FULLY_FUNDED, FULLY_PAID, and SETTLED invoices)
+-- ============================================================================
+-- Note: Schema uses user_id, principal_amount_cents->principal_amount, maturity_date, apr_bps->apr
+
+-- Invoice 2: Gallivant → Target (FULLY_FUNDED - Active position)
+-- Due in 10 days from now, funded 48 days ago for 60-day term
+INSERT INTO investment.investor_position (id, user_id, invoice_id, nft_id, principal_amount, expected_return, apr, funded_at, maturity_date, position_status, created_at) VALUES
+('position_gallivant_02', 'user_investor1', 'inv_gallivant_02', 'nft_gallivant_02', 4230000, 4500000, 365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '48 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() + INTERVAL '10 days'))::BIGINT, 'ACTIVE', NOW() - INTERVAL '48 days');
+
+-- Invoice 3: Gallivant → Costco (FULLY_PAID - Matured position)
+-- Matured 5 days ago (payment received)
 INSERT INTO investment.investor_position (id, user_id, invoice_id, nft_id, principal_amount, expected_return, actual_return, apr, funded_at, maturity_date, position_status, created_at) VALUES
-('pos_01', 'user_01alice', 'inv_01settled', 'nft_01', 1880000, 2000000, 1964000, 365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '75 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '20 days'))::BIGINT, 'CLOSED', NOW() - INTERVAL '75 days'),
-('pos_02', 'user_02bob', 'inv_02funded', 'nft_02', 1365000, 1500000, NULL, 365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '30 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() + INTERVAL '60 days'))::BIGINT, 'ACTIVE', NOW() - INTERVAL '30 days'),
-('pos_04', 'user_03charlie', 'inv_04defaulted', 'nft_04', 1128000, 1200000, 0, 365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '95 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '40 days'))::BIGINT, 'DEFAULTED', NOW() - INTERVAL '95 days');
+('position_gallivant_03', 'user_investor1', 'inv_gallivant_03', 'nft_gallivant_03', 2275000, 2500000, 2500000, 365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '83 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '5 days'))::BIGINT, 'MATURED', NOW() - INTERVAL '83 days');
 
--- Yield Calculations
-INSERT INTO investment.yield_calculation (id, position_id, principal, apr, funding_timestamp, due_timestamp, duration_days, total_yield, investor_yield, platform_fee, platform_fee_rate, calculated_at, created_at) VALUES
-('yield_01', 'pos_01', 1880000, 365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '75 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '20 days'))::BIGINT, 55, 120000, 84000, 36000, 300000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '75 days'))::BIGINT, NOW() - INTERVAL '75 days'),
-('yield_02', 'pos_02', 1365000, 365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '30 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() + INTERVAL '60 days'))::BIGINT, 90, 135000, 94500, 40500, 300000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '30 days'))::BIGINT, NOW() - INTERVAL '30 days'),
-('yield_04', 'pos_04', 1128000, 365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '95 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '40 days'))::BIGINT, 55, 72000, 50400, 21600, 300000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '95 days'))::BIGINT, NOW() - INTERVAL '95 days');
+-- Invoice 4: Gallivant → Walmart (OVERDUE - Active but overdue position)
+-- Overdue by 7 days, funded 38 days ago for 30-day term
+INSERT INTO investment.investor_position (id, user_id, invoice_id, nft_id, principal_amount, expected_return, apr, funded_at, maturity_date, position_status, created_at) VALUES
+('position_gallivant_04', 'user_investor1', 'inv_gallivant_04', 'nft_gallivant_04', 3395000, 3500000, 365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '38 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '7 days'))::BIGINT, 'ACTIVE', NOW() - INTERVAL '38 days');
 
--- Repayment Distributions
-INSERT INTO investment.repayment_distribution (id, position_id, invoice_id, investor_address, principal_returned, yield_received, total_amount, distributed_at, distribution_tx_hash, created_at) VALUES
-('dist_01', 'pos_01', 'inv_01settled', '0xaaaa111111111111111111111111111111111111', 1880000, 84000, 1964000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '18 days'))::BIGINT, '0xsettle1111111111111111111111111111111111111111111111111111111111', NOW() - INTERVAL '18 days');
+-- Invoice 5: Medi Supply → Walmart (SETTLED - Closed position)
+-- Closed 8 days ago (yield distributed)
+INSERT INTO investment.investor_position (id, user_id, invoice_id, nft_id, principal_amount, expected_return, actual_return, apr, funded_at, maturity_date, position_status, created_at) VALUES
+('position_medisupply_02', 'user_investor1', 'inv_medisupply_02', 'nft_medisupply_02', 3384000, 3600000, 3600000, 365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '63 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() - INTERVAL '10 days'))::BIGINT, 'CLOSED', NOW() - INTERVAL '63 days');
+
+-- Invoice 7: Organic Harvest → Amazon (FULLY_FUNDED - Active position)
+-- Due in 10 days from now, funded 18 days ago for 30-day term
+INSERT INTO investment.investor_position (id, user_id, invoice_id, nft_id, principal_amount, expected_return, apr, funded_at, maturity_date, position_status, created_at) VALUES
+('position_organicharvest_02', 'user_investor1', 'inv_organicharvest_02', 'nft_organicharvest_02', 3880000, 4000000, 365000, EXTRACT(EPOCH FROM (NOW() - INTERVAL '18 days'))::BIGINT, EXTRACT(EPOCH FROM (NOW() + INTERVAL '10 days'))::BIGINT, 'ACTIVE', NOW() - INTERVAL '18 days');
+
+-- ============================================================================
+-- YIELD CALCULATIONS AND DISTRIBUTIONS
+-- ============================================================================
+-- Note: Skipping these for now as they require complex schema matching
+-- The SETTLED status invoice (inv_medisupply_02) is marked as CLOSED in investor_position
+-- which indicates the yield has been distributed. The actual distribution records can be
+-- added later if needed for detailed reporting.
 
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================
 
--- Data Summary:
--- - 3 Organizations (TechSupply Co., FoodDistrib Inc., RetailWholesale LLC)
--- - 3 Investors (Alice, Bob, Charlie)
--- - 4 Payer Companies (Walmart, Target, Amazon, Costco)
--- - 5 Invoices covering full lifecycle:
---   1. inv_01settled: SETTLED (Happy path - funded by Alice, repaid on time)
---   2. inv_02funded: FUNDED/AWAITING_PAYMENT (Active - funded by Bob, due in 60 days)
---   3. inv_03listed: LISTED (Available for funding on marketplace)
---   4. inv_04defaulted: COLLECTION (Defaulted - funded by Charlie, in collections)
---   5. inv_05declined: DECLINED (Rejected during underwriting)
--- - 4 NFTs minted (for invoices 1-4)
--- - 14 Blockchain transactions (minting, funding, repayment, settlement, default)
--- - 3 Investor positions (Alice, Bob, Charlie)
--- - 3 Yield calculations (with 30/70 platform/investor fee split)
--- - 1 Repayment distribution (Alice received principal + yield)
+-- Total Organizations: 3
+-- Total Invoices: 8 (3 LISTED, 2 FULLY_FUNDED, 1 OVERDUE, 1 FULLY_PAID, 1 SETTLED)
+-- Total Payers: 4 (Walmart, Target, Amazon, Costco)
+-- Total Investors: 1 (your real wallet address)
+-- Active Investments: 3 (inv_gallivant_02, inv_gallivant_04 [OVERDUE], inv_organicharvest_02)
+-- Completed Investments: 1 (inv_medisupply_02 - $0.1512 yield received)
+
+-- Next Steps:
+-- 1. Run this seed SQL to populate database
+-- 2. Run the Base Sepolia deployment script to list the 3 LISTED invoices on-chain
+-- 3. Update the NFT records with real token IDs from blockchain
+-- 4. Upload logos to AWS S3
+-- 5. Test funding one of the 3 LISTED invoices with your wallet

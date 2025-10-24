@@ -7,4 +7,6 @@ export { InvoiceGalleryView } from './invoice-gallery-view';
 export { InvoiceStatusBadge } from './invoice-status-badge';
 export { CopyableText } from './copyable-text';
 export { EntityInfo } from './entity-info';
+export { UrgencyIndicator, getUrgencyColor } from './urgency-indicator';
 export type { EntityInfoProps } from './entity-info';
+export type { UrgencyIndicatorProps } from './urgency-indicator';

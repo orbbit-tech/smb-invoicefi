@@ -18,4 +18,7 @@ export class PayerCompanyDto {
 
   @ApiProperty()
   paymentTermsDays: number;
+
+  @ApiPropertyOptional()
+  logoUrl?: string;
 }

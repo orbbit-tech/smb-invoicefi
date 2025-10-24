@@ -52,12 +52,14 @@ export function mapMarketplaceInvoice(dto: MarketplaceInvoiceDto) {
       id: dto.issuer.id,
       name: dto.issuer.name,
       industry: dto.issuer.industry,
+      logoUrl: dto.issuer.logoUrl,
     },
     payer: {
       id: dto.payer.id,
       name: dto.payer.name,
       creditScore: dto.payer.creditScore,
       industry: dto.payer.industry,
+      logoUrl: dto.payer.logoUrl,
     },
   };
 }
@@ -131,10 +133,12 @@ export function mapPortfolioPosition(dto: InvestorPositionDto) {
       name: dto.payer.name,
       creditScore: dto.payer.creditScore,
       industry: dto.payer.industry,
+      logoUrl: dto.payer.logoUrl,
     },
     issuer: {
       id: dto.issuer.id,
       name: dto.issuer.name,
+      logoUrl: dto.issuer.logoUrl,
     },
   };
 }

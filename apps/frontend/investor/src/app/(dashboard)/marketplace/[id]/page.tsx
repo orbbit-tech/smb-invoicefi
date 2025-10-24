@@ -329,14 +329,16 @@ export default function InvoiceDetailPage() {
 
         {/* Sidebar - Right Column */}
         <div className="lg:col-span-1 space-y-6">
-          {/* NFT Ownership */}
-          <NFTOwnership
-            tokenId={invoice.id.toString()}
-            contractAddress="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
-            blockchainTxHash={`0x${invoice.id.toString().padStart(64, '0')}`}
-            companyName={invoice.companyName}
-            companyLogoUrl={invoice.companyLogoUrl}
-          />
+          {/* NFT Ownership - Only show if invoice has been minted */}
+          {invoiceDetail?.nftTokenId && (
+            <NFTOwnership
+              tokenId={invoiceDetail.nftTokenId}
+              contractAddress={contractConfig?.contracts.invoice || '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb'}
+              blockchainTxHash={blockchainData?.txHash || `0x${invoiceDetail.nftTokenId.padStart(64, '0')}`}
+              companyName={invoice.companyName}
+              companyLogoUrl={invoice.companyLogoUrl}
+            />
+          )}
 
           {/* Risk Assessment */}
           <RiskAssessment invoice={invoice} />

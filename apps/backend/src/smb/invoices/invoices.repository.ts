@@ -52,6 +52,7 @@ export class InvoicesRepository {
         'pc.name as payerName',
         'pc.creditScore as payerCreditScore',
         'pc.industry as payerIndustry',
+        'pc.logoUrl as payerLogoUrl',
       ])
       .where('i.organizationId', '=', organizationId)
       .where('i.deletedAt', 'is', null);
@@ -135,6 +136,7 @@ export class InvoicesRepository {
         'pc.name as payerName',
         'pc.creditScore as payerCreditScore',
         'pc.industry as payerIndustry',
+        'pc.logoUrl as payerLogoUrl',
         'nft.tokenId as nftTokenId',
         'nft.contractAddress as nftContractAddress',
         'nft.ownerAddress as nftOwnerAddress',

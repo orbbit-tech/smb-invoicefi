@@ -9,11 +9,12 @@ import {
   TableRow,
 } from '../shadcn';
 import { Button } from '../shadcn';
-import { Invoice, InvoiceMultiViewConfig } from '../../types';
+import { Invoice, InvoiceMultiViewConfig, InvoiceStatus } from '../../types';
 import { InvoiceStatusBadge } from './invoice-status-badge';
 import { CopyableText } from './copyable-text';
 import { EntityInfo } from './entity-info';
-import { ArrowUpDown } from 'lucide-react';
+import { UrgencyIndicator, getUrgencyColor } from './urgency-indicator';
+import { ArrowUpDown, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -21,6 +22,7 @@ interface InvoiceTableViewProps {
   invoices: Invoice[];
   baseRoute?: string;
   config?: InvoiceMultiViewConfig;
+  onRepaymentClick?: (invoice: Invoice) => void;
 }
 
 type SortField = 'invoiceNumber' | 'amount' | 'dueDate' | 'status';
@@ -30,11 +32,25 @@ export function InvoiceTableView({
   invoices,
   baseRoute = '/invoices',
   config,
+  onRepaymentClick,
 }: InvoiceTableViewProps) {
   const router = useRouter();
   const [sortField, setSortField] = useState<SortField>('dueDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const showSmbColumn = config?.showSmbColumn ?? false;
+
+  const needsRepaymentAction = (invoice: Invoice) => {
+    // Show "Pay Now" for:
+    // 1. FULLY_FUNDED status with ≤7 days until due (due soon)
+    // 2. OVERDUE status (past due date + grace period)
+    const isFundedAndDueSoon =
+      invoice.status === InvoiceStatus.FULLY_FUNDED &&
+      invoice.daysUntilDue >= 0 &&
+      invoice.daysUntilDue <= 7;
+    const isOverdue = invoice.status === InvoiceStatus.OVERDUE;
+
+    return isFundedAndDueSoon || isOverdue;
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -116,23 +132,28 @@ export function InvoiceTableView({
               </Button>
             </TableHead>
             <TableHead className="text-right">Invoice ID</TableHead>
+            <TableHead className="text-right">Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {sortedInvoices.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={showSmbColumn ? 6 : 5}
+                colSpan={showSmbColumn ? 7 : 6}
                 className="text-center text-muted-foreground"
               >
                 No invoices found
               </TableCell>
             </TableRow>
           ) : (
-            sortedInvoices.map((invoice) => (
+            sortedInvoices.map((invoice) => {
+              const urgencyColor = getUrgencyColor(invoice.daysUntilDue);
+              const needsRepayment = needsRepaymentAction(invoice);
+              const isOverdue = invoice.daysUntilDue < 0 && needsRepayment;
+
+              return (
               <TableRow
                 key={invoice.id}
-                onClick={() => router.push(`${baseRoute}/${invoice.id}`)}
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
               >
                 {showSmbColumn && (
@@ -159,29 +180,62 @@ export function InvoiceTableView({
                 <TableCell className="font-semibold">
                   {formatCurrency(invoice.amount)}
                 </TableCell>
-                <TableCell>
-                  <div>
+                <TableCell onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`${baseRoute}/${invoice.id}`);
+                }}>
+                  <div className="space-y-1">
                     <div>{formatDate(invoice.dueDate)}</div>
-                    {!['SETTLED', 'REPAID', 'FULLY_PAID', 'DEFAULTED'].includes(
-                      invoice.status
-                    ) && (
-                      <div className="text-xs text-muted-foreground">
-                        {invoice.daysUntilDue > 0 &&
-                          `${invoice.daysUntilDue} days`}
-                      </div>
+                    {needsRepayment && !isOverdue && (
+                      <UrgencyIndicator
+                        daysUntilDue={invoice.daysUntilDue}
+                        size="sm"
+                        showLabel={true}
+                      />
                     )}
                   </div>
                 </TableCell>
                 <TableCell>
                   <InvoiceStatusBadge status={invoice.status} />
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right" onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`${baseRoute}/${invoice.id}`);
+                }}>
                   <div className="flex items-center justify-end">
                     <CopyableText text={invoice.invoiceNumber} />
                   </div>
                 </TableCell>
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  {needsRepayment && onRepaymentClick ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={isOverdue ? 'text-xs bg-red-100 text-red-700 border-red-200 hover:bg-red-200 hover:text-red-800 hover:border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900 dark:hover:bg-red-900/50 dark:hover:text-red-300' : 'text-xs'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRepaymentClick(invoice);
+                      }}
+                    >
+                      Pay Now
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`${baseRoute}/${invoice.id}`);
+                      }}
+                    >
+                      View
+                    </Button>
+                  )}
+                </TableCell>
               </TableRow>
-            ))
+              );
+            })
           )}
         </TableBody>
       </Table>

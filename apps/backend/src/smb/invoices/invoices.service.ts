@@ -54,6 +54,7 @@ export class InvoicesService {
         name: inv.payerName,
         creditScore: inv.payerCreditScore,
         industry: inv.payerIndustry,
+        logoUrl: inv.payerLogoUrl,
       },
       createdAt: new Date(inv.createdAt).toISOString(),
     }));
@@ -110,6 +111,7 @@ export class InvoicesService {
         name: inv.payerName,
         creditScore: inv.payerCreditScore,
         industry: inv.payerIndustry,
+        logoUrl: inv.payerLogoUrl,
       },
       createdAt: new Date(inv.createdAt).toISOString(),
       nft,

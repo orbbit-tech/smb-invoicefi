@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Button,
   Card,
@@ -11,8 +12,9 @@ import {
   InvoiceDetailHeader,
   InvoiceMetrics,
 } from '@ui';
-import { Invoice, InvoiceStatus } from '@/types/invoice';
+import { Invoice, InvoiceStatus } from '@ui';
 import { InvoiceStatusBadge } from './invoice-status-badge';
+import { RepaymentModal } from '../repayment/repayment-modal';
 import {
   ArrowLeft,
   Calendar,
@@ -23,6 +25,7 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  Wallet,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -31,6 +34,8 @@ interface InvoiceDetailClientProps {
 }
 
 export function InvoiceDetailClient({ invoice }: InvoiceDetailClientProps) {
+  const [isRepaymentModalOpen, setIsRepaymentModalOpen] = useState(false);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -51,12 +56,30 @@ export function InvoiceDetailClient({ invoice }: InvoiceDetailClientProps) {
   // Calculate expected funding amount (80% of invoice)
   const expectedFunding = invoice.amount * 0.8;
 
+  // Determine if invoice needs repayment
+  const needsRepayment = (
+    (invoice.status === InvoiceStatus.FULLY_FUNDED &&
+     invoice.daysUntilDue >= 0 &&
+     invoice.daysUntilDue <= 7) ||
+    invoice.status === InvoiceStatus.OVERDUE
+  );
+
+  const isOverdue = invoice.status === InvoiceStatus.OVERDUE;
+
+  const handleOpenRepayment = () => {
+    setIsRepaymentModalOpen(true);
+  };
+
+  const handleRepaymentSuccess = () => {
+    // Could refetch invoice data here if needed
+  };
+
   // Timeline steps based on invoice status
   const getTimelineSteps = () => {
     const steps = [
       {
-        label: 'Created',
-        status: InvoiceStatus.CREATED,
+        label: 'Submitted',
+        status: InvoiceStatus.SUBMITTED,
         icon: FileText,
         date: invoice.createdDate,
         completed: true,
@@ -126,7 +149,16 @@ export function InvoiceDetailClient({ invoice }: InvoiceDetailClientProps) {
             </h1>
             <p className="text-muted-foreground mt-1">{invoice.payer.name}</p>
           </div>
-          <InvoiceStatusBadge status={invoice.status} />
+          {needsRepayment && (
+            <Button
+              size="sm"
+              variant="outline"
+              className={isOverdue ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200 hover:text-red-800 hover:border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900 dark:hover:bg-red-900/50 dark:hover:text-red-300' : ''}
+              onClick={handleOpenRepayment}
+            >
+              Pay Now
+            </Button>
+          )}
         </div>
       </div>
 
@@ -309,6 +341,14 @@ export function InvoiceDetailClient({ invoice }: InvoiceDetailClientProps) {
           </Card>
         </div>
       </div>
+
+      {/* Repayment Modal */}
+      <RepaymentModal
+        invoice={invoice}
+        isOpen={isRepaymentModalOpen}
+        onClose={() => setIsRepaymentModalOpen(false)}
+        onRepaymentSuccess={handleRepaymentSuccess}
+      />
     </div>
   );
 }

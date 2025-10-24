@@ -5,7 +5,7 @@
  */
 
 import { InvoiceDto } from '@api-client';
-import { Invoice, InvoiceStatus } from '@/types/invoice';
+import { Invoice, InvoiceStatus } from '@ui';
 
 /**
  * Calculate days until due date from Unix timestamp
@@ -22,22 +22,26 @@ function calculateDaysUntilDue(dueAtTimestamp: number): number {
  * Map backend lifecycleStatus string to frontend InvoiceStatus enum
  */
 function mapLifecycleStatusToInvoiceStatus(lifecycleStatus: string): InvoiceStatus {
-  // Backend uses uppercase strings like 'DRAFT', 'LISTED', 'FULLY_FUNDED', etc.
+  // Backend uses uppercase strings like 'DRAFT', 'SUBMITTED', 'LISTED', etc.
   // Frontend InvoiceStatus enum matches these values
   const statusMap: Record<string, InvoiceStatus> = {
-    'DRAFT': InvoiceStatus.CREATED,
-    'CREATED': InvoiceStatus.CREATED,
+    'DRAFT': InvoiceStatus.CREATED, // Legacy mapping for backwards compatibility
+    'SUBMITTED': InvoiceStatus.SUBMITTED,
     'LISTED': InvoiceStatus.LISTED,
+    'FUNDED': InvoiceStatus.FULLY_FUNDED, // Map 'FUNDED' to FULLY_FUNDED
     'FULLY_FUNDED': InvoiceStatus.FULLY_FUNDED,
+    'OVERDUE': InvoiceStatus.OVERDUE,
     'DISBURSED': InvoiceStatus.DISBURSED,
     'PENDING_REPAYMENT': InvoiceStatus.PENDING_REPAYMENT,
     'FULLY_PAID': InvoiceStatus.FULLY_PAID,
     'REPAID': InvoiceStatus.REPAID,
     'DEFAULTED': InvoiceStatus.DEFAULTED,
     'SETTLED': InvoiceStatus.SETTLED,
+    // Legacy statuses
+    'CREATED': InvoiceStatus.CREATED,
   };
 
-  return statusMap[lifecycleStatus] || InvoiceStatus.CREATED;
+  return statusMap[lifecycleStatus] || InvoiceStatus.SUBMITTED;
 }
 
 /**
@@ -53,7 +57,7 @@ export function mapApiInvoiceToFrontend(apiInvoice: InvoiceDto): Invoice {
     payer: {
       name: apiInvoice.payer.name,
       industry: apiInvoice.payer.industry,
-      // logoUrl not in current API response, can be added later
+      logoUrl: apiInvoice.payer.logoUrl,
     },
     status: mapLifecycleStatusToInvoiceStatus(apiInvoice.lifecycleStatus),
     apr: apiInvoice.apr / 10_000, // Convert 6-decimal format to percentage (e.g., 365,000 → 36.5%)

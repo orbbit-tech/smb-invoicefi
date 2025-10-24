@@ -49,6 +49,9 @@ export default interface OrganizationTable {
 
   /** Stytch organization ID for B2B authentication */
   stytchOrganizationId: ColumnType<string | null, string | null, string | null>;
+
+  /** URL to the organization logo image (e.g., https://media.cdn.orbbit.co/demo/logos/company-logo.png) */
+  logoUrl: ColumnType<string | null, string | null, string | null>;
 }
 
 export type OrganizationDb = Selectable<OrganizationTable>;

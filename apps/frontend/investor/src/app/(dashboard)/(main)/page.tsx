@@ -235,14 +235,13 @@ export default function PortfolioPage() {
         baseRoute="/portfolio"
         config={{
           showSmbColumn: true,
+          // Investor 5-Status System: FUNDED, OVERDUE, FULLY_PAID, SETTLED, DEFAULTED
           availableStatuses: [
             InvoiceStatus.FULLY_FUNDED,
-            InvoiceStatus.DISBURSED,
-            InvoiceStatus.PENDING_REPAYMENT,
+            InvoiceStatus.OVERDUE,
             InvoiceStatus.FULLY_PAID,
-            InvoiceStatus.REPAID,
-            InvoiceStatus.DEFAULTED,
             InvoiceStatus.SETTLED,
+            InvoiceStatus.DEFAULTED,
           ],
         }}
       />

@@ -34,10 +34,10 @@ export class PortfolioService {
     let apyCount = 0;
 
     for (const pos of positions) {
-      const fundedAmount = Number(pos.fundedAmountCents);
-      const expectedRepayment = Number(pos.expectedRepaymentCents);
-      const actualYield = pos.actualYieldCents
-        ? Number(pos.actualYieldCents)
+      const fundedAmount = Number(pos.fundedAmount);
+      const expectedRepayment = Number(pos.expectedRepayment);
+      const actualYield = pos.investorYield
+        ? Number(pos.investorYield)
         : null;
 
       totalInvested += fundedAmount;
@@ -94,10 +94,10 @@ export class PortfolioService {
    * Transform position data to DTO
    */
   private transformPositionToDto(pos: any): InvestorPositionDto {
-    const fundedAmount = Number(pos.fundedAmountCents);
-    const expectedRepayment = Number(pos.expectedRepaymentCents);
-    const actualYield = pos.actualYieldCents
-      ? Number(pos.actualYieldCents)
+    const fundedAmount = Number(pos.fundedAmount);
+    const expectedRepayment = Number(pos.expectedRepayment);
+    const actualYield = pos.investorYield
+      ? Number(pos.investorYield)
       : null;
 
     let currentValue = 0;

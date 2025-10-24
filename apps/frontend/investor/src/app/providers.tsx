@@ -20,8 +20,9 @@ import '@rainbow-me/rainbowkit/styles.css';
 import '../styles/onchainkit.css';
 import '../styles/rainbowkit-custom.css';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { base, baseSepolia, hardhat } from 'wagmi/chains';
+import { base, baseSepolia } from 'wagmi/chains';
 import { baseAccount } from 'wagmi/connectors';
+import { defineChain } from 'viem';
 import {
   connectorsForWallets,
   RainbowKitProvider,
@@ -35,7 +36,15 @@ import {
 } from '@rainbow-me/rainbowkit/wallets';
 
 export function Web3Providers({ children }: { children: React.ReactNode }) {
-  const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!;
+  // Validate required environment variables
+  const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+
+  if (!projectId) {
+    console.warn(
+      '⚠️ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set. ' +
+      'WalletConnect will not work. Get your Project ID from: https://cloud.walletconnect.com'
+    );
+  }
 
   // Custom wallet connectors with Coinbase Wallet at the top
   const connectors = connectorsForWallets(
@@ -52,7 +61,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
     ],
     {
       appName: 'Orbbit',
-      projectId: projectId,
+      projectId: projectId || '',
     }
   );
 
@@ -67,6 +76,19 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
   const baseMainnetRpc =
     process.env.NEXT_PUBLIC_BASE_MAINNET_RPC_URL || 'https://mainnet.base.org';
 
+  // Define localhost chain with proper configuration for MetaMask compatibility
+  // Note: MetaMask requires HTTPS URLs, so localhost chain won't work with MetaMask's
+  // wallet_addEthereumChain. This is intentional - use hardhat accounts directly instead.
+  const localhost = defineChain({
+    id: 31337,
+    name: 'Localhost',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: {
+      default: { http: ['http://127.0.0.1:8545'] },
+    },
+    testnet: true,
+  });
+
   // Create Wagmi config with Base Account connector + custom wallet order
   const config = createConfig({
     connectors: [
@@ -79,11 +101,11 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
       ...connectors,
     ],
     chains: includeLocalhost
-      ? [hardhat, baseSepolia, base]
+      ? [localhost, baseSepolia, base]
       : [baseSepolia, base],
     transports: includeLocalhost
       ? {
-          [hardhat.id]: http('http://127.0.0.1:8545'),
+          [localhost.id]: http('http://127.0.0.1:8545'),
           [baseSepolia.id]: http(baseSepoliaRpc),
           [base.id]: http(baseMainnetRpc),
         }

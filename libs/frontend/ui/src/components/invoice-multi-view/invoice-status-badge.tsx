@@ -37,7 +37,13 @@ function getStatusConfig(status: InvoiceStatus): {
   switch (status) {
     case InvoiceStatus.CREATED:
       return {
-        displayName: 'Created',
+        displayName: 'Draft',
+        colorClasses:
+          'bg-gray-100 text-gray-700 dark:bg-gray-800/30 dark:text-gray-400 border-transparent',
+      };
+    case InvoiceStatus.SUBMITTED:
+      return {
+        displayName: 'Submitted',
         colorClasses:
           'bg-blue-100 text-gray-700 dark:bg-blue-900/30 dark:text-gray-300 border-transparent',
       };
@@ -52,6 +58,12 @@ function getStatusConfig(status: InvoiceStatus): {
         displayName: 'Funded',
         colorClasses:
           'bg-purple-100 text-gray-700 dark:bg-purple-900/30 dark:text-gray-300 border-transparent',
+      };
+    case InvoiceStatus.OVERDUE:
+      return {
+        displayName: 'Overdue',
+        colorClasses:
+          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-900 hover:bg-red-200 hover:text-red-800 dark:hover:bg-red-900/40 dark:hover:text-red-300',
       };
     case InvoiceStatus.DISBURSED:
       return {

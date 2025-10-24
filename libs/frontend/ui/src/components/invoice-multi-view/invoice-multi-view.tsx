@@ -28,7 +28,8 @@ interface InvoiceMultiViewProps {
   statusFilter: string;
   onStatusFilterChange: (value: string) => void;
   baseRoute?: string;
-  config?: InvoiceMultiViewConfig;
+  config: InvoiceMultiViewConfig;
+  onRepaymentClick?: (invoice: Invoice) => void;
 }
 
 export function InvoiceMultiView({
@@ -39,6 +40,7 @@ export function InvoiceMultiView({
   onStatusFilterChange,
   baseRoute = '/invoices',
   config,
+  onRepaymentClick,
 }: InvoiceMultiViewProps) {
   const [currentView, setCurrentView] = useLocalStorage<ViewType>(
     'invoice-view-preference',
@@ -46,18 +48,8 @@ export function InvoiceMultiView({
   );
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
-  // Default to all statuses if not configured
-  const availableStatuses = config?.availableStatuses || [
-    InvoiceStatus.CREATED,
-    InvoiceStatus.LISTED,
-    InvoiceStatus.FULLY_FUNDED,
-    InvoiceStatus.DISBURSED,
-    InvoiceStatus.PENDING_REPAYMENT,
-    InvoiceStatus.FULLY_PAID,
-    InvoiceStatus.REPAID,
-    InvoiceStatus.DEFAULTED,
-    InvoiceStatus.SETTLED,
-  ];
+  // availableStatuses is now required via config prop
+  const availableStatuses = config.availableStatuses;
 
   const handleSearchBlur = () => {
     if (!searchQuery) {
@@ -163,14 +155,29 @@ export function InvoiceMultiView({
       {/* View Content */}
       <div className="min-h-[400px]">
         {currentView === 'table' && (
-          <InvoiceTableView invoices={invoices} baseRoute={baseRoute} config={config} />
+          <InvoiceTableView
+            invoices={invoices}
+            baseRoute={baseRoute}
+            config={config}
+            onRepaymentClick={onRepaymentClick}
+          />
         )}
         {currentView === 'kanban' && (
-          <InvoiceKanbanView invoices={invoices} baseRoute={baseRoute} config={config} />
+          <InvoiceKanbanView
+            invoices={invoices}
+            baseRoute={baseRoute}
+            config={config}
+            onRepaymentClick={onRepaymentClick}
+          />
         )}
         {currentView === 'gantt' && <InvoiceGanttView invoices={invoices} config={config} />}
         {currentView === 'gallery' && (
-          <InvoiceGalleryView invoices={invoices} baseRoute={baseRoute} config={config} />
+          <InvoiceGalleryView
+            invoices={invoices}
+            baseRoute={baseRoute}
+            config={config}
+            onRepaymentClick={onRepaymentClick}
+          />
         )}
       </div>
     </div>
