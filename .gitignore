@@ -38,6 +38,19 @@ wake.toml
 .vscode
 .idea
 
+# Claude Code
+.claude/
+
+# Playwright MCP
+.playwright-mcp/
+
+# Python virtual environment
+.venv/
+
+# Scripts (temporary/demo scripts)
+scripts/
+libs/smart-contracts/scripts/
+
 # Environment
 .env
 .env.local
